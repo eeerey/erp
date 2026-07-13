@@ -63,7 +63,7 @@ export default function ValidasiLogbookPage() {
     }
 
     // Hanya HR dan SUPERADMIN yang bisa akses
-    if (role !== "HR" && role !== "SUPERADMIN") {
+    if (role !== "HR" && role !== "SUPERADMIN" && role !== "SDM") {
       setHasAccess(false);
       return;
     }
