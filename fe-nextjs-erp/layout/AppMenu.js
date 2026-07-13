@@ -241,12 +241,23 @@ if (userRole === "SUPERADMIN") {
                         label: "Stok & Persediaan",
                         icon: "pi pi-fw pi-database",
                         items: [
+                            { label: "Data Barang", icon: "pi pi-fw pi-box", to: "/master/master_barang" },
                             { label: "Data Stok", icon: "pi pi-fw pi-list", to: "/master/stok-lokasi" },
-                            { label: "Stok Opname", icon: "pi pi-fw pi-search", to: "/gudang/stok-opname" },
-                            { label: "Kartu Stok", icon: "pi pi-fw pi-id-card", to: "/gudang/kartu-stok" },
-                            { label: "Minimum Stok Alert", icon: "pi pi-fw pi-exclamation-triangle", to: "/gudang/min-stok" }
+                            { label: "Jenis Barang", icon: "pi pi-fw pi-tags", to: "/master/jenis_barang" },
+                            { label: "Satuan Barang", icon: "pi pi-fw pi-info-circle", to: "/master/satuan_barang" },
+                            //{ label: "Minimum Stok Alert", icon: "pi pi-fw pi-exclamation-triangle", to: "/gudang/min-stok" }
                         ]
                     },
+                    {
+                    label: "Lokasi & Penyimpanan",
+                    icon: "pi pi-fw pi-map",
+                    items: [
+                        { label: "Daftar Gudang", icon: "pi pi-fw pi-map-marker", to: "/master/gudang" },
+                        { label: "Daftar Rak", icon: "pi pi-fw pi-database", to: "/master/rak" },
+                        { label: "Batch Barang", icon: "pi pi-fw pi-clone", to: "/master/batch" },
+
+                    ]
+                },
                     {
                         label: "Barang Masuk",
                         icon: "pi pi-fw pi-arrow-down",
@@ -269,19 +280,19 @@ if (userRole === "SUPERADMIN") {
                 label: "Pembelian & Supplier",
                 icon: "pi pi-fw pi-shopping-cart",
                 items: [
-                    { label: "Purchase Order", icon: "pi pi-fw pi-file-edit", to: "/gudang/purchase-order" },
-                    { label: "Data Supplier", icon: "pi pi-fw pi-building", to: "/gudang/supplier" }
+                    { label: "Purchase Order", icon: "pi pi-fw pi-file-edit", to: "/master/customer" },
+                    { label: "Data Vendor", icon: "pi pi-fw pi-truck", to: "/master/vendor" },
                 ]
             },
-            {
-                label: "Laporan",
-                icon: "pi pi-fw pi-chart-bar",
-                items: [
-                    { label: "Laporan Stok", icon: "pi pi-fw pi-chart-line", to: "/gudang/laporan-stok" },
-                    { label: "Laporan Barang Masuk", icon: "pi pi-fw pi-file", to: "/gudang/laporan-masuk" },
-                    { label: "Laporan Barang Keluar", icon: "pi pi-fw pi-file", to: "/gudang/laporan-keluar" }
-                ]
-            }
+            //{
+                //label: "Laporan",
+                //icon: "pi pi-fw pi-chart-bar",
+                //items: [
+                    //{ label: "Laporan Stok", icon: "pi pi-fw pi-chart-line", to: "/gudang/laporan-stok" },
+                    //{ label: "Laporan Barang Masuk", icon: "pi pi-fw pi-file", to: "/gudang/laporan-masuk" },
+                    //{ label: "Laporan Barang Keluar", icon: "pi pi-fw pi-file", to: "/gudang/laporan-keluar" }
+                //]
+            //}
         ];
     }
 
@@ -393,34 +404,16 @@ if (userRole === "SUPERADMIN") {
                 label: "Manajemen Karyawan",
                 icon: "pi pi-fw pi-users",
                 items: [
-                    {
-                        label: "Data Karyawan",
-                        icon: "pi pi-fw pi-id-card",
-                        items: [
-                            { label: "Data Pegawai", icon: "pi pi-fw pi-users", to: "/hr/karyawan" },
-                            { label: "Struktur Organisasi", icon: "pi pi-fw pi-sitemap", to: "/hr/struktur" },
-                            { label: "Jabatan & Divisi", icon: "pi pi-fw pi-briefcase", to: "/hr/jabatan" }
-                        ]
-                    },
-                    {
-                        label: "Rekrutmen",
-                        icon: "pi pi-fw pi-user-plus",
-                        items: [
-                            { label: "Lowongan Kerja", icon: "pi pi-fw pi-megaphone", to: "/hr/lowongan" },
-                            { label: "Pelamar", icon: "pi pi-fw pi-users", to: "/hr/pelamar" },
-                            { label: "Proses Seleksi", icon: "pi pi-fw pi-filter", to: "/hr/seleksi" }
-                        ]
-                    }
+                    { label: "Data Pegawai", icon: "pi pi-fw pi-users", to: "/master/karyawan" },
+                 
                 ]
             },
             {
                 label: "Absensi & Kehadiran",
                 icon: "pi pi-fw pi-clock",
                 items: [
-                    { label: "Data Absensi", icon: "pi pi-fw pi-calendar-times", to: "/hr/absensi" },
-                    { label: "Jadwal Kerja", icon: "pi pi-fw pi-calendar", to: "/hr/jadwal" },
-                    { label: "Lembur", icon: "pi pi-fw pi-clock", to: "/hr/lembur" },
-                    { label: "Cuti & Izin", icon: "pi pi-fw pi-calendar-minus", to: "/hr/cuti" },
+                    { label: "Data Absensi", icon: "pi pi-fw pi-calendar-times", to: "/master/presensi-karyawan" },
+                    { label: "Master Pengajuan", icon: "pi pi-fw pi-file-export", to: "/master/master_pengajuan" },
                     { label: "Logbook Pekerjaan", icon: "pi pi-fw pi-file", to: "/hr/menu/logbook-pekerjaan" },
                     { label: "Validasi Logbook", icon: "pi pi-fw pi-check-circle", to: "/hr/menu/validasi-logbook" }
                 ]
@@ -429,21 +422,13 @@ if (userRole === "SUPERADMIN") {
                 label: "Penggajian",
                 icon: "pi pi-fw pi-money-bill",
                 items: [
-                    { label: "Slip Gaji", icon: "pi pi-fw pi-wallet", to: "/hr/slip-gaji" },
+                    //{ label: "Slip Gaji", icon: "pi pi-fw pi-wallet", to: "/hr/slip-gaji" },
                     { label: "Komponen Gaji", icon: "pi pi-fw pi-list", to: "/master/komponen-gaji" },
                     { label: "Payroll", icon: "pi pi-fw pi-credit-card", to: "/master/master-payroll" },
-                    { label: "THR & Bonus", icon: "pi pi-fw pi-gift", to: "/hr/thr" }
+                    //{ label: "THR & Bonus", icon: "pi pi-fw pi-gift", to: "/hr/thr" }
                 ]
             },
-            {
-                label: "Pelatihan & Development",
-                icon: "pi pi-fw pi-book",
-                items: [
-                    { label: "Program Pelatihan", icon: "pi pi-fw pi-graduation-cap", to: "/hr/pelatihan" },
-                    { label: "Evaluasi Kinerja", icon: "pi pi-fw pi-star", to: "/hr/evaluasi" },
-                    { label: "Career Path", icon: "pi pi-fw pi-arrow-up-right", to: "/hr/career" }
-                ]
-            },
+            
             {
                 label: "Laporan",
                 icon: "pi pi-fw pi-chart-bar",

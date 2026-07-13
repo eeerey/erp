@@ -161,14 +161,14 @@ export default function MasterPayrollPage() {
     const p = periodeStr();
     if (!p) return;
     try {
-      const res = await axios.get(`${API_URL}/master-payroll/summary`, { headers: auth(), params: { periode: p } });
+      const res = await api.get(`${API_URL}/master-payroll/summary`, { headers: auth(), params: { periode: p } });
       if (res.data.status === "00" && isMounted.current) setSummary(res.data.data);
     } catch { /* silent */ }
   };
 
   const fetchKaryawan = async () => {
     try {
-      const res = await axios.get(`${API_URL}/master-karyawan`, { headers: auth() });
+      const res = await api.get(`${API_URL}/master-karyawan`, { headers: auth() });
       if (res.data.status === "00") {
         setKaryawanList(
           (res.data.data || [])
@@ -207,7 +207,7 @@ export default function MasterPayrollPage() {
           toastRef.current?.showToast("00", res.data.message);
         }
       } else {
-        const res = await axios.post(`${API_URL}/master-payroll/generate`,
+        const res = await api.post(`${API_URL}/master-payroll/generate`,
           { karyawan_id: karyawanId, start_date: startDate, end_date: endDate }, { headers: auth() });
         if (res.data.status === "00") {
           setGenResult([{ status: "success", nama: res.data.data?.NAMA, karyawan_id: karyawanId }]);
@@ -225,7 +225,7 @@ export default function MasterPayrollPage() {
   // ── Detail ────────────────────────────────────────────────────
   const openDetail = async (row) => {
     try {
-      const res = await axios.get(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
+      const res = await api.get(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
       if (res.data.status === "00") {
         setDetailData(res.data.data);
         setModals((p) => ({ ...p, detail: true }));
@@ -245,11 +245,11 @@ export default function MasterPayrollPage() {
       accept: async () => {
         setLoadingAction(true);
         try {
-          await axios.patch(`${API_URL}/master-payroll/${row.ID}/approve`, {}, { headers: auth() });
+          await api.patch(`${API_URL}/master-payroll/${row.ID}/approve`, {}, { headers: auth() });
           toastRef.current?.showToast("00", "Payroll berhasil diapprove");
           fetchData(); fetchSummary();
           if (modals.detail) {
-            const res = await axios.get(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
+            const res = await api.get(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
             if (res.data.status === "00") setDetailData(res.data.data);
           }
         } catch (err) {
@@ -271,11 +271,11 @@ export default function MasterPayrollPage() {
       accept: async () => {
         setLoadingAction(true);
         try {
-          await axios.patch(`${API_URL}/master-payroll/${row.ID}/paid`, {}, { headers: auth() });
+          await api.patch(`${API_URL}/master-payroll/${row.ID}/paid`, {}, { headers: auth() });
           toastRef.current?.showToast("00", "Payroll ditandai Paid");
           fetchData(); fetchSummary();
           if (modals.detail) {
-            const res = await axios.get(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
+            const res = await api.get(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
             if (res.data.status === "00") setDetailData(res.data.data);
           }
         } catch (err) {
@@ -296,7 +296,7 @@ export default function MasterPayrollPage() {
       acceptClassName: "p-button-danger",
       accept: async () => {
         try {
-          await axios.delete(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
+          await api.delete(`${API_URL}/master-payroll/${row.ID}`, { headers: auth() });
           toastRef.current?.showToast("00", "Payroll berhasil dihapus");
           fetchData(); fetchSummary();
         } catch (err) {

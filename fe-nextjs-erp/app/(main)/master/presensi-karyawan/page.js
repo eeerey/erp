@@ -18,6 +18,7 @@ import FormPresensiMasuk from "./components/FormPresensiMasuk";
 import FormPresensiPulang from "./components/FormPresensiPulang";
 import DetailPresensiKaryawan from "./components/DetailPresensiKaryawan";
 import AdjustPrintPresensiKaryawan from "./print/AdjustPrintPresensiKaryawan";
+import api from "@/lib/api";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8100/api").replace(/\/+$/g, "");
 
@@ -142,7 +143,7 @@ export default function PresensiKaryawanPage() {
   const doFetch = async (sd, ed, t = token) => {
     setIsLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/master-presensi/rekap`, {
+      const res = await api.get(`${API_URL}/master-presensi/rekap`, {
         params: { start_date: toYMD(sd), end_date: toYMD(ed) },
         headers: { Authorization: `Bearer ${t}` },
       });
@@ -165,7 +166,7 @@ export default function PresensiKaryawanPage() {
   // ─── Fetch list karyawan ──────────────────────────────────
   const fetchKaryawanList = async () => {
     try {
-      const res = await axios.get(`${API_URL}/master-presensi/list-karyawan`);
+      const res = await api.get(`${API_URL}/master-presensi/list-karyawan`);
       if (res.data.status === "success") {
         setKaryawanOptions(
           res.data.data.map((k) => ({
@@ -193,7 +194,7 @@ export default function PresensiKaryawanPage() {
   const handleSaveMasuk = async (formData) => {
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/master-presensi/masuk`, formData, {
+      const res = await api.post(`${API_URL}/master-presensi/masuk`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.status === "success") {
@@ -213,7 +214,7 @@ export default function PresensiKaryawanPage() {
   const handleSavePulang = async (formData) => {
     setIsLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/master-presensi/pulang`, formData, {
+      const res = await api.post(`${API_URL}/master-presensi/pulang`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (res.data.status === "success") {
@@ -240,7 +241,7 @@ export default function PresensiKaryawanPage() {
       acceptClassName: "p-button-danger",
       accept: async () => {
         try {
-          const res = await axios.delete(`${API_URL}/master-presensi/${rowData.ID}`, {
+          const res = await api.delete(`${API_URL}/master-presensi/${rowData.ID}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.data.status === "success") {

@@ -22,7 +22,8 @@ const getDefaultDateRange = () => {
  * =========================================================== */
 export const getListKaryawan = async (req, res) => {
   try {
-    const rows = await PresensiModel.getListKaryawan();
+    const company_id = req.user?.company_id;
+    const rows = await PresensiModel.getListKaryawan(company_id);
     return res.json({ status: "success", data: rows });
   } catch (error) {
     console.error("getListKaryawan error:", error);
@@ -53,6 +54,7 @@ export const getKaryawanInfo = async (req, res) => {
  * 1. CEK STATUS PRESENSI HARI INI
  * =========================================================== */
 export const cekStatusHarian = async (req, res) => {
+  const company_id = req.user?.company_id;
   const { karyawan_id } = req.query;
   const today = new Date().toISOString().split("T")[0];
 
@@ -60,7 +62,7 @@ export const cekStatusHarian = async (req, res) => {
     return res.status(400).json({ status: "error", message: "ID Karyawan diperlukan" });
 
   try {
-    const data = await PresensiModel.getTodayPresensi(karyawan_id, today);
+    const data = await PresensiModel.getTodayPresensi(karyawan_id, today, company_id);
 
     if (!data)
       return res.json({ status: "success", step: "BELUM_PRESENSI", data: null });
@@ -79,6 +81,7 @@ export const cekStatusHarian = async (req, res) => {
  * 2. PRESENSI MASUK
  * =========================================================== */
 export const presensiMasuk = async (req, res) => {
+  const company_id = req.user?.company_id;
   const { KARYAWAN_ID, STATUS, KETERANGAN, LATITUDE, LONGITUDE, TANGGAL, JAM_MASUK } = req.body;
 
   if (!KARYAWAN_ID) {
@@ -92,7 +95,7 @@ export const presensiMasuk = async (req, res) => {
     const today    = TANGGAL   || new Date().toISOString().split("T")[0];
     const jamInput = JAM_MASUK || new Date().toLocaleTimeString("it-IT");
 
-    const existing = await PresensiModel.getTodayPresensi(KARYAWAN_ID, today);
+    const existing = await PresensiModel.getTodayPresensi(KARYAWAN_ID, today, company_id);
     if (existing) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({
@@ -103,6 +106,7 @@ export const presensiMasuk = async (req, res) => {
 
     const idSuffix = KARYAWAN_ID.split("-")[1] || Math.floor(Math.random() * 1000);
     const payload = {
+      COMPANY_ID: company_id,
       KODE_PRESENSI: `PRS-${today.replace(/-/g, "")}-${idSuffix}`,
       KARYAWAN_ID,
       TANGGAL:      today,
@@ -126,6 +130,7 @@ export const presensiMasuk = async (req, res) => {
  * 3. PRESENSI PULANG
  * =========================================================== */
 export const presensiPulang = async (req, res) => {
+  const company_id = req.user?.company_id;
   const { KARYAWAN_ID, LATITUDE, LONGITUDE, JAM_KELUAR, TANGGAL } = req.body;
 
   if (!KARYAWAN_ID) {
@@ -138,7 +143,7 @@ export const presensiPulang = async (req, res) => {
     const jamInput    = JAM_KELUAR || new Date().toLocaleTimeString("it-IT");
     const fotoPath    = req.file   ? `/uploads/presensi/${req.file.filename}` : null;
 
-    const existing = await PresensiModel.getTodayPresensi(KARYAWAN_ID, tglPresensi);
+    const existing = await PresensiModel.getTodayPresensi(KARYAWAN_ID, tglPresensi, company_id);
     if (!existing) {
       if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ status: "error", message: "Data absen masuk tidak ditemukan!" });
@@ -155,7 +160,7 @@ export const presensiPulang = async (req, res) => {
       FOTO_KELUAR:   fotoPath,
     };
 
-    const result = await PresensiModel.checkOut(KARYAWAN_ID, tglPresensi, dataUpdate);
+    const result =  (company_id, KARYAWAN_ID, tglPresensi, dataUpdate);
     return res.json({ status: "success", message: "Presensi pulang berhasil", data: result });
   } catch (error) {
     if (req.file) fs.unlinkSync(req.file.path);
@@ -169,6 +174,7 @@ export const presensiPulang = async (req, res) => {
  * =========================================================== */
 export const getRekap = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const { start_date, end_date } = req.query;
 
     // Jika tidak ada filter tanggal → default bulan berjalan
@@ -195,6 +201,7 @@ export const getRekap = async (req, res) => {
 
     const data = await PresensiModel.getAllPresensi({
       ...req.query,
+      company_id,
       start_date: sd,
       end_date:   ed,
     });
@@ -210,13 +217,14 @@ export const getRekap = async (req, res) => {
  * 5. HAPUS DATA
  * =========================================================== */
 export const remove = async (req, res) => {
+  const company_id = req.user.company_id;
   const { id } = req.params;
   try {
-    const data = await PresensiModel.getPresensiById(id);
+    const data = await PresensiModel.getPresensiById(id, company_id);
     if (!data)
       return res.status(404).json({ status: "error", message: "Data tidak ditemukan" });
 
-    await PresensiModel.deletePresensi(id);
+    await PresensiModel.deletePresensi(id,  company_id);
 
     [data.FOTO_MASUK, data.FOTO_KELUAR].forEach((foto) => {
       if (foto) {

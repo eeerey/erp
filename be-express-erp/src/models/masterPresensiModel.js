@@ -16,23 +16,25 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 /* --- 1. GET LIST KARYAWAN AKTIF --- */
-export const getListKaryawan = async () => {
+export const getListKaryawan = async (company_id) => {
   return db("master_karyawan")
     .select("KARYAWAN_ID", "NAMA", "JABATAN", "DEPARTEMEN")
     .where("STATUS_AKTIF", "Aktif")
+    .where("COMPANY_ID", company_id)
     .orderBy("NAMA", "asc");
 };
 
 /* --- 2. CEK PRESENSI HARI INI --- */
-export const getTodayPresensi = async (karyawanId, tanggal) => {
+export const getTodayPresensi = async (karyawanId, tanggal, company_id) => {
   return db("master_presensi")
+    .where("COMPANY_ID", company_id)
     .where({ KARYAWAN_ID: karyawanId, TANGGAL: tanggal })
     .first();
 };
 
 /* --- 3. GET BY ID (untuk delete & validasi foto) --- */
-export const getPresensiById = async (id) => {
-  return db("master_presensi").where("ID", id).first();
+export const getPresensiById = async (id, company_id) => {
+  return db("master_presensi").where("COMPANY_ID", company_id).where("ID", id).first();
 };
 
 /* --- 4. ABSEN MASUK --- */
@@ -45,6 +47,7 @@ export const checkIn = async (payload) => {
   }
 
   const finalData = {
+    COMPANY_ID:    payload.COMPANY_ID,
     KODE_PRESENSI: payload.KODE_PRESENSI || `PRS-${Date.now()}`,
     KARYAWAN_ID:   payload.KARYAWAN_ID,
     TANGGAL:       payload.TANGGAL,
@@ -64,7 +67,7 @@ export const checkIn = async (payload) => {
 };
 
 /* --- 5. ABSEN PULANG --- */
-export const checkOut = async (karyawanId, tanggal, data) => {
+export const checkOut = async (company_id, karyawanId, tanggal, data) => {
   const setting = await db("master_perusahaan").first();
 
   let isPulangAwal = 0;
@@ -73,6 +76,7 @@ export const checkOut = async (karyawanId, tanggal, data) => {
   }
 
   await db("master_presensi")
+   .where("COMPANY_ID", company_id)
     .where({ KARYAWAN_ID: karyawanId, TANGGAL: tanggal })
     .update({
       JAM_KELUAR:    data.JAM_KELUAR,
@@ -82,17 +86,19 @@ export const checkOut = async (karyawanId, tanggal, data) => {
       updated_at:    db.fn.now(),
     });
 
-  return getTodayPresensi(karyawanId, tanggal);
+  return getTodayPresensi(karyawanId, tanggal, company_id);
 };
 
 /* --- 6. GET REKAP (dengan filter tanggal) --- */
 export const getAllPresensi = async (params = {}) => {
+  const company_id = params.company_id;
   // ✅ FIX: support snake_case (dari controller) maupun camelCase
   const startDate = params.start_date || params.startDate || null;
   const endDate   = params.end_date   || params.endDate   || null;
   const karyawanId = params.karyawan_id || params.karyawanId || null;
 
   const query = db("master_presensi as p")
+   .where("p.COMPANY_ID", company_id)
     .leftJoin("master_karyawan as k", "p.KARYAWAN_ID", "k.KARYAWAN_ID")
     .select(
       "p.*",
@@ -116,6 +122,6 @@ export const getAllPresensi = async (params = {}) => {
 };
 
 /* --- 7. DELETE --- */
-export const deletePresensi = async (id) => {
-  return db("master_presensi").where("ID", id).del();
+export const deletePresensi = async (id, company_id) => {
+  return db("master_presensi").where("COMPANY_ID", company_id).where("ID", id).del();
 };

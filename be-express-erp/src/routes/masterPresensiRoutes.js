@@ -11,27 +11,19 @@ const router = express.Router();
  * =========================================================== */
 
 // GET  /api/master-presensi/list-karyawan
-router.get("/list-karyawan", PresensiController.getListKaryawan);
+router.get("/list-karyawan",  verifyToken, PresensiController.getListKaryawan);
 
 // GET  /api/master-presensi/karyawan-info?id=KRY-0008
-router.get("/karyawan-info", PresensiController.getKaryawanInfo);
+router.get("/karyawan-info", verifyToken, PresensiController.getKaryawanInfo);
 
 // GET  /api/master-presensi/status?karyawan_id=KRY-0001
-router.get("/status", PresensiController.cekStatusHarian);
+router.get("/status", verifyToken, PresensiController.cekStatusHarian);
 
 // POST /api/master-presensi/masuk
-router.post(
-  "/masuk",
-  uploadPresensi.single("FOTO_MASUK"),
-  PresensiController.presensiMasuk
-);
+router.post("/masuk", verifyToken, uploadPresensi.single("FOTO_MASUK"), PresensiController.presensiMasuk);
 
 // POST /api/master-presensi/pulang
-router.post(
-  "/pulang",
-  uploadPresensi.single("FOTO_KELUAR"),
-  PresensiController.presensiPulang
-);
+router.post("/pulang", verifyToken, uploadPresensi.single("FOTO_KELUAR"), PresensiController.presensiPulang);
 
 /* ===========================================================
  * PROTECTED ROUTES (Wajib Token + Role)

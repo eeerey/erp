@@ -37,6 +37,7 @@ export const getSummary = async (req, res) => {
 
 export const preview = async (req, res) => {
   try {
+    const company_id = req.user?.company_id;
     const { karyawan_id, start_date, end_date } = req.query;
     if (!karyawan_id || !start_date || !end_date)
       return res.status(400).json({ status: status.BAD_REQUEST, message: "karyawan_id, start_date, end_date wajib", datetime: datetime() });
@@ -93,8 +94,9 @@ export const generateBulk = async (req, res) => {
 
 export const approve = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const approvedBy = req.user?.karyawan_id || req.user?.email || "SYSTEM";
-    const data = await Model.approvePayroll(req.params.id, approvedBy);
+    const data = await Model.approvePayroll(req.params.id, approvedBy, company_id);
     return res.json({ status: status.SUKSES, message: "Payroll berhasil diapprove", datetime: datetime(), data });
   } catch (err) {
     return res.status(400).json({ status: status.GAGAL, message: err.message, datetime: datetime() });
@@ -103,20 +105,45 @@ export const approve = async (req, res) => {
 
 export const markPaid = async (req, res) => {
   try {
+    const company_id = req.user.company_id;
     const paidBy = req.user?.karyawan_id || req.user?.email || "SYSTEM";
-    const data = await Model.markAsPaid(req.params.id, paidBy);
+    const data = await Model.markAsPaid(req.params.id, paidBy, company_id);
     return res.json({ status: status.SUKSES, message: "Payroll ditandai sudah dibayar", datetime: datetime(), data });
   } catch (err) {
     return res.status(400).json({ status: status.GAGAL, message: err.message, datetime: datetime() });
   }
 };
 
+
 export const remove = async (req, res) => {
   try {
-    await Model.remove(req.params.id);
-    return res.json({ status: status.SUKSES, message: "Payroll berhasil dihapus", datetime: datetime() });
+    console.log("REQ USER =", req.user);
+
+    const company_id = req.user?.company_id;
+
+    if (!company_id) {
+      return res.status(401).json({
+        status: status.GAGAL,
+        message: "company_id tidak ditemukan pada token",
+        datetime: datetime(),
+      });
+    }
+
+    await Model.remove(req.params.id, company_id);
+
+    return res.json({
+      status: status.SUKSES,
+      message: "Payroll berhasil dihapus",
+      datetime: datetime(),
+    });
   } catch (err) {
-    return res.status(400).json({ status: status.GAGAL, message: err.message, datetime: datetime() });
+    console.error("DELETE ERROR:", err);
+
+    return res.status(400).json({
+      status: status.GAGAL,
+      message: err.message,
+      datetime: datetime(),
+    });
   }
 };
 

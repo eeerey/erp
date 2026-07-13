@@ -162,9 +162,10 @@ export const getById = async (id, company_id) => {
 // ─────────────────────────────────────────────────────────────
 // GET BY KARYAWAN + PERIODE
 // ─────────────────────────────────────────────────────────────
-export const getByKaryawanPeriode = async (karyawanId, periode) => {
+export const getByKaryawanPeriode = async (karyawanId, periode, companyId) => {
   return db("master_payroll")
     .where("KARYAWAN_ID", karyawanId)
+    .where("COMPANY_ID", companyId)
     .where("PERIODE", periode)
     .first();
 };
@@ -172,12 +173,12 @@ export const getByKaryawanPeriode = async (karyawanId, periode) => {
 // ─────────────────────────────────────────────────────────────
 // HITUNG PAYROLL (core logic)
 // ─────────────────────────────────────────────────────────────
-export const hitungPayroll = async (karyawanId, periodeStart, periodeEnd) => {
+export const hitungPayroll = async (karyawanId, periodeStart, periodeEnd, companyId) => {
   const sd = toDateStr(periodeStart);
   const ed = toDateStr(periodeEnd);
 
   // 1. Resolve komponen gaji (jabatan + override)
-  const komponen = await resolveKomponenGaji(karyawanId);
+  const komponen = await resolveKomponenGaji(karyawanId,  companyId);
 
   // 2. Ambil shift karyawan
   const shiftNama = komponen.karyawan?.SHIFT || null;
@@ -298,19 +299,19 @@ export const hitungPayroll = async (karyawanId, periodeStart, periodeEnd) => {
 // ─────────────────────────────────────────────────────────────
 // GENERATE & SIMPAN PAYROLL
 // ─────────────────────────────────────────────────────────────
-export const generatePayroll = async (karyawanId, periodeStart, periodeEnd) => {
+export const generatePayroll = async (karyawanId, periodeStart, periodeEnd, companyId) => {
   const sd      = toDateStr(periodeStart);
   const periode = sd.substring(0, 7) + "-01";
 
-  const existing = await getByKaryawanPeriode(karyawanId, periode);
+  const existing = await getByKaryawanPeriode(karyawanId, periode, companyId);
   if (existing) throw new Error(`Payroll ${karyawanId} periode ${periode} sudah ada (ID: ${existing.ID})`);
 
-  const hasil = await hitungPayroll(karyawanId, periodeStart, periodeEnd);
+  const hasil = await hitungPayroll(karyawanId, periodeStart, periodeEnd,  companyId);
   const kode  = generateKodePayroll(karyawanId, periode);
 
   const [id] = await db("master_payroll").insert({
     KODE_PAYROLL                : kode,
-    COMPANY_ID: hasil.karyawan.COMPANY_ID,
+     COMPANY_ID: companyId,
     KARYAWAN_ID                 : karyawanId,
     PERIODE                     : periode,
     JABATAN_SNAPSHOT            : hasil.karyawan.JABATAN,
@@ -348,7 +349,7 @@ export const generatePayroll = async (karyawanId, periodeStart, periodeEnd) => {
     STATUS                      : "Draft",
   });
 
-  return getById(id);
+  return getById(id, companyId);
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -363,7 +364,7 @@ export const generatePayrollBulk = async (company_id, periodeStart, periodeEnd) 
   const results = [];
   for (const k of karyawanList) {
     try {
-      const payroll = await generatePayroll(k.KARYAWAN_ID, periodeStart, periodeEnd);
+      const payroll = await generatePayroll(k.KARYAWAN_ID, periodeStart, periodeEnd,company_id);
       results.push({ status: "success", karyawan_id: k.KARYAWAN_ID, nama: k.NAMA, payroll_id: payroll.ID });
     } catch (err) {
       results.push({ status: "skipped", karyawan_id: k.KARYAWAN_ID, nama: k.NAMA, reason: err.message });
@@ -375,52 +376,78 @@ export const generatePayrollBulk = async (company_id, periodeStart, periodeEnd) 
 // ─────────────────────────────────────────────────────────────
 // APPROVE
 // ─────────────────────────────────────────────────────────────
-export const approvePayroll = async (id, approvedBy) => {
-  const payroll = await getById(id);
+export const approvePayroll = async (id, approvedBy, companyId) => {
+  const company_id = req.user.company_id;
+  const payroll = await getById(id, companyId);
   if (!payroll) throw new Error("Payroll tidak ditemukan");
   if (payroll.STATUS !== "Draft") throw new Error(`Payroll sudah berstatus ${payroll.STATUS}`);
 
-  await db("master_payroll").where("ID", id).update({
+  await db("master_payroll").where("ID", id).where("COMPANY_ID", companyId).update({
     STATUS      : "Approved",
     APPROVED_BY : approvedBy,
     APPROVED_AT : db.fn.now(),
     updated_at  : db.fn.now(),
   });
-  return getById(id);
+  return getById(id, companyId);
 };
 
 // ─────────────────────────────────────────────────────────────
 // MARK AS PAID
 // ─────────────────────────────────────────────────────────────
-export const markAsPaid = async (id, paidBy) => {
-  const payroll = await getById(id);
+export const markAsPaid = async (id, paidBy, companyId) => {
+  const payroll = await getById(id,companyId);
+  const company_id = req.user.company_id;
   if (!payroll) throw new Error("Payroll tidak ditemukan");
   if (payroll.STATUS !== "Approved") throw new Error("Payroll harus Approved sebelum Paid");
 
-  await db("master_payroll").where("ID", id).update({
+  await db("master_payroll").where("ID", id).where("COMPANY_ID", companyId).update({
     STATUS    : "Paid",
     PAID_BY   : paidBy,
     PAID_AT   : db.fn.now(),
     updated_at: db.fn.now(),
   });
-  return getById(id);
+  return getById(id, companyId);
 };
 
 // ─────────────────────────────────────────────────────────────
 // DELETE (hanya Draft)
 // ─────────────────────────────────────────────────────────────
-export const remove = async (id) => {
-  const payroll = await getById(id);
-  if (!payroll) throw new Error("Payroll tidak ditemukan");
-  if (payroll.STATUS !== "Draft") throw new Error("Hanya payroll Draft yang bisa dihapus");
-  return db("master_payroll").where("ID", id).delete();
+export const remove = async (id, company_id) => {
+  console.log("MODEL DELETE");
+  console.log("ID =", id);
+  console.log("COMPANY =", company_id);
+
+  if (!company_id) {
+    throw new Error("company_id tidak ditemukan");
+  }
+
+  const payroll = await getById(id, company_id);
+
+  if (!payroll) {
+    throw new Error("Payroll tidak ditemukan");
+  }
+
+  if (payroll.STATUS !== "Draft") {
+    throw new Error("Hanya payroll Draft yang bisa dihapus");
+  }
+
+  const deleted = await db("master_payroll")
+    .where("ID", id)
+    .where("COMPANY_ID", company_id)
+    .delete();
+
+  if (!deleted) {
+    throw new Error("Payroll gagal dihapus");
+  }
+
+  return true;
 };
 
 // ─────────────────────────────────────────────────────────────
 // PREVIEW (hitung tanpa simpan)
 // ─────────────────────────────────────────────────────────────
-export const previewPayroll = async (karyawanId, periodeStart, periodeEnd) => {
-  return hitungPayroll(karyawanId, periodeStart, periodeEnd);
+export const previewPayroll = async (karyawanId, periodeStart, periodeEnd, companyId) => {
+  return hitungPayroll(karyawanId, periodeStart, periodeEnd, companyId);
 };
 
 // ─────────────────────────────────────────────────────────────

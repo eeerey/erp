@@ -14,7 +14,8 @@ export const getBarangById = async (ID, companyId) => {
     .select("mb.*", "mj.NAMA_JENIS", "ms.NAMA_SATUAN")
     .leftJoin("master_jenis_barang as mj", "mb.JENIS_ID", "mj.ID")
     .leftJoin("master_satuan_barang as ms", "mb.SATUAN_ID", "ms.ID")
-    .where("mb.ID", ID, "mb.company_id", companyId,)
+    .where("mb.ID", ID)
+    .where("mb.company_id", companyId)
     .first();
 };
 
