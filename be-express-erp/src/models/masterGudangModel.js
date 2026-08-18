@@ -3,22 +3,34 @@ import { db } from "../core/config/knex.js";
 /**
  * Get all gudang
  **/
-export const getAllGudang = async () => {
-  return db("MASTER_GUDANG").select("*").orderBy("KODE_GUDANG", "asc");
+export const getAllGudang = async (companyId) => {
+  return db("MASTER_GUDANG")
+    .where("id_company", companyId)
+    .select("*")
+    .orderBy("KODE_GUDANG", "asc");
 };
-
 /**
  * Get gudang by ID (Primary Key)
  **/
-export const getGudangById = async (ID_GUDANG) => {
-  return db("MASTER_GUDANG").where({ ID_GUDANG }).first();
+export const getGudangById = async (ID_GUDANG, companyId) => {
+  return db("MASTER_GUDANG")
+    .where({
+      ID_GUDANG,
+      id_company: companyId,
+    })
+    .first();
 };
 
 /**
  * Get gudang by KODE_GUDANG (kode unik)
  **/
-export const getGudangByKode = async (kode) => {
-  return db("MASTER_GUDANG").where({ KODE_GUDANG: kode }).first();
+export const getGudangByKode = async (kode, companyId) => {
+  return db("MASTER_GUDANG")
+    .where({
+      KODE_GUDANG: kode,
+      id_company: companyId,
+    })
+    .first();
 };
 
 /**
@@ -29,6 +41,7 @@ export const createGudang = async ({
   NAMA_GUDANG,
   ALAMAT,
   STATUS,
+  id_company,
 }) => {
   if (!KODE_GUDANG || !NAMA_GUDANG) {
     throw new Error("KODE_GUDANG dan NAMA_GUDANG wajib diisi");
@@ -39,6 +52,7 @@ export const createGudang = async ({
     NAMA_GUDANG,
     ALAMAT: ALAMAT ?? null,
     STATUS: STATUS ?? "Aktif",
+    id_company,
     CREATED_AT: db.fn.now(),
     UPDATED_AT: db.fn.now(),
   });
@@ -51,7 +65,8 @@ export const createGudang = async ({
  **/
 export const updateGudang = async (
   ID_GUDANG,
-  { KODE_GUDANG, NAMA_GUDANG, ALAMAT, STATUS }
+  companyId,
+  { KODE_GUDANG, NAMA_GUDANG, ALAMAT, STATUS },
 ) => {
   const dataToUpdate = {
     updated_at: db.fn.now(),
@@ -62,7 +77,12 @@ export const updateGudang = async (
   if (ALAMAT !== undefined) dataToUpdate.ALAMAT = ALAMAT;
   if (STATUS !== undefined) dataToUpdate.STATUS = STATUS;
 
-  await db("MASTER_GUDANG").where({ ID_GUDANG }).update(dataToUpdate);
+  await db("MASTER_GUDANG")
+    .where({
+      ID_GUDANG,
+      id_company: companyId,
+    })
+    .update(dataToUpdate);
 
   return db("MASTER_GUDANG").where({ ID_GUDANG }).first();
 };
@@ -70,6 +90,11 @@ export const updateGudang = async (
 /**
  * Delete gudang
  **/
-export const deleteGudang = async (ID_GUDANG) => {
-  return db("MASTER_GUDANG").where({ ID_GUDANG }).del();
+export const deleteGudang = async (ID_GUDANG, companyId) => {
+  return db("MASTER_GUDANG")
+    .where({
+      ID_GUDANG,
+      id_company: companyId,
+    })
+    .del();
 };

@@ -7,6 +7,7 @@ const knexConfig = {
     client: String(process.env.DB_CLIENT) || "mysql",
     connection: {
       host: String(process.env.DB_HOST) || "localhost",
+      port: Number(process.env.DB_PORT) || 3307,
       user: String(process.env.DB_USERNAME) || "root",
       password: String(process.env.DB_PASSWORD) || "",
       database: String(process.env.DB_NAME) || "",
@@ -21,6 +22,7 @@ const knexConfig = {
     client: String(process.env.DB_CLIENT) || "mysql",
     connection: {
       host: String(process.env.DB_HOST) || "localhost",
+      port: Number(process.env.DB_PORT) || 3307,
       user: String(process.env.DB_USERNAME) || "root",
       password: String(process.env.DB_PASSWORD) || "",
       database: String(process.env.DB_NAME) || "",

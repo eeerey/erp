@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "primereact/button";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
@@ -10,8 +9,7 @@ import ToastNotifier from "../../../../components/ToastNotifier";
 import CustomDataTable from "../../../../components/DataTable";
 import HeaderBar from "../../../../components/headerbar";
 import FormProduksi from "./components/FormProduksi";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import api from "@/lib/api";
 
 export default function ProduksiPage() {
   const toastRef = useRef(null);
@@ -25,24 +23,32 @@ export default function ProduksiPage() {
 
   useEffect(() => {
     fetchData();
+
     return () => {
       isMounted.current = false;
     };
   }, []);
 
-  // ✅ FIX: tambahin /api
   const fetchData = async () => {
     setIsLoading(true);
+
     try {
-      const res = await axios.get(`${API_URL}/jenis-produksi`);
+      const res = await api.get("/jenis-produksi");
+
       if (res.data.status === "00") {
         setDataList(res.data.data || []);
         setOriginalData(res.data.data || []);
       }
     } catch (err) {
-      toastRef.current?.showToast("01", "Gagal memuat data produksi");
+      console.error(err);
+      toastRef.current?.showToast(
+        "01",
+        err.response?.data?.message || "Gagal memuat data produksi"
+      );
     } finally {
-      if (isMounted.current) setIsLoading(false);
+      if (isMounted.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -51,32 +57,60 @@ export default function ProduksiPage() {
       setDataList(originalData);
       return;
     }
-    const filtered = originalData.filter(v => 
-      v.NAMA_PRODUK?.toLowerCase().includes(keyword.toLowerCase()) || 
-      v.NO_BATCH?.toLowerCase().includes(keyword.toLowerCase()) ||
-      v.BARANG_KODE?.toLowerCase().includes(keyword.toLowerCase())
+
+    const lowerKeyword = keyword.toLowerCase();
+
+    const filtered = originalData.filter(
+      (v) =>
+        v.NAMA_PRODUK?.toLowerCase().includes(lowerKeyword) ||
+        v.NO_BATCH?.toLowerCase().includes(lowerKeyword) ||
+        v.BARANG_KODE?.toLowerCase().includes(lowerKeyword)
     );
+
     setDataList(filtered);
   };
 
-  // ✅ FIX: semua endpoint pakai /api
   const handleSubmit = async (payload) => {
     try {
       let res;
+
       if (selectedData) {
-        res = await axios.put(`${API_URL}/api/jenis-produksi/${selectedData.ID}`, payload);
+        res = await api.put(
+          `/jenis-produksi/${selectedData.ID}`,
+          payload
+        );
       } else {
-        res = await axios.post(`${API_URL}/api/jenis-produksi`, payload);
+        res = await api.post(
+          "/jenis-produksi",
+          payload
+        );
       }
 
       if (res.data.status === "00") {
-        toastRef.current?.showToast("00", "Data produksi berhasil disimpan");
+        toastRef.current?.showToast(
+          "00",
+          selectedData
+            ? "Data berhasil diperbarui"
+            : "Data berhasil ditambahkan"
+        );
+
         setDialogVisible(false);
+        setSelectedData(null);
+
         fetchData();
+      } else {
+        toastRef.current?.showToast(
+          "01",
+          res.data.message || "Gagal menyimpan data"
+        );
       }
     } catch (err) {
-      console.error(err); // 🔥 biar keliatan error aslinya
-      toastRef.current?.showToast("01", "Gagal menyimpan data produksi");
+      console.error(err);
+
+      toastRef.current?.showToast(
+        "01",
+        err.response?.data?.message || "Terjadi kesalahan server"
+      );
     }
   };
 
@@ -85,71 +119,120 @@ export default function ProduksiPage() {
       message: `Yakin hapus produksi batch "${rowData.NO_BATCH}"?`,
       header: "Konfirmasi Hapus",
       icon: "pi pi-exclamation-triangle",
-      acceptLabel: "Ya, Hapus",
+      acceptLabel: "Ya",
       rejectLabel: "Batal",
       acceptClassName: "p-button-danger",
+
       accept: async () => {
         try {
-          const res = await axios.delete(`${API_URL}/api/jenis-produksi/${rowData.ID}`);
+          const res = await api.delete(
+            `/jenis-produksi/${rowData.ID}`
+          );
 
           if (res.data.status === "00") {
-            toastRef.current?.showToast("00", "Data berhasil dihapus");
+            toastRef.current?.showToast(
+              "00",
+              "Data berhasil dihapus"
+            );
+
             fetchData();
           }
         } catch (err) {
           console.error(err);
-          toastRef.current?.showToast("01", "Data tidak bisa dihapus");
+
+          toastRef.current?.showToast(
+            "01",
+            err.response?.data?.message || "Gagal menghapus data"
+          );
         }
-      }
+      },
     });
   };
 
   const columns = [
-    { field: "ID_JENIS_PRODUKSI", header: "ID", sortable: true },
-    { field: "NAMA_PRODUK", header: "Nama Produk", sortable: true },
-    { field: "BARANG_KODE", header: "Kode Barang", sortable: true },
-    { field: "NO_BATCH", header: "No Batch", sortable: true },
-    { field: "TARGET", header: "Target", sortable: true },
-    { field: "HASIL", header: "Hasil", sortable: true },
-    { field: "GAGAL", header: "Gagal", sortable: true },
-    { 
-      field: "SKALA", 
-      header: "Skala", 
-      body: (row) => (
-        <Tag 
-          value={row.SKALA} 
-          severity={
-            row.SKALA === "massal" ? "danger" :
-            row.SKALA === "sedang" ? "warning" : "success"
-          } 
-        />
-      )
+    {
+      field: "ID_JENIS_PRODUKSI",
+      header: "ID",
+      sortable: true,
     },
-    { field: "TUJUAN", header: "Tujuan", sortable: true },
+    {
+      field: "NAMA_PRODUK",
+      header: "Nama Produk",
+      sortable: true,
+    },
+    {
+      field: "BARANG_KODE",
+      header: "Kode Barang",
+      sortable: true,
+    },
+    {
+      field: "NO_BATCH",
+      header: "No Batch",
+      sortable: true,
+    },
+    {
+      field: "TARGET",
+      header: "Target",
+      sortable: true,
+    },
+    {
+      field: "HASIL",
+      header: "Hasil",
+      sortable: true,
+    },
+    {
+      field: "GAGAL",
+      header: "Gagal",
+      sortable: true,
+    },
+    {
+      field: "SKALA",
+      header: "Skala",
+      body: (row) => (
+        <Tag
+          value={row.SKALA}
+          severity={
+            row.SKALA === "massal"
+              ? "danger"
+              : row.SKALA === "sedang"
+              ? "warning"
+              : "success"
+          }
+        />
+      ),
+    },
+    {
+      field: "TUJUAN",
+      header: "Tujuan",
+      sortable: true,
+    },
     {
       header: "Aksi",
       body: (rowData) => (
         <div className="flex gap-2">
           <Button
             icon="pi pi-pencil"
-            size="small"
             severity="warning"
+            size="small"
             tooltip="Edit"
             onClick={() => {
               setSelectedData(rowData);
               setDialogVisible(true);
             }}
           />
+
           <Button
             icon="pi pi-trash"
-            size="small"
             severity="danger"
+            size="small"
             tooltip="Hapus"
             onClick={() => handleDelete(rowData)}
           />
         </div>
       ),
-      style: { width: "120px" },
+      style: {
+        width: "120px",
+      },
     },
   ];
 
@@ -158,30 +241,35 @@ export default function ProduksiPage() {
       <ToastNotifier ref={toastRef} />
       <ConfirmDialog />
 
-      <h3 className="text-xl font-semibold mb-3">Data Produksi</h3>
+      <h3 className="text-xl font-semibold mb-3">
+        Data Produksi
+      </h3>
 
-      <HeaderBar 
-        onSearch={handleSearch} 
-        onAddClick={() => { 
-          setSelectedData(null); 
-          setDialogVisible(true); 
-        }} 
-        showAddButton={true} 
+      <HeaderBar
         placeholder="Cari nama produk, kode barang, atau batch..."
+        onSearch={handleSearch}
+        onAddClick={() => {
+          setSelectedData(null);
+          setDialogVisible(true);
+        }}
+        showAddButton={true}
       />
 
-      <CustomDataTable 
-        data={dataList} 
-        loading={isLoading} 
-        columns={columns} 
+      <CustomDataTable
+        data={dataList}
+        loading={isLoading}
+        columns={columns}
         emptyMessage="Data produksi tidak ditemukan."
       />
 
-      <FormProduksi 
-        visible={dialogVisible} 
-        onHide={() => setDialogVisible(false)} 
-        onSave={handleSubmit} 
-        selectedData={selectedData} 
+      <FormProduksi
+        visible={dialogVisible}
+        onHide={() => {
+          setDialogVisible(false);
+          setSelectedData(null);
+        }}
+        selectedData={selectedData}
+        onSave={handleSubmit}
       />
     </div>
   );

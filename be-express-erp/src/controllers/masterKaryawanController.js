@@ -2,10 +2,10 @@
 import * as KaryawanModel from "../models/masterKaryawanModel.js";
 import { db } from "../core/config/knex.js";
 import { datetime, status } from "../utils/general.js";
-import { 
+import {
   createKaryawan as createKaryawanFromAuth, // ✅ Rename untuk clarity
-  checkEmailExists, 
-  checkNikExists 
+  checkEmailExists,
+  checkNikExists,
 } from "../models/authModel.js";
 
 /**
@@ -14,16 +14,37 @@ import {
 export const createKaryawan = async (req, res) => {
   try {
     const {
-      nik, nama, gender, tempat_lahir, tgl_lahir, alamat, no_telp,
-      email, password, departemen, jabatan, tanggal_masuk, 
-      status_karyawan, shift, pendidikan_terakhir,
+      nik,
+      nama,
+      gender,
+      tempat_lahir,
+      tgl_lahir,
+      alamat,
+      no_telp,
+      email,
+      password,
+      departemen,
+      jabatan,
+      tanggal_masuk,
+      status_karyawan,
+      shift,
+      pendidikan_terakhir,
     } = req.body;
 
     // ✅ Validasi field wajib
-    if (!nik || !nama || !gender || !email || !password || !departemen || !jabatan) {
+    if (
+      !nik ||
+      !nama ||
+      !gender ||
+      !email ||
+      !password ||
+      !departemen ||
+      !jabatan
+    ) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
-        message: "NIK, Nama, Gender, Email, Password, Departemen, dan Jabatan wajib diisi",
+        message:
+          "NIK, Nama, Gender, Email, Password, Departemen, dan Jabatan wajib diisi",
         datetime: datetime(),
       });
     }
@@ -49,12 +70,15 @@ export const createKaryawan = async (req, res) => {
     }
 
     // ✅ Handle foto upload
-    const fotoFile = req.file ? `/uploads/foto_karyawan/${req.file.filename}` : null;
+    const fotoFile = req.file
+      ? `/uploads/foto_karyawan/${req.file.filename}`
+      : null;
     const companyId = req.user.company_id;
-    // ✅ Gunakan fungsi dari authModel (sudah auto hash password + generate KARYAWAN_ID)
+
+    // ✅ Gunakan fungsi dari authModel
     const { userId, karyawanId, id } = await createKaryawanFromAuth(
       {
-        COMPANY_ID: companyId, // tambah
+        COMPANY_ID: companyId,
         EMAIL: email,
         NIK: nik,
         NAMA: nama,
@@ -66,8 +90,8 @@ export const createKaryawan = async (req, res) => {
         DEPARTEMEN: departemen,
         JABATAN: jabatan,
         TANGGAL_MASUK: tanggal_masuk || new Date(),
-        STATUS_KARYAWAN: status_karyawan || 'Kontrak',
-        STATUS_AKTIF: 'Aktif',
+        STATUS_KARYAWAN: status_karyawan || "Kontrak",
+        STATUS_AKTIF: "Aktif",
         SHIFT: shift || null,
         PENDIDIKAN_TERAKHIR: pendidikan_terakhir || null,
         FOTO: fotoFile,
@@ -75,22 +99,25 @@ export const createKaryawan = async (req, res) => {
       {
         name: nama,
         email: email,
-        password: password, // ✅ Akan di-hash otomatis di authModel
-        role: departemen, // ✅ Role = departemen (HR, PRODUKSI, GUDANG, KEUANGAN)
-        company_id: companyId, // tambah
-      }
+        password: password,
+        role: departemen,
+        company_id: companyId,
+        is_verified: true, // 👈 TAMBAHKAN INI agar user langsung terverifikasi tanpa OTP!
+      },
+      // Argumen ke-3 (verificationData) sengaja ditiadakan agar tidak membuat OTP
     );
 
     return res.status(201).json({
       status: status.SUKSES,
-      message: "Karyawan berhasil ditambahkan",
+      message: "Karyawan berhasil ditambahkan dan akun langsung aktif!",
       datetime: datetime(),
-      karyawan_id: karyawanId, // ✅ Return KARYAWAN_ID (KRY-0001)
+      karyawan_id: karyawanId,
       user: {
         id: userId,
         name: nama,
         email: email,
         role: departemen,
+        is_verified: true,
       },
     });
   } catch (err) {
@@ -135,8 +162,11 @@ export const getAllKaryawan = async (req, res) => {
  */
 export const getKaryawanById = async (req, res) => {
   try {
-    const data = await KaryawanModel.getKaryawanByIdWithUser(req.params.id,  req.user.company_id);
-    
+    const data = await KaryawanModel.getKaryawanByIdWithUser(
+      req.params.id,
+      req.user.company_id,
+    );
+
     if (!data) {
       return res.status(404).json({
         status: status.GAGAL,
@@ -144,7 +174,7 @@ export const getKaryawanById = async (req, res) => {
         datetime: datetime(),
       });
     }
-    
+
     return res.status(200).json({
       status: status.SUKSES,
       message: "Data karyawan ditemukan",
@@ -167,7 +197,10 @@ export const getKaryawanById = async (req, res) => {
 export const getKaryawanByDepartemenController = async (req, res) => {
   try {
     const { departemen } = req.params;
-    const karyawanList = await KaryawanModel.getKaryawanByDepartemen(departemen, req.user.company_id);
+    const karyawanList = await KaryawanModel.getKaryawanByDepartemen(
+      departemen,
+      req.user.company_id,
+    );
 
     if (!karyawanList || karyawanList.length === 0) {
       return res.status(404).json({
@@ -200,7 +233,10 @@ export const getKaryawanByDepartemenController = async (req, res) => {
 export const getKaryawanByJabatanController = async (req, res) => {
   try {
     const { jabatan } = req.params;
-    const karyawanList = await KaryawanModel.getKaryawanByJabatan(jabatan, req.user.company_id);
+    const karyawanList = await KaryawanModel.getKaryawanByJabatan(
+      jabatan,
+      req.user.company_id,
+    );
 
     if (!karyawanList || karyawanList.length === 0) {
       return res.status(404).json({
@@ -234,11 +270,11 @@ export const updateKaryawan = async (req, res) => {
   try {
     const karyawanId = req.params.id;
     const existingKaryawan = await db("master_karyawan")
-    .where({
+      .where({
         ID: karyawanId,
-        company_id: req.user.company_id
-    })
-    .first();
+        company_id: req.user.company_id,
+      })
+      .first();
 
     if (!existingKaryawan) {
       return res.status(404).json({
@@ -249,19 +285,30 @@ export const updateKaryawan = async (req, res) => {
     }
 
     const {
-      nik, nama, gender, tempat_lahir, tgl_lahir, alamat, no_telp,
-      email, departemen, jabatan, tanggal_masuk, status_karyawan,
-      status_aktif, shift, pendidikan_terakhir,
+      nik,
+      nama,
+      gender,
+      tempat_lahir,
+      tgl_lahir,
+      alamat,
+      no_telp,
+      email,
+      departemen,
+      jabatan,
+      tanggal_masuk,
+      status_karyawan,
+      status_aktif,
+      shift,
+      pendidikan_terakhir,
     } = req.body;
 
     // ✅ Cek duplikasi NIK (exclude ID yang sedang di-update)
     if (nik && nik !== existingKaryawan.NIK) {
-      const nikExists =
-    await KaryawanModel.checkNikExistsExclude(
+      const nikExists = await KaryawanModel.checkNikExistsExclude(
         nik,
         karyawanId,
-        req.user.company_id
-    );
+        req.user.company_id,
+      );
       if (nikExists) {
         return res.status(400).json({
           status: status.BAD_REQUEST,
@@ -273,7 +320,10 @@ export const updateKaryawan = async (req, res) => {
 
     // ✅ Cek duplikasi EMAIL (exclude ID yang sedang di-update)
     if (email && email !== existingKaryawan.EMAIL) {
-      const emailExists = await KaryawanModel.checkEmailExistsExclude(email, karyawanId);
+      const emailExists = await KaryawanModel.checkEmailExistsExclude(
+        email,
+        karyawanId,
+      );
       if (emailExists) {
         return res.status(400).json({
           status: status.BAD_REQUEST,
@@ -299,12 +349,12 @@ export const updateKaryawan = async (req, res) => {
     }
 
     // Update users table
-   await db("users")
-    .where({
+    await db("users")
+      .where({
         email: existingKaryawan.EMAIL,
-        company_id: req.user.company_id
-    })
-    .update(updateData);
+        company_id: req.user.company_id,
+      })
+      .update(updateData);
 
     // ✅ Handle foto upload
     let fotoFile = existingKaryawan.FOTO;
@@ -331,7 +381,11 @@ export const updateKaryawan = async (req, res) => {
       FOTO: fotoFile,
     };
     const companyId = req.user.company_id;
-    const updatedKaryawan = await KaryawanModel.updateKaryawan(karyawanId,  companyId, karyawanData);
+    const updatedKaryawan = await KaryawanModel.updateKaryawan(
+      karyawanId,
+      companyId,
+      karyawanData,
+    );
 
     return res.status(200).json({
       status: status.SUKSES,
@@ -357,10 +411,7 @@ export const deleteKaryawan = async (req, res) => {
     const companyId = req.user.company_id;
     const karyawanId = req.params.id;
 
-    const karyawan = await KaryawanModel.deleteKaryawan(
-      karyawanId,
-      companyId
-    );
+    const karyawan = await KaryawanModel.deleteKaryawan(karyawanId, companyId);
 
     return res.status(200).json({
       status: status.SUKSES,
@@ -386,11 +437,11 @@ export const toggleStatusKaryawan = async (req, res) => {
     const karyawanId = req.params.id;
 
     const existingKaryawan = await db("master_karyawan")
-    .where({
+      .where({
         ID: karyawanId,
-        company_id: req.user.company_id
-    })
-    .first();
+        company_id: req.user.company_id,
+      })
+      .first();
 
     if (!existingKaryawan) {
       return res.status(404).json({
@@ -400,7 +451,8 @@ export const toggleStatusKaryawan = async (req, res) => {
       });
     }
 
-    const newStatus = existingKaryawan.STATUS_AKTIF === "Aktif" ? "Nonaktif" : "Aktif";
+    const newStatus =
+      existingKaryawan.STATUS_AKTIF === "Aktif" ? "Nonaktif" : "Aktif";
 
     const updatedKaryawan = await KaryawanModel.updateKaryawan(karyawanId, {
       STATUS_AKTIF: newStatus,

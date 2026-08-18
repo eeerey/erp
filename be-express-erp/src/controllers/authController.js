@@ -1,32 +1,48 @@
-import { getUserByEmail, addUser } from "../models/userModel.js";
+import fs from "fs/promises";
+import path from "path";
+import { db } from "../core/config/knex.js";
+import { getUserByEmail } from "../models/userModel.js";
 import { addLoginHistory } from "../models/loginHistoryModel.js";
+import { sendVerificationEmail, generateOTP } from "../utils/email.js";
 import {
   countSuperAdmin,
   getUserProfileById,
   blacklistToken,
-  checkEmailExists, 
-  checkNikExists,   
-  createKaryawan,    
+  checkEmailExists,
+  checkNikExists,
+  createKaryawan,
 } from "../models/authModel.js";
+import { createCompany, getCompanyByName } from "../models/companyModel.js";
 import {
-  createCompany,
-  getCompanyByName,
-} from "../models/companyModel.js";
-import { 
-  registerSchema, 
+  registerSchema,
   loginSchema,
-  registerKaryawanSchema, 
+  registerKaryawanSchema,
+  resendVerificationSchema,
 } from "../schemas/authSchema.js";
 import { comparePassword, hashPassword } from "../utils/hash.js";
 import { generateToken } from "../utils/jwt.js";
 import { datetime, status } from "../utils/general.js";
-import { db } from "../core/config/knex.js"; // ✅ TAMBAHKAN IMPORT INI
 
-
-
+const removeUploadedFiles = async (...filePaths) => {
+  for (const filePath of filePaths) {
+    if (filePath) {
+      try {
+        const absolutePath = path.join(process.cwd(), filePath);
+        await fs.unlink(absolutePath);
+      } catch (err) {
+        if (err.code !== "ENOENT") {
+          console.error(
+            `Gagal menghapus orphan file (${filePath}):`,
+            err.message,
+          );
+        }
+      }
+    }
+  }
+};
 
 /**
- * REGISTER
+ * REGISTER GENERAL USER
  */
 export const register = async (req, res) => {
   try {
@@ -44,16 +60,11 @@ export const register = async (req, res) => {
       });
     }
 
-   const { name, email, password, role, company_name } = validation.data;
-
-    // Cek jumlah SUPERADMIN yang ada
+    const { name, email, password, role, company_name } = validation.data;
     const totalSuperAdmin = await countSuperAdmin();
 
-    // Jika sudah ada SUPERADMIN, cek apakah request ini dari SUPERADMIN
     if (totalSuperAdmin > 0) {
-      // Cek apakah ada token dan role SUPERADMIN
       const token = req.headers["authorization"]?.split(" ")[1];
-      
       if (!token || !req.user || req.user.role !== "SUPERADMIN") {
         return res.status(403).json({
           status: status.GAGAL,
@@ -63,7 +74,6 @@ export const register = async (req, res) => {
       }
     }
 
-    // Cek batasan Super Admin (maksimal 3)
     if (role === "SUPERADMIN" && totalSuperAdmin >= 3) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
@@ -72,74 +82,87 @@ export const register = async (req, res) => {
       });
     }
 
-    // Cek email sudah terdaftar atau belum
-    const existingUser = await getUserByEmail(email);
-    if (existingUser) {
+    const otpCode = generateOTP();
+    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const hashedPassword = await hashPassword(password);
+
+    const user = await db.transaction(async (trx) => {
+      const existingUser = await trx("users").where({ email }).first();
+      if (existingUser) throw new Error("EMAIL_EXISTS");
+
+      const companyExists = await trx("companies")
+        .where({ nama_perusahaan: company_name })
+        .first();
+      if (companyExists) throw new Error("COMPANY_EXISTS");
+
+      const [companyInsert] = await trx("companies")
+        .insert({ nama_perusahaan: company_name })
+        .returning("id");
+      const companyId =
+        typeof companyInsert === "object" ? companyInsert.id : companyInsert;
+
+      const [userInsert] = await trx("users")
+        .insert({
+          name,
+          email,
+          password: hashedPassword,
+          role,
+          company_id: companyId,
+          is_verified: false,
+          verification_token: otpCode,
+          token_expires_at: tokenExpiresAt,
+          created_at: new Date(),
+        })
+        .returning("id");
+      const userId =
+        typeof userInsert === "object" ? userInsert.id : userInsert;
+
+      return trx("users").where({ id: userId }).first();
+    });
+
+    try {
+      await sendVerificationEmail(email, otpCode);
+    } catch (emailErr) {
+      console.error("Gagal mengirim email verifikasi:", emailErr);
+      return res.status(201).json({
+        status: status.SUKSES,
+        message:
+          "User berhasil didaftarkan, namun gagal mengirim OTP. Silakan resend OTP.",
+        datetime: datetime(),
+        otp_dev: otpCode,
+      });
+    }
+
+    return res.status(201).json({
+      status: status.SUKSES,
+      message:
+        "User berhasil didaftarkan. Silakan periksa email Anda untuk kode OTP verifikasi.",
+      datetime: datetime(),
+      otp_dev: otpCode,
+    });
+  } catch (error) {
+    console.error("Error register:", error);
+    if (error.message === "EMAIL_EXISTS") {
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "Email sudah terdaftar",
         datetime: datetime(),
       });
     }
-
-    // Hash password dan simpan user
-   const hashedPassword = await hashPassword(password);
-    const user = await db.transaction(async (trx) => {
-      // Cek apakah nama perusahaan sudah ada
-      const companyExists = await getCompanyByName(company_name);
-      if (companyExists) {
-        throw new Error("Nama perusahaan sudah digunakan");
-      }
-      
-      // 1. Simpan perusahaan
-        console.log("company_name =", company_name);
-
-        const [companyId] = await trx("companies").insert({
-          nama_perusahaan: company_name,
-        });
-
-        console.log("companyId =", companyId);
-
-        const company = await trx("companies")
-          .where({ id: companyId })
-          .first();
-
-        console.log("company =", company);
-
-      // 2. Simpan user
-      const [userId] = await trx("users").insert({
-        name,
-        email,
-        password: hashedPassword,
-        role,
-        company_id: companyId,
+    if (error.message === "COMPANY_EXISTS") {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Nama perusahaan sudah digunakan",
+        datetime: datetime(),
       });
-
-      return trx("users").where({ id: userId }).first();
-    });
-
-    return res.status(201).json({
-      status: status.SUKSES,
-      message: "User berhasil didaftarkan",
+    }
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
       datetime: datetime(),
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        company_id: user.company_id,
-      },
     });
-
-      } catch (error) {
-        console.error("Error register:", error);
-        return res.status(500).json({
-          status: status.GAGAL,
-          message: `Terjadi kesalahan server: ${error.message}`,
-          datetime: datetime(),
-        });
-      }
-    };
+  }
+};
 
 /**
  * LOGIN
@@ -166,12 +189,23 @@ export const login = async (req, res) => {
     if (!existingUser) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
-        message: "User tidak ditemukan",
+        message: "Email atau password salah",
         datetime: datetime(),
       });
     }
 
-    const isPasswordTrue = await comparePassword(password, existingUser.password);
+    if (!existingUser.is_verified) {
+      return res.status(403).json({
+        status: status.GAGAL,
+        message: "Akun Anda belum diverifikasi. Masukkan kode OTP verifikasi.",
+        datetime: datetime(),
+      });
+    }
+
+    const isPasswordTrue = await comparePassword(
+      password,
+      existingUser.password,
+    );
     if (!isPasswordTrue) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
@@ -180,40 +214,30 @@ export const login = async (req, res) => {
       });
     }
 
-    // ✅ AMBIL KARYAWAN_ID jika role adalah karyawan
     let karyawanId = null;
-    if (["HR", "PRODUKSI", "GUDANG", "KEUANGAN", "SDM"].includes(existingUser.role)) {
+    if (!["SUPERADMIN"].includes(existingUser.role)) {
       const karyawan = await db("master_karyawan")
         .where("EMAIL", existingUser.email)
         .select("KARYAWAN_ID")
         .first();
-      
-      if (karyawan) {
-        karyawanId = karyawan.KARYAWAN_ID;
-      }
+
+      if (karyawan) karyawanId = karyawan.KARYAWAN_ID;
     }
 
-      const userData = await db("users")
-  .where({ id: existingUser.id })
-  .first();
-
-    // ✅ GENERATE TOKEN dengan karyawan_id dan email
     const token = await generateToken({
       userId: existingUser.id,
       role: existingUser.role,
-      email: existingUser.email,      // ✅ TAMBAHKAN email
-      karyawan_id: karyawanId,         // ✅ TAMBAHKAN karyawan_id
-      company_id: userData.company_id,
-      
+      email: existingUser.email,
+      karyawan_id: karyawanId,
+      company_id: existingUser.company_id,
     });
 
-    // Simpan history login
-    await addLoginHistory({
+    addLoginHistory({
       userId: existingUser.id,
       action: "LOGIN",
       ip: req.ip,
       userAgent: req.headers["user-agent"] || "unknown",
-    });
+    }).catch((err) => console.error("Gagal menyimpan login history:", err));
 
     return res.status(200).json({
       status: status.SUKSES,
@@ -225,7 +249,7 @@ export const login = async (req, res) => {
         name: existingUser.name,
         email: existingUser.email,
         role: existingUser.role,
-        karyawan_id: karyawanId,       // ✅ TAMBAHKAN karyawan_id di response
+        karyawan_id: karyawanId,
       },
     });
   } catch (error) {
@@ -239,12 +263,11 @@ export const login = async (req, res) => {
 };
 
 /**
- * GET PROFILE
+ * GET PROFILE & LOGOUT
  */
 export const getProfile = async (req, res) => {
   try {
     const userId = req.user?.userId;
-
     if (!userId) {
       return res.status(401).json({
         status: status.TIDAK_ADA_TOKEN,
@@ -252,9 +275,7 @@ export const getProfile = async (req, res) => {
         datetime: datetime(),
       });
     }
-
     const user = await getUserProfileById(userId);
-
     if (!user) {
       return res.status(404).json({
         status: status.GAGAL,
@@ -262,7 +283,6 @@ export const getProfile = async (req, res) => {
         datetime: datetime(),
       });
     }
-
     return res.status(200).json({
       status: status.SUKSES,
       message: "Berhasil mengambil profil user",
@@ -279,9 +299,6 @@ export const getProfile = async (req, res) => {
   }
 };
 
-/**
- * LOGOUT
- */
 export const logout = async (req, res) => {
   try {
     const token = req.headers["authorization"]?.split(" ")[1];
@@ -295,16 +312,18 @@ export const logout = async (req, res) => {
       });
     }
 
-    // Blacklist token
-    await blacklistToken(token, new Date(req.user.exp * 1000));
+    const expiryDate = req.user?.exp
+      ? new Date(req.user.exp * 1000)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    // Simpan history logout
-    await addLoginHistory({
+    await blacklistToken(token, expiryDate);
+
+    addLoginHistory({
       userId,
       action: "LOGOUT",
       ip: req.ip,
       userAgent: req.headers["user-agent"] || "unknown",
-    });
+    }).catch((err) => console.error("Gagal menyimpan logout history:", err));
 
     return res.status(200).json({
       status: status.SUKSES,
@@ -325,46 +344,47 @@ export const logout = async (req, res) => {
  * REGISTER KARYAWAN
  */
 export const registerKaryawan = async (req, res) => {
+  const files = req.files || {};
+  const fotoKaryawanFile = files.foto_karyawan?.[0] || null;
+  const fotoKtpFile = files.foto_ktp?.[0] || null;
+
+  const fotoPath = fotoKaryawanFile
+    ? `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`
+    : null;
+  const fotoKtpPath = fotoKtpFile
+    ? `/uploads/foto_ktp/${fotoKtpFile.filename}`
+    : null;
+
   try {
+    if (!fotoKtpFile) {
+      await removeUploadedFiles(fotoPath);
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Foto KTP wajib diunggah!",
+        datetime: datetime(),
+      });
+    }
 
-    const body = req.body;
-    const file = req.file;
-
-    console.log("BODY =", req.body);
-    console.log("FILE =", req.file);
-
-    // Validasi
-    const validation = registerKaryawanSchema.safeParse(body);
-
-     if (!validation.success) {
-      console.log("VALIDATION ERROR =", validation.error.errors);
-
+    const validation = registerKaryawanSchema.safeParse(req.body);
+    if (!validation.success) {
+      await removeUploadedFiles(fotoPath, fotoKtpPath);
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "Validasi gagal",
+        datetime: datetime(),
         errors: validation.error.errors,
       });
     }
 
     const parsed = validation.data;
-    const fotoPath = file ? `/uploads/foto_karyawan/${file.filename}` : null;
-    
-    // Cari perusahaan berdasarkan nama
     let company = await getCompanyByName(parsed.company_name);
-
-    // Jika belum ada, buat perusahaan baru
     if (!company) {
       company = await createCompany(parsed.company_name);
     }
-
     const companyId = company.id;
 
-    console.log("COMPANY =", company);
-    console.log("COMPANY ID =", companyId);
-
-    // Cek duplikasi email
-    const existingEmail = await checkEmailExists(parsed.email);
-    if (existingEmail) {
+    if (await checkEmailExists(parsed.email)) {
+      await removeUploadedFiles(fotoPath, fotoKtpPath);
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "Email sudah terdaftar",
@@ -372,9 +392,8 @@ export const registerKaryawan = async (req, res) => {
       });
     }
 
-    // Cek duplikasi NIK
-    const existingNik = await checkNikExists(parsed.nik);
-    if (existingNik) {
+    if (await checkNikExists(parsed.nik)) {
+      await removeUploadedFiles(fotoPath, fotoKtpPath);
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "NIK sudah terdaftar",
@@ -382,9 +401,10 @@ export const registerKaryawan = async (req, res) => {
       });
     }
 
-    // Gunakan model
-    
-    const { userId, karyawanId, id } = await createKaryawan(
+    const otpCode = generateOTP();
+    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    const { karyawanId } = await createKaryawan(
       {
         EMAIL: parsed.email,
         NIK: parsed.nik,
@@ -397,39 +417,346 @@ export const registerKaryawan = async (req, res) => {
         DEPARTEMEN: parsed.departemen,
         JABATAN: parsed.jabatan,
         TANGGAL_MASUK: parsed.tanggal_masuk || new Date(),
-        STATUS_KARYAWAN: parsed.status_karyawan || 'Kontrak',
-        STATUS_AKTIF: 'Aktif',
+        STATUS_KARYAWAN: parsed.status_karyawan || "Kontrak",
+        STATUS_AKTIF: "Aktif",
         SHIFT: parsed.shift || null,
         PENDIDIKAN_TERAKHIR: parsed.pendidikan_terakhir || null,
         FOTO: fotoPath,
+        NPWP: parsed.npwp || null,
+        NIB: parsed.nib || null,
+        FOTO_KTP: fotoKtpPath,
       },
       {
         name: parsed.nama,
         email: parsed.email,
         password: parsed.password,
         role: parsed.role,
-        company_id: companyId,   // <-- TAMBAHKAN DI SINI
-      }
+        company_id: companyId,
+      },
+      {
+        token: otpCode,
+        expiresAt: tokenExpiresAt,
+      },
     );
+
+    try {
+      await sendVerificationEmail(parsed.email, otpCode);
+    } catch (emailErr) {
+      console.error("Gagal kirim email karyawan:", emailErr);
+    }
 
     return res.status(201).json({
       status: status.SUKSES,
-      message: "Registrasi karyawan berhasil",
+      message:
+        "Registrasi berhasil! Cek email kamu untuk kode OTP verifikasi akun.",
       datetime: datetime(),
       karyawan_id: karyawanId,
-      user: {
-        id: userId,
-        name: parsed.nama,
-        email: parsed.email,
-        role: parsed.role,
-        karyawan_id: karyawanId, // ✅ TAMBAHKAN karyawan_id di response
-      },
+      otp_dev: otpCode,
     });
   } catch (err) {
+    await removeUploadedFiles(fotoPath, fotoKtpPath);
     console.error("Error registerKaryawan:", err);
     return res.status(500).json({
       status: status.GAGAL,
       message: `Terjadi kesalahan server: ${err.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * VERIFY OTP (VERIFIKASI EMAIL)
+ */
+export const verifyEmail = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email dan Kode OTP wajib diisi.",
+        datetime: datetime(),
+      });
+    }
+
+    const user = await getUserByEmail(email);
+
+    if (!user) {
+      return res.status(404).json({
+        status: status.BAD_REQUEST,
+        message: "User tidak ditemukan.",
+        datetime: datetime(),
+      });
+    }
+
+    if (user.is_verified) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Akun ini sudah terverifikasi. Silakan login.",
+        datetime: datetime(),
+      });
+    }
+
+    if (user.verification_token !== otp) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Kode OTP tidak cocok / salah.",
+        datetime: datetime(),
+      });
+    }
+
+    if (new Date() > new Date(user.token_expires_at)) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Kode OTP sudah kadaluwarsa. Silakan minta kode OTP baru.",
+        datetime: datetime(),
+      });
+    }
+
+    await db("users").where({ id: user.id }).update({
+      is_verified: true,
+      verification_token: null,
+      token_expires_at: null,
+      updated_at: new Date(),
+    });
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Verifikasi akun berhasil! Silakan login.",
+      datetime: datetime(),
+    });
+  } catch (err) {
+    console.error("Error verifyEmail:", err);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${err.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * RESEND OTP CODE
+ */
+export const resendVerificationToken = async (req, res) => {
+  try {
+    const validation = resendVerificationSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Validasi gagal",
+        datetime: datetime(),
+        errors: validation.error.errors.map((err) => ({
+          field: err.path[0],
+          message: err.message,
+        })),
+      });
+    }
+
+    const { email } = validation.data;
+    const user = await getUserByEmail(email);
+
+    if (!user) {
+      return res.status(200).json({
+        status: status.SUKSES,
+        message:
+          "Jika email terdaftar, kami telah mengirimkan kode OTP verifikasi baru.",
+        datetime: datetime(),
+      });
+    }
+
+    if (user.is_verified) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Akun ini sudah terverifikasi. Silakan login.",
+        datetime: datetime(),
+      });
+    }
+
+    const otpCode = generateOTP();
+    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await db("users").where({ id: user.id }).update({
+      verification_token: otpCode,
+      token_expires_at: tokenExpiresAt,
+      updated_at: new Date(),
+    });
+
+    await sendVerificationEmail(email, otpCode);
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Kode OTP verifikasi baru telah dikirim ke email Anda.",
+      datetime: datetime(),
+      otp_dev: otpCode,
+    });
+  } catch (error) {
+    console.error("Error resendVerificationToken:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * REGISTER OWNER
+ */
+export const registerOwner = async (req, res) => {
+  const files = req.files || {};
+  const fotoKaryawanFile = files.foto_karyawan?.[0] || null;
+  const fotoKtpFile = files.foto_ktp?.[0] || null;
+
+  const fotoPath = fotoKaryawanFile
+    ? `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`
+    : null;
+  const fotoKtpPath = fotoKtpFile
+    ? `/uploads/foto_ktp/${fotoKtpFile.filename}`
+    : null;
+
+  try {
+    if (!fotoKtpFile) {
+      await removeUploadedFiles(fotoPath);
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Foto KTP wajib diunggah!",
+        datetime: datetime(),
+      });
+    }
+
+    const {
+      email,
+      password,
+      nik,
+      nama,
+      gender,
+      tempat_lahir,
+      tgl_lahir,
+      alamat,
+      no_telp,
+      nama_perusahaan,
+      npwp_perusahaan,
+      nib,
+      alamat_perusahaan,
+      no_telp_perusahaan,
+      npwp,
+    } = req.body;
+
+    // 1. Cek Duplikasi Email & NIK awal
+    if (await checkEmailExists(email)) {
+      await removeUploadedFiles(fotoPath, fotoKtpPath);
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email sudah terdaftar",
+        datetime: datetime(),
+      });
+    }
+
+    if (await checkNikExists(nik)) {
+      await removeUploadedFiles(fotoPath, fotoKtpPath);
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "NIK sudah terdaftar",
+        datetime: datetime(),
+      });
+    }
+
+    // 2. Periksa / Buat Perusahaan Baru
+    let company = await getCompanyByName(nama_perusahaan);
+    if (!company) {
+      company = await createCompany(nama_perusahaan);
+    }
+    const companyId = company.id;
+
+    if (npwp_perusahaan || nib || alamat_perusahaan || no_telp_perusahaan) {
+      await db("companies")
+        .where({ id: companyId })
+        .update({
+          npwp: npwp_perusahaan || null,
+          nib: nib || null,
+          alamat: alamat_perusahaan || null,
+          no_telp: no_telp_perusahaan || null,
+          // updated_at dihapus agar cocok dengan tabel MySQL kamu
+        });
+    }
+
+    // 3. Generate OTP & Expired Time
+    const otpCode = generateOTP();
+    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    // 4. Panggil `createKaryawan()` untuk auto generate ID_Karyawan (`KRY-XXXX`)
+    //    serta mengisikan Role User sebagai 'SDM' dan Jabatan 'Owner'
+    const { userId, karyawanId, id } = await createKaryawan(
+      {
+        EMAIL: email,
+        NIK: nik,
+        NAMA: nama,
+        GENDER: gender,
+        TEMPAT_LAHIR: tempat_lahir || null,
+        TGL_LAHIR: tgl_lahir || null,
+        ALAMAT: alamat || null,
+        NO_TELP: no_telp || null,
+        DEPARTEMEN: "DIRECTOR",
+        JABATAN: "Owner",
+        STATUS_KARYAWAN: "Tetap",
+        STATUS_AKTIF: "Aktif",
+        FOTO: fotoPath,
+        NPWP: npwp || null,
+        NIB: nib || null,
+        FOTO_KTP: fotoKtpPath,
+      },
+      {
+        name: nama,
+        email: email,
+        password: password,
+        role: "SDM", // 👈 Role di tabel users diisi SDM
+        company_id: companyId,
+      },
+      {
+        token: otpCode,
+        expiresAt: tokenExpiresAt,
+      },
+    );
+
+    // 5. Kirim Email Verifikasi
+    try {
+      await sendVerificationEmail(email, otpCode);
+    } catch (emailErr) {
+      console.error("Gagal kirim email verifikasi owner:", emailErr);
+    }
+
+    return res.status(201).json({
+      status: status.SUKSES,
+      message:
+        "Registrasi Owner berhasil dibuat. Silakan cek email Anda untuk kode OTP verifikasi.",
+      datetime: datetime(),
+      data: { companyId, karyawanId, userId, id },
+      otp_dev: otpCode,
+    });
+  } catch (error) {
+    await removeUploadedFiles(fotoPath, fotoKtpPath);
+    console.error("Register Owner Error:", error);
+
+    if (error.message === "EMAIL_EXISTS") {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email sudah terdaftar",
+        datetime: datetime(),
+      });
+    }
+    if (error.message === "NIK_EXISTS") {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "NIK sudah terdaftar",
+        datetime: datetime(),
+      });
+    }
+
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
       datetime: datetime(),
     });
   }

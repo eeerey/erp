@@ -1,26 +1,26 @@
 import express from "express";
 import * as MasterRakController from "../controllers/masterRakController.js";
+import { verifyToken } from "../middleware/jwt.js";
 
 const router = express.Router();
 
-/**
- * Pastikan penamaan fungsi di bawah ini 
- * SAMA PERSIS dengan nama fungsi di MasterRakController.js
- */
-
 // Menampilkan semua rak
-router.get("/", MasterRakController.getAllRak); 
+router.get("/", verifyToken, MasterRakController.getAllRak);
 
-// Menampilkan rak berdasarkan kode gudang
-router.get("/gudang/:kode_gudang", MasterRakController.getRakByGudang);
+// Menampilkan rak berdasarkan gudang
+router.get(
+  "/gudang/:kode_gudang",
+  verifyToken,
+  MasterRakController.getRakByGudang,
+);
 
-// Menambah rak baru
-router.post("/", MasterRakController.createRak);
+// Menambah rak
+router.post("/", verifyToken, MasterRakController.createRak);
 
-// Update rak (menggunakan :id sebagai parameter ID_RAK)
-router.put("/:id", MasterRakController.updateRak);
+// Update
+router.put("/:id", verifyToken, MasterRakController.updateRak);
 
-// Hapus rak
-router.delete("/:id", MasterRakController.deleteRak);
+// Delete
+router.delete("/:id", verifyToken, MasterRakController.deleteRak);
 
 export default router;

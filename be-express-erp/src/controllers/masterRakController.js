@@ -4,28 +4,52 @@ import * as MasterGudangModel from "../models/masterGudangModel.js";
 // 1. GET ALL RAK (Biasanya dengan Join ke Gudang)
 export const getAllRak = async (req, res) => {
   try {
-    const data = await MasterRakModel.getAllRak();
-    return res.status(200).json({ 
-      status: "00", 
-      message: data.length > 0 ? "Data rak berhasil diambil" : "Belum ada data rak",
-      data 
+    const companyId = req.user.company_id;
+    const data = await MasterRakModel.getAllRak(companyId);
+    return res.status(200).json({
+      status: "00",
+      message:
+        data.length > 0 ? "Data rak berhasil diambil" : "Belum ada data rak",
+      data,
     });
   } catch (err) {
-    return res.status(500).json({ status: "99", message: "Gagal mengambil data rak", error: err.message });
+    return res.status(500).json({
+      status: "99",
+      message: "Gagal mengambil data rak",
+      error: err.message,
+    });
   }
 };
 
 // 2. GET RAK BERDASARKAN KODE GUDANG
 export const getRakByGudang = async (req, res) => {
   try {
+    // Ambil company_id dari JWT
+    const companyId = req.user.company_id;
+
+    // Ambil kode gudang dari URL
     const { kode_gudang } = req.params;
+
+    // Validasi
     if (!kode_gudang || kode_gudang === "undefined") {
-        return res.status(400).json({ status: "01", message: "Kode gudang tidak valid" });
+      return res.status(400).json({
+        status: "01",
+        message: "Kode gudang tidak valid",
+      });
     }
-    const data = await MasterRakModel.getRakByGudang(kode_gudang);
-    return res.status(200).json({ status: "00", data });
+
+    // Ambil data rak berdasarkan company dan gudang
+    const data = await MasterRakModel.getRakByGudang(kode_gudang, companyId);
+
+    return res.status(200).json({
+      status: "00",
+      data,
+    });
   } catch (err) {
-    return res.status(500).json({ status: "99", error: err.message });
+    return res.status(500).json({
+      status: "99",
+      error: err.message,
+    });
   }
 };
 
@@ -33,26 +57,42 @@ export const getRakByGudang = async (req, res) => {
 export const createRak = async (req, res) => {
   try {
     const { KODE_GUDANG, KODE_RAK, NAMA_RAK } = req.body;
-
+    const companyId = req.user.company_id;
     // Validasi input wajib
     if (!KODE_GUDANG || !KODE_RAK) {
-      return res.status(400).json({ status: "01", message: "KODE_GUDANG dan KODE_RAK wajib diisi" });
+      return res.status(400).json({
+        status: "01",
+        message: "KODE_GUDANG dan KODE_RAK wajib diisi",
+      });
     }
 
     // Cek apakah kode rak sudah ada (Unique constraint)
-    const existing = await MasterRakModel.getRakByKode(KODE_RAK);
+    const existing = await MasterRakModel.getRakByKode(KODE_RAK, companyId);
     if (existing) {
-      return res.status(409).json({ status: "02", message: `Kode Rak ${KODE_RAK} sudah terdaftar` });
+      return res.status(409).json({
+        status: "02",
+        message: `Kode Rak ${KODE_RAK} sudah terdaftar`,
+      });
     }
 
-    const result = await MasterRakModel.createRak({ KODE_GUDANG, KODE_RAK, NAMA_RAK });
-    return res.status(201).json({ 
-      status: "00", 
-      message: "Data rak berhasil ditambahkan", 
-      data: result 
+    const result = await MasterRakModel.createRak({
+      company_id: companyId,
+      KODE_GUDANG,
+      KODE_RAK,
+      NAMA_RAK,
+    });
+    return res.status(201).json({
+      status: "00",
+      message: "Data rak berhasil ditambahkan",
+      data: result,
     });
   } catch (err) {
-    return res.status(500).json({ status: "99", message: "Gagal menambah rak", error: err.message });
+    console.error(err);
+    return res.status(500).json({
+      status: "99",
+      message: "Gagal menambah rak",
+      error: err.message,
+    });
   }
 };
 
@@ -60,33 +100,42 @@ export const createRak = async (req, res) => {
 export const updateRak = async (req, res) => {
   try {
     const { id } = req.params; // ID_RAK dari URL
-
+    const companyId = req.user.company_id;
     // 1. Validasi ID
     if (!id || id === "undefined") {
-      return res.status(400).json({ status: "01", message: "ID Rak tidak ditemukan atau tidak valid" });
+      return res.status(400).json({
+        status: "01",
+        message: "ID Rak tidak ditemukan atau tidak valid",
+      });
     }
 
     // 2. Cek apakah data ada
-    const existing = await MasterRakModel.getRakById(id);
+    const existing = await MasterRakModel.getRakById(id, companyId);
     if (!existing) {
-      return res.status(404).json({ status: "04", message: "Data rak tidak ditemukan di database" });
+      return res.status(404).json({
+        status: "04",
+        message: "Data rak tidak ditemukan di database",
+      });
     }
 
     // 3. Pisahkan ID_RAK agar tidak ikut ter-update (menghindari error primary key)
     const { ID_RAK, ...updateData } = req.body;
 
-    const result = await MasterRakModel.updateRak(id, updateData);
-    
-    // 4. Kirim respons balik (PENTING: Agar log tidak - - ms)
-    return res.status(200).json({ 
-      status: "00", 
-      message: "Data rak berhasil diperbarui",
-      data: result 
-    });
+    const result = await MasterRakModel.updateRak(id, companyId, updateData);
 
+    // 4. Kirim respons balik (PENTING: Agar log tidak - - ms)
+    return res.status(200).json({
+      status: "00",
+      message: "Data rak berhasil diperbarui",
+      data: result,
+    });
   } catch (err) {
     console.error("Update Error:", err);
-    return res.status(500).json({ status: "99", message: "Gagal memperbarui rak", error: err.message });
+    return res.status(500).json({
+      status: "99",
+      message: "Gagal memperbarui rak",
+      error: err.message,
+    });
   }
 };
 
@@ -94,29 +143,35 @@ export const updateRak = async (req, res) => {
 export const deleteRak = async (req, res) => {
   try {
     const { id } = req.params;
+    const companyId = req.user.company_id;
 
     if (!id || id === "undefined") {
-      return res.status(400).json({ status: "01", message: "ID Rak tidak valid untuk dihapus" });
+      return res
+        .status(400)
+        .json({ status: "01", message: "ID Rak tidak valid untuk dihapus" });
     }
 
-    const existing = await MasterRakModel.getRakById(id);
+    const existing = await MasterRakModel.getRakById(id, companyId);
     if (!existing) {
-      return res.status(404).json({ status: "04", message: "Data rak tidak ditemukan" });
+      return res
+        .status(404)
+        .json({ status: "04", message: "Data rak tidak ditemukan" });
     }
 
-    await MasterRakModel.deleteRak(id);
-    
-    return res.status(200).json({ 
-      status: "00", 
-      message: "Data rak berhasil dihapus" 
+    await MasterRakModel.deleteRak(id, companyId);
+
+    return res.status(200).json({
+      status: "00",
+      message: "Data rak berhasil dihapus",
     });
   } catch (err) {
     console.error("Delete Error:", err);
     // Jika error 500, biasanya karena ID_RAK ini sedang dipakai di tabel transaksi/barang
-    return res.status(500).json({ 
-      status: "99", 
-      message: "Gagal menghapus data. Pastikan rak tidak sedang digunakan di data lain.", 
-      error: err.message 
+    return res.status(500).json({
+      status: "99",
+      message:
+        "Gagal menghapus data. Pastikan rak tidak sedang digunakan di data lain.",
+      error: err.message,
     });
   }
 };

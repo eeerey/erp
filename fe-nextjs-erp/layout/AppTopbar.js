@@ -1,16 +1,16 @@
 /* eslint-disable @next/next/no-img-element */
 
-"use client";
+'use client';
 
-import Link from "next/link";
-import { classNames } from "primereact/utils";
-import React, { forwardRef, useContext, useRef, useEffect, useState } from "react";
-import { LayoutContext } from "./context/layoutcontext";
-import { OverlayPanel } from "primereact/overlaypanel";
-import { Button } from "primereact/button";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-import ToastNotifier from "../app/components/ToastNotifier";
+import Link from 'next/link';
+import { classNames } from 'primereact/utils';
+import React, { forwardRef, useContext, useRef, useEffect, useState } from 'react';
+import { LayoutContext } from './context/layoutcontext';
+import { OverlayPanel } from 'primereact/overlaypanel';
+import { Button } from 'primereact/button';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
+import ToastNotifier from '../app/components/ToastNotifier';
 
 const AppTopbar = forwardRef((props, ref) => {
     const { layoutConfig, layoutState, onMenuToggle } = useContext(LayoutContext);
@@ -19,16 +19,16 @@ const AppTopbar = forwardRef((props, ref) => {
     const profileOverlayRef = useRef(null);
     const router = useRouter();
 
-    const [role, setRole] = useState("Guest");
-    const [name, setName] = useState("User");
+    const [role, setRole] = useState('Guest');
+    const [name, setName] = useState('User');
 
     // toast ref
     const toastRef = useRef(null);
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            const storedRole = localStorage.getItem("ROLE");
-            const storedName = localStorage.getItem("USER_NAME");
+        if (typeof window !== 'undefined') {
+            const storedRole = localStorage.getItem('ROLE');
+            const storedName = localStorage.getItem('USER_NAME');
 
             if (storedRole) setRole(storedRole);
             if (storedName) setName(storedName);
@@ -36,38 +36,35 @@ const AppTopbar = forwardRef((props, ref) => {
     }, []);
 
     const handleLogout = async () => {
-    const token =
-        typeof window !== "undefined"
-        ? localStorage.getItem("TOKEN") 
-        : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('TOKEN') : null;
 
-    try {
-        if (token) {
-        await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
-            {},
-            {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+        try {
+            if (token) {
+                await axios.post(
+                    `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
+                    {},
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                toastRef.current?.showToast('00', 'Logout berhasil');
             }
-        );
+        } catch (error) {
+            console.error('Logout gagal:', error);
+            toastRef.current?.showToast('01', 'Logout gagal');
+        } finally {
+            // ✅ HAPUS SEMUA SESSION
+            localStorage.removeItem('TOKEN');
+            localStorage.removeItem('ROLE');
+            localStorage.removeItem('USER_NAME');
+            localStorage.removeItem('USER_EMAIL');
+            localStorage.removeItem('USER_ID');
 
-        toastRef.current?.showToast("00", "Logout berhasil");
+            router.replace('/auth/login');
         }
-    } catch (error) {
-        console.error("Logout gagal:", error);
-        toastRef.current?.showToast("01", "Logout gagal");
-    } finally {
-        // ✅ HAPUS SEMUA SESSION
-        localStorage.removeItem("TOKEN");
-        localStorage.removeItem("ROLE");
-        localStorage.removeItem("USER_NAME");
-        localStorage.removeItem("USER_EMAIL");
-        localStorage.removeItem("USER_ID");
-
-        router.replace("/auth/login");
-    }
     };
 
     return (
@@ -75,23 +72,18 @@ const AppTopbar = forwardRef((props, ref) => {
             <ToastNotifier ref={toastRef} />
 
             <Link href="/" className="layout-topbar-logo">
-            <img src={`/layout/images/logo-${layoutConfig.colorScheme !== 'light' ? 'white' : 'dark'}.svg`} width="47.22px" height={'35px'} alt="logo" />
+                <img src={`/layout/images/logo-${layoutConfig.colorScheme !== 'light' ? 'white' : 'dark'}.svg`} width="47.22px" height={'35px'} alt="logo" />
                 <span>{process.env.NEXT_PUBLIC_APP_NAME}</span>
             </Link>
 
-            <button
-                ref={menubuttonRef}
-                type="button"
-                className="p-link layout-menu-button layout-topbar-button"
-                onClick={onMenuToggle}
-            >
+            <button ref={menubuttonRef} type="button" className="p-link layout-menu-button layout-topbar-button" onClick={onMenuToggle}>
                 <i className="pi pi-bars" />
             </button>
 
             <div
                 ref={topbarmenuRef}
-                className={classNames("layout-topbar-menu", {
-                    "layout-topbar-menu-mobile-active": layoutState.profileSidebarVisible,
+                className={classNames('layout-topbar-menu', {
+                    'layout-topbar-menu-mobile-active': layoutState.profileSidebarVisible
                 })}
             >
                 <button type="button" className="p-link layout-topbar-button">
@@ -99,11 +91,7 @@ const AppTopbar = forwardRef((props, ref) => {
                     <span>Calendar</span>
                 </button>
 
-                <button
-                    type="button"
-                    className="p-link layout-topbar-button"
-                    onClick={(e) => profileOverlayRef.current?.toggle(e)}
-                >
+                <button type="button" className="p-link layout-topbar-button" onClick={(e) => profileOverlayRef.current?.toggle(e)}>
                     <i className="pi pi-user"></i>
                     <span>Profile</span>
                 </button>
@@ -122,25 +110,16 @@ const AppTopbar = forwardRef((props, ref) => {
                         <strong>{name}</strong>
                         <div className="text-sm text-500">{role}</div>
                     </div>
-                    <Link href="/profile">
-                        <Button
-                            label="Edit Profile"
-                            icon="pi pi-pencil"
-                            className="p-button-text p-mb-2"
-                        />
+                    <Link href="/auth/profile">
+                        <Button label="Profile" icon="pi pi-pencil" className="p-button-text p-mb-2" />
                     </Link>
-                    <Button
-                        label="Logout"
-                        icon="pi pi-sign-out"
-                        className="p-button-text p-button-danger"
-                        onClick={handleLogout}
-                    />
+                    <Button label="Logout" icon="pi pi-sign-out" className="p-button-text p-button-danger" onClick={handleLogout} />
                 </div>
             </OverlayPanel>
         </div>
     );
 });
 
-AppTopbar.displayName = "AppTopbar";
+AppTopbar.displayName = 'AppTopbar';
 
 export default AppTopbar;

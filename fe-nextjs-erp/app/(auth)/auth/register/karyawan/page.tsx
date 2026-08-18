@@ -11,10 +11,10 @@ import { Steps } from 'primereact/steps';
 import { MenuItem } from 'primereact/menuitem';
 import axios from 'axios';
 import ToastNotifier from '../../../../components/ToastNotifier';
-import { RegisterPageSkeleton } from '../../../../components/SkeletonLoader'; // ✅ IMPORT
+import { RegisterPageSkeleton } from '../../../../components/SkeletonLoader';
 
 type ToastNotifierHandle = {
-  showToast: (status: string, message?: string) => void;
+    showToast: (status: string, message?: string) => void;
 };
 
 const RegisterKaryawanPage = () => {
@@ -22,17 +22,18 @@ const RegisterKaryawanPage = () => {
     const toastRef = useRef<ToastNotifierHandle>(null);
     const [loading, setLoading] = useState(false);
     const [activeStep, setActiveStep] = useState(0);
-    
-    // ✅ STATE UNTUK SKELETON
+
+    // State Skeleton
     const [isPageLoading, setIsPageLoading] = useState(true);
-    
+
     // State Form
     const [formData, setFormData] = useState({
-        company_name: '',
+        // Akun Login
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'HR',
+
+        // Data Pribadi
         nik: '',
         nama: '',
         gender: 'L',
@@ -40,41 +41,40 @@ const RegisterKaryawanPage = () => {
         tgl_lahir: null as Date | null,
         alamat: '',
         no_telp: '',
-        departemen: 'HR', // ✅ Default sesuai role
-        jabatan: '',
-        tanggal_masuk: new Date(),
-        status_karyawan: 'Kontrak',
-        shift: '',
-        pendidikan_terakhir: '',
+        agama: '',
+        status_pernikahan: 'Lajang',
+        npwp: '',
+        kontak_darurat_nama: '',
+        kontak_darurat_hub: '',
+        kontak_darurat_telp: '',
+
+        // Data Perusahaan (Diperbarui)
+        nama_perusahaan: '',
+        npwp_perusahaan: '',
+        nib: '',
+        alamat_perusahaan: '',
+        no_telp_perusahaan: ''
     });
 
+    // State File
     const [foto, setFoto] = useState<File | null>(null);
+    const [fotoKtp, setFotoKtp] = useState<File | null>(null);
 
-    // ✅ EFFECT UNTUK LOADING
+    // Effect Loading
     useEffect(() => {
-        // Simulasi loading untuk smooth transition
         const timer = setTimeout(() => {
             setIsPageLoading(false);
-        }, 500); // 500ms loading
+        }, 500);
 
         return () => clearTimeout(timer);
     }, []);
 
-    // Steps Configuration
+    // Steps Configuration (Diubah label step 3)
     const steps: MenuItem[] = [
         { label: 'Akun Login', icon: 'pi pi-user' },
         { label: 'Data Pribadi', icon: 'pi pi-id-card' },
-        { label: 'Data Pekerjaan', icon: 'pi pi-briefcase' },
+        { label: 'Data Perusahaan', icon: 'pi pi-building' },
         { label: 'Foto & Konfirmasi', icon: 'pi pi-check-circle' }
-    ];
-
-    // Options untuk Dropdown
-    const roleOptions = [
-        { label: 'HR', value: 'HR' },
-        { label: 'PRODUKSI', value: 'PRODUKSI' },
-        { label: 'GUDANG', value: 'GUDANG' },
-        { label: 'KEUANGAN', value: 'KEUANGAN' },
-        { label: 'OWNER', value: 'SDM' }
     ];
 
     const genderOptions = [
@@ -82,72 +82,20 @@ const RegisterKaryawanPage = () => {
         { label: 'Perempuan', value: 'P' }
     ];
 
-    const departemenOptions = [
-        { label: 'Human Resource (HR)', value: 'HR' },
-        { label: 'Produksi', value: 'PRODUKSI' },
-        { label: 'Gudang', value: 'GUDANG' },
-        { label: 'Keuangan & Accounting', value: 'KEUANGAN' },
-         { label: 'OWNER', value: 'SDM' },
-    ];
-
-    const jabatanOptions = [
-        { label: 'Staff', value: 'Staff' },
-        { label: 'Operator', value: 'Operator' },
-        { label: 'Supervisor', value: 'Supervisor' },
-        { label: 'Manager', value: 'Manager' },
-        { label: 'Kepala Departemen', value: 'Kepala Departemen' }
-    ];
-
-    const statusOptions = [
-        { label: 'Kontrak', value: 'Kontrak' },
-        { label: 'Tetap', value: 'Tetap' },
-        { label: 'Magang', value: 'Magang' }
-    ];
-
-    const shiftOptions = [
-        { label: 'Tidak Ada Shift', value: '' },
-        { label: 'Pagi (07:00 - 15:00)', value: 'Pagi' },
-        { label: 'Siang (15:00 - 23:00)', value: 'Siang' },
-        { label: 'Malam (23:00 - 07:00)', value: 'Malam' }
-    ];
-
-    const pendidikanOptions = [
-        { label: 'SD', value: 'SD' },
-        { label: 'SMP', value: 'SMP' },
-        { label: 'SMA/SMK', value: 'SMA/SMK' },
-        { label: 'D3', value: 'D3' },
-        { label: 'S1', value: 'S1' },
-        { label: 'S2', value: 'S2' },
-        { label: 'S3', value: 'S3' }
-    ];
-
     const handleInputChange = (e: any) => {
         const { id, value } = e.target;
-        setFormData(prev => ({ ...prev, [id]: value }));
+        setFormData((prev) => ({ ...prev, [id]: value }));
     };
 
     const handleDropdownChange = (field: string, value: any) => {
-        setFormData(prev => {
-            const newData = { ...prev, [field]: value };
-
-            // Sinkronisasi: Departemen akan selalu mengikuti Role
-            if (field === 'role') {
-                if (value === 'SDM') {
-                    newData.departemen = 'SDM';
-                } else {
-                    newData.departemen = value;
-                }
-            }
-
-            return newData;
-        });
+        setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
     const validateStep = (step: number): boolean => {
         switch (step) {
             case 0:
                 if (!formData.email || !formData.password || !formData.confirmPassword) {
-                    toastRef.current?.showToast('01', 'Semua field wajib diisi');
+                    toastRef.current?.showToast('01', 'Semua field akun login wajib diisi');
                     return false;
                 }
                 if (formData.password.length < 8) {
@@ -161,15 +109,15 @@ const RegisterKaryawanPage = () => {
                 return true;
 
             case 1:
-                if (!formData.nik || !formData.nama || !formData.gender) {
-                    toastRef.current?.showToast('01', 'NIK, Nama, dan Gender wajib diisi');
+                if (!formData.nama || !formData.gender) {
+                    toastRef.current?.showToast('01', 'Nama, dan Gender wajib diisi');
                     return false;
                 }
                 return true;
 
             case 2:
-                if (!formData.departemen || !formData.jabatan) {
-                    toastRef.current?.showToast('01', 'Departemen dan Jabatan wajib diisi');
+                if (!formData.nama_perusahaan || !formData.npwp_perusahaan || !formData.nib) {
+                    toastRef.current?.showToast('01', 'Nama Perusahaan, NPWP Perusahaan, dan NIB wajib diisi');
                     return false;
                 }
                 return true;
@@ -181,12 +129,12 @@ const RegisterKaryawanPage = () => {
 
     const handleNext = () => {
         if (validateStep(activeStep)) {
-            setActiveStep(prev => Math.min(prev + 1, steps.length - 1));
+            setActiveStep((prev) => Math.min(prev + 1, steps.length - 1));
         }
     };
 
     const handleBack = () => {
-        setActiveStep(prev => Math.max(prev - 1, 0));
+        setActiveStep((prev) => Math.max(prev - 1, 0));
     };
 
     const handleSubmit = async () => {
@@ -196,42 +144,43 @@ const RegisterKaryawanPage = () => {
 
         try {
             const data = new FormData();
-            
-            Object.keys(formData).forEach(key => {
-                const value = (formData as any)[key];
-                
+
+            Object.entries(formData).forEach(([key, value]) => {
                 if (key === 'confirmPassword') return;
-                
+
                 if (value instanceof Date) {
-                    const year = value.getFullYear();
-                    const month = String(value.getMonth() + 1).padStart(2, '0');
-                    const day = String(value.getDate()).padStart(2, '0');
-                    data.append(key, `${year}-${month}-${day}`);
+                    const formattedDate = value.toLocaleDateString('en-CA');
+                    data.append(key, formattedDate);
                 } else if (value !== null && value !== undefined && value !== '') {
-                    data.append(key, value);
+                    data.append(key, value as string);
                 }
             });
 
-            if (foto) {
-                data.append('foto', foto);
+            if (foto) data.append('foto', foto);
+            if (fotoKtp) data.append('foto_ktp', fotoKtp);
+
+            const token = localStorage.getItem('TOKEN');
+            const headers: Record<string, string> = {
+                'Content-Type': 'multipart/form-data'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const token = localStorage.getItem("TOKEN");
-
-                const res = await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/auth/register-karyawan`,
-                data,
-                {
-                    headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                    }
-                }
-                );
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/register-owner`, data, { headers });
 
             if (res.data.status === '00' || res.status === 201) {
-                toastRef.current?.showToast('00', `Registrasi berhasil! Kode Karyawan: ${res.data.karyawan_id}`);
-                setTimeout(() => router.push('/auth/login'), 2000);
+                toastRef.current?.showToast('00', 'Registrasi berhasil! Mengalihkan ke halaman verifikasi...');
+
+                // simpan email sementara jika dibutuhkan di halaman verifikasi
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('pending_verify_email', formData.email);
+                }
+
+                // langsung redirect ke halaman verifikasi dengan membawa email via query param
+                setTimeout(() => {
+                    router.push(`/auth/resend-verification?email=${encodeURIComponent(formData.email)}`);
+                }, 1200);
             }
         } catch (err: any) {
             console.error('Error:', err.response?.data);
@@ -248,31 +197,12 @@ const RegisterKaryawanPage = () => {
                 return (
                     <div className="p-fluid">
                         <div className="mb-4">
-                            <label htmlFor="company_name" className="block text-900 font-medium mb-2">
-                                Nama Perusahaan *
-                            </label>
-                            <InputText
-                                id="company_name"
-                                value={formData.company_name}
-                                onChange={handleInputChange}
-                                placeholder="Contoh: PT Rahman Textile"
-                            />
-                        </div>
-                        <div className="mb-4">
                             <label htmlFor="email" className="block text-900 font-medium mb-2">
                                 Email (Username) *
                             </label>
                             <span className="p-input-icon-left w-full">
                                 <i className="pi pi-envelope text-400"></i>
-                                <InputText
-                                    id="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={handleInputChange}
-                                    placeholder="yourname@gmail.com"
-                                    className="w-full"
-                                    style={{ paddingLeft: '2.5rem' }}
-                                />
+                                <InputText id="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="yourname@gmail.com" className="w-full" style={{ paddingLeft: '2.5rem' }} />
                             </span>
                         </div>
 
@@ -282,15 +212,7 @@ const RegisterKaryawanPage = () => {
                             </label>
                             <span className="p-input-icon-left w-full">
                                 <i className="pi pi-lock text-400"></i>
-                                <InputText
-                                    id="password"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={handleInputChange}
-                                    placeholder="Minimal 8 karakter"
-                                    className="w-full"
-                                    style={{ paddingLeft: '2.5rem' }}
-                                />
+                                <InputText id="password" type="password" value={formData.password} onChange={handleInputChange} placeholder="Minimal 8 karakter" className="w-full" style={{ paddingLeft: '2.5rem' }} />
                             </span>
                         </div>
 
@@ -300,33 +222,8 @@ const RegisterKaryawanPage = () => {
                             </label>
                             <span className="p-input-icon-left w-full">
                                 <i className="pi pi-lock text-400"></i>
-                                <InputText
-                                    id="confirmPassword"
-                                    type="password"
-                                    value={formData.confirmPassword}
-                                    onChange={handleInputChange}
-                                    placeholder="Ulangi password"
-                                    className="w-full"
-                                    style={{ paddingLeft: '2.5rem' }}
-                                />
+                                <InputText id="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Ulangi password" className="w-full" style={{ paddingLeft: '2.5rem' }} />
                             </span>
-                        </div>
-
-                        <div className="mb-4">
-                            <label htmlFor="role" className="block text-900 font-medium mb-2">
-                                Akses Role *
-                            </label>
-                            <Dropdown
-                                id="role"
-                                value={formData.role}
-                                options={roleOptions}
-                                onChange={(e) => handleDropdownChange('role', e.value)}
-                                placeholder="Pilih Role"
-                                className="w-full"
-                            />
-                            <small className="text-500">
-                                Pilih sesuai departemen Anda
-                            </small>
                         </div>
                     </div>
                 );
@@ -335,91 +232,87 @@ const RegisterKaryawanPage = () => {
                 return (
                     <div className="p-fluid">
                         <div className="grid">
-                            <div className="col-12 md:col-6">
-                                <label htmlFor="nik" className="block text-900 font-medium mb-2">
-                                    NIK (Nomor Induk Karyawan) *
-                                </label>
-                                <InputText
-                                    id="nik"
-                                    value={formData.nik}
-                                    onChange={handleInputChange}
-                                    placeholder="Masukkan NIK"
-                                />
-                            </div>
-
-                            <div className="col-12 md:col-6">
-                                <label htmlFor="gender" className="block text-900 font-medium mb-2">
-                                    Jenis Kelamin *
-                                </label>
-                                <Dropdown
-                                    id="gender"
-                                    value={formData.gender}
-                                    options={genderOptions}
-                                    onChange={(e) => handleDropdownChange('gender', e.value)}
-                                />
-                            </div>
-
                             <div className="col-12">
                                 <label htmlFor="nama" className="block text-900 font-medium mb-2">
                                     Nama Lengkap *
                                 </label>
-                                <InputText
-                                    id="nama"
-                                    value={formData.nama}
-                                    onChange={handleInputChange}
-                                    placeholder="Nama sesuai KTP"
-                                />
+                                <InputText id="nama" value={formData.nama} onChange={handleInputChange} placeholder="Nama sesuai KTP" />
                             </div>
 
                             <div className="col-12 md:col-6">
                                 <label htmlFor="tempat_lahir" className="block text-900 font-medium mb-2">
                                     Tempat Lahir
                                 </label>
-                                <InputText
-                                    id="tempat_lahir"
-                                    value={formData.tempat_lahir}
-                                    onChange={handleInputChange}
-                                    placeholder="Kota kelahiran"
-                                />
+                                <InputText id="tempat_lahir" value={formData.tempat_lahir} onChange={handleInputChange} placeholder="Kota kelahiran" />
                             </div>
 
                             <div className="col-12 md:col-6">
                                 <label htmlFor="tgl_lahir" className="block text-900 font-medium mb-2">
                                     Tanggal Lahir
                                 </label>
-                                <Calendar
-                                    id="tgl_lahir"
-                                    value={formData.tgl_lahir}
-                                    onChange={(e) => handleDropdownChange('tgl_lahir', e.value)}
-                                    showIcon
-                                    dateFormat="dd/mm/yy"
-                                    placeholder="Pilih tanggal"
-                                />
+                                <Calendar id="tgl_lahir" value={formData.tgl_lahir} onChange={(e) => handleDropdownChange('tgl_lahir', e.value)} showIcon dateFormat="dd/mm/yy" placeholder="Pilih tanggal" />
                             </div>
 
                             <div className="col-12 md:col-6">
                                 <label htmlFor="no_telp" className="block text-900 font-medium mb-2">
-                                    No. Telepon
+                                    No. Telepon / WhatsApp
                                 </label>
-                                <InputText
-                                    id="no_telp"
-                                    value={formData.no_telp}
-                                    onChange={handleInputChange}
-                                    placeholder="08xxxxxxxxxx"
-                                />
+                                <InputText id="no_telp" value={formData.no_telp} onChange={handleInputChange} placeholder="08xxxxxxxxxx" />
+                            </div>
+                            <div className="col-12 md:col-6">
+                                <label htmlFor="gender" className="block text-900 font-medium mb-2">
+                                    Jenis Kelamin *
+                                </label>
+                                <Dropdown id="gender" value={formData.gender} options={genderOptions} onChange={(e) => handleDropdownChange('gender', e.value)} />
                             </div>
 
                             <div className="col-12">
                                 <label htmlFor="alamat" className="block text-900 font-medium mb-2">
                                     Alamat Lengkap
                                 </label>
-                                <InputTextarea
-                                    id="alamat"
-                                    value={formData.alamat}
-                                    onChange={handleInputChange}
-                                    rows={3}
-                                    placeholder="Alamat sesuai KTP"
-                                />
+                                <InputTextarea id="alamat" value={formData.alamat} onChange={handleInputChange} rows={3} placeholder="Alamat domisili sesuai KTP" />
+                            </div>
+
+                            {/* Section Upload Foto KTP */}
+                            <div className="col-12 mt-2">
+                                <label className="block text-900 font-medium mb-2">
+                                    <i className="pi pi-id-card mr-2"></i>
+                                    Upload Foto KTP
+                                </label>
+                                <FileUpload mode="basic" accept="image/*" maxFileSize={2000000} onSelect={(e) => setFotoKtp(e.files[0])} chooseLabel="Pilih Foto KTP" className="w-full" auto />
+                                {fotoKtp && (
+                                    <div className="mt-2 p-2 surface-100 border-round flex align-items-center">
+                                        <i className="pi pi-check-circle text-green-500 mr-2"></i>
+                                        <span className="text-green-700 font-medium text-sm">{fotoKtp.name}</span>
+                                    </div>
+                                )}
+                                <small className="text-500 block mt-1">Format gambar JPG, PNG. Maksimal 2MB</small>
+                            </div>
+
+                            {/* Section Kontak Darurat */}
+                            <div className="col-12 mt-3">
+                                <span className="block text-900 font-semibold mb-2">Kontak Darurat</span>
+                            </div>
+
+                            <div className="col-12 md:col-4">
+                                <label htmlFor="kontak_darurat_nama" className="block text-900 font-medium mb-2">
+                                    Nama Kontak
+                                </label>
+                                <InputText id="kontak_darurat_nama" value={formData.kontak_darurat_nama} onChange={handleInputChange} placeholder="Nama kerabat" />
+                            </div>
+
+                            <div className="col-12 md:col-4">
+                                <label htmlFor="kontak_darurat_hub" className="block text-900 font-medium mb-2">
+                                    Hubungan
+                                </label>
+                                <InputText id="kontak_darurat_hub" value={formData.kontak_darurat_hub} onChange={handleInputChange} placeholder="Contoh: Orang Tua / Pasangan" />
+                            </div>
+
+                            <div className="col-12 md:col-4">
+                                <label htmlFor="kontak_darurat_telp" className="block text-900 font-medium mb-2">
+                                    No. Telepon Darurat
+                                </label>
+                                <InputText id="kontak_darurat_telp" value={formData.kontak_darurat_telp} onChange={handleInputChange} placeholder="08xxxxxxxxxx" />
                             </div>
                         </div>
                     </div>
@@ -430,88 +323,38 @@ const RegisterKaryawanPage = () => {
                     <div className="p-fluid">
                         <div className="grid">
                             <div className="col-12 md:col-6">
-                                <label htmlFor="departemen" className="block text-900 font-medium mb-2">
-                                    Departemen *
+                                <label htmlFor="nama_perusahaan" className="block text-900 font-medium mb-2">
+                                    Nama Perusahaan *
                                 </label>
-                                <Dropdown
-                                    id="departemen"
-                                    value={formData.departemen}
-                                    options={departemenOptions}
-                                    onChange={(e) => handleDropdownChange('departemen', e.value)}
-                                    placeholder="Pilih Departemen"
-                                    filter
-                                    disabled={true}
-                                />
-                                <small className="text-500">
-                                    Departemen terkunci otomatis sesuai Role Akses yang dipilih di Step 1.
-                                </small>
+                                <InputText id="nama_perusahaan" value={formData.nama_perusahaan} onChange={handleInputChange} placeholder="Contoh: PT Rahman Textile" />
                             </div>
 
                             <div className="col-12 md:col-6">
-                                <label htmlFor="jabatan" className="block text-900 font-medium mb-2">
-                                    Jabatan *
+                                <label htmlFor="npwp_perusahaan" className="block text-900 font-medium mb-2">
+                                    NPWP Perusahaan *
                                 </label>
-                                <Dropdown
-                                    id="jabatan"
-                                    value={formData.jabatan}
-                                    options={jabatanOptions}
-                                    onChange={(e) => handleDropdownChange('jabatan', e.value)}
-                                    placeholder="Pilih Jabatan"
-                                />
+                                <InputText id="npwp_perusahaan" value={formData.npwp_perusahaan} onChange={handleInputChange} placeholder="Masukkan nomor NPWP Perusahaan" />
                             </div>
 
                             <div className="col-12 md:col-6">
-                                <label htmlFor="status_karyawan" className="block text-900 font-medium mb-2">
-                                    Status Karyawan
+                                <label htmlFor="nib" className="block text-900 font-medium mb-2">
+                                    NIB (Nomor Induk Berusaha) *
                                 </label>
-                                <Dropdown
-                                    id="status_karyawan"
-                                    value={formData.status_karyawan}
-                                    options={statusOptions}
-                                    onChange={(e) => handleDropdownChange('status_karyawan', e.value)}
-                                />
+                                <InputText id="nib" value={formData.nib} onChange={handleInputChange} placeholder="Masukkan nomor NIB Perusahaan" />
                             </div>
 
                             <div className="col-12 md:col-6">
-                                <label htmlFor="tanggal_masuk" className="block text-900 font-medium mb-2">
-                                    Tanggal Masuk
+                                <label htmlFor="no_telp_perusahaan" className="block text-900 font-medium mb-2">
+                                    No. Telepon Perusahaan
                                 </label>
-                                <Calendar
-                                    id="tanggal_masuk"
-                                    value={formData.tanggal_masuk}
-                                    onChange={(e) => handleDropdownChange('tanggal_masuk', e.value)}
-                                    showIcon
-                                    dateFormat="dd/mm/yy"
-                                />
+                                <InputText id="no_telp_perusahaan" value={formData.no_telp_perusahaan} onChange={handleInputChange} placeholder="Contoh: 021-xxxxxxxx" />
                             </div>
 
-                            <div className="col-12 md:col-6">
-                                <label htmlFor="shift" className="block text-900 font-medium mb-2">
-                                    Shift Kerja
+                            <div className="col-12">
+                                <label htmlFor="alamat_perusahaan" className="block text-900 font-medium mb-2">
+                                    Alamat Perusahaan
                                 </label>
-                                <Dropdown
-                                    id="shift"
-                                    value={formData.shift}
-                                    options={shiftOptions}
-                                    onChange={(e) => handleDropdownChange('shift', e.value)}
-                                    placeholder="Pilih Shift (Opsional)"
-                                />
-                                <small className="text-500">
-                                    Kosongkan jika tidak ada shift
-                                </small>
-                            </div>
-
-                            <div className="col-12 md:col-6">
-                                <label htmlFor="pendidikan_terakhir" className="block text-900 font-medium mb-2">
-                                    Pendidikan Terakhir
-                                </label>
-                                <Dropdown
-                                    id="pendidikan_terakhir"
-                                    value={formData.pendidikan_terakhir}
-                                    options={pendidikanOptions}
-                                    onChange={(e) => handleDropdownChange('pendidikan_terakhir', e.value)}
-                                    placeholder="Pilih Pendidikan"
-                                />
+                                <InputTextarea id="alamat_perusahaan" value={formData.alamat_perusahaan} onChange={handleInputChange} rows={3} placeholder="Alamat lengkap operasional/kantor perusahaan" />
                             </div>
                         </div>
                     </div>
@@ -525,24 +368,14 @@ const RegisterKaryawanPage = () => {
                                 <i className="pi pi-image mr-2"></i>
                                 Foto Profil (Opsional)
                             </label>
-                            <FileUpload
-                                mode="basic"
-                                accept="image/*"
-                                maxFileSize={1000000}
-                                onSelect={(e) => setFoto(e.files[0])}
-                                chooseLabel="Pilih Foto"
-                                className="w-full"
-                                auto
-                            />
+                            <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} onSelect={(e) => setFoto(e.files[0])} chooseLabel="Pilih Foto" className="w-full" auto />
                             {foto && (
                                 <div className="mt-3 p-3 surface-100 border-round">
                                     <i className="pi pi-check-circle text-green-500 mr-2"></i>
                                     <span className="text-green-700 font-medium">{foto.name}</span>
                                 </div>
                             )}
-                            <small className="text-500 block mt-2">
-                                Format: JPG, PNG, GIF. Maksimal 1MB
-                            </small>
+                            <small className="text-500 block mt-2">Format: JPG, PNG, GIF. Maksimal 1MB</small>
                         </div>
 
                         <div className="surface-100 border-round p-4">
@@ -556,24 +389,32 @@ const RegisterKaryawanPage = () => {
                                     <p className="text-900 font-medium">{formData.email}</p>
                                 </div>
                                 <div className="col-6">
-                                    <p className="text-600 mb-1 text-sm">Role</p>
-                                    <p className="text-900 font-medium">{formData.role}</p>
-                                </div>
-                                <div className="col-6">
                                     <p className="text-600 mb-1 text-sm">NIK</p>
                                     <p className="text-900 font-medium">{formData.nik}</p>
                                 </div>
                                 <div className="col-6">
-                                    <p className="text-600 mb-1 text-sm">Nama</p>
+                                    <p className="text-600 mb-1 text-sm">Nama Lengkap</p>
                                     <p className="text-900 font-medium">{formData.nama}</p>
                                 </div>
                                 <div className="col-6">
-                                    <p className="text-600 mb-1 text-sm">Departemen</p>
-                                    <p className="text-900 font-medium">{formData.departemen}</p>
+                                    <p className="text-600 mb-1 text-sm">Foto KTP</p>
+                                    <p className="text-900 font-medium">{fotoKtp ? fotoKtp.name : 'Belum diunggah'}</p>
                                 </div>
                                 <div className="col-6">
-                                    <p className="text-600 mb-1 text-sm">Jabatan</p>
-                                    <p className="text-900 font-medium">{formData.jabatan}</p>
+                                    <p className="text-600 mb-1 text-sm">Nama Perusahaan</p>
+                                    <p className="text-900 font-medium">{formData.nama_perusahaan}</p>
+                                </div>
+                                <div className="col-6">
+                                    <p className="text-600 mb-1 text-sm">NIB Perusahaan</p>
+                                    <p className="text-900 font-medium">{formData.nib}</p>
+                                </div>
+                                <div className="col-6">
+                                    <p className="text-600 mb-1 text-sm">NPWP Perusahaan</p>
+                                    <p className="text-900 font-medium">{formData.npwp_perusahaan}</p>
+                                </div>
+                                <div className="col-6">
+                                    <p className="text-600 mb-1 text-sm">No. Telp Perusahaan</p>
+                                    <p className="text-900 font-medium">{formData.no_telp_perusahaan || '-'}</p>
                                 </div>
                             </div>
                         </div>
@@ -585,76 +426,43 @@ const RegisterKaryawanPage = () => {
         }
     };
 
-    // ✅ TAMPILKAN SKELETON SAAT LOADING
     if (isPageLoading) {
         return <RegisterPageSkeleton />;
     }
 
-    // ✅ RENDER NORMAL PAGE
     return (
         <>
             <ToastNotifier ref={toastRef} />
-            
-            <div 
+
+            <div
                 className="min-h-screen flex align-items-center justify-content-center p-4"
-                style={{ 
+                style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     animation: 'fadeIn 0.5s ease-in'
                 }}
             >
-                <div className="surface-card shadow-8 border-round-2xl overflow-hidden"
-                     style={{ maxWidth: '900px', width: '100%' }}>
-                    
-                    <div className="p-5 border-bottom-1 surface-border"
-                         style={{ background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' }}>
+                <div className="surface-card shadow-8 border-round-2xl overflow-hidden" style={{ maxWidth: '900px', width: '100%' }}>
+                    <div className="p-5 border-bottom-1 surface-border" style={{ background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' }}>
                         <div className="flex align-items-center justify-content-between">
                             <div>
-                                <h2 className="text-white text-3xl font-bold m-0 mb-2">
-                                    Registrasi Karyawan
-                                </h2>
-                                <p className="text-white-alpha-80 m-0">
-                                    Lengkapi data Anda untuk membuat akun karyawan
-                                </p>
+                                <h2 className="text-white text-3xl font-bold m-0 mb-2">Registrasi Karyawan</h2>
+                                <p className="text-white-alpha-80 m-0">Lengkapi data Anda untuk membuat akun karyawan</p>
                             </div>
-                            <Button
-                                icon="pi pi-times"
-                                className="p-button-rounded p-button-text p-button-plain hover:bg-black-alpha-20 hover:text-red-400"
-                                style={{ color: 'white', transition: '0.3s' }}
-                                onClick={() => router.push('/auth/login')}
-                            />
+                            <Button icon="pi pi-times" className="p-button-rounded p-button-text p-button-plain hover:bg-black-alpha-20 hover:text-red-400" style={{ color: 'white', transition: '0.3s' }} onClick={() => router.push('/auth/login')} />
                         </div>
                     </div>
 
                     <div className="p-5 border-bottom-1 surface-border">
-                        <Steps
-                            model={steps}
-                            activeIndex={activeStep}
-                            readOnly
-                            className="mb-0"
-                        />
+                        <Steps model={steps} activeIndex={activeStep} readOnly className="mb-0" />
                     </div>
 
-                    <div className="p-6">
-                        {renderStepContent()}
-                    </div>
+                    <div className="p-6">{renderStepContent()}</div>
 
                     <div className="p-5 border-top-1 surface-border flex justify-content-between">
-                        <Button
-                            label="Kembali"
-                            icon="pi pi-arrow-left"
-                            className="p-button-text"
-                            onClick={handleBack}
-                            disabled={activeStep === 0 || loading}
-                        />
-                        
+                        <Button label="Kembali" icon="pi pi-arrow-left" className="p-button-text" onClick={handleBack} disabled={activeStep === 0 || loading} />
+
                         {activeStep < steps.length - 1 ? (
-                            <Button
-                                label="Selanjutnya"
-                                icon="pi pi-arrow-right"
-                                iconPos="right"
-                                onClick={handleNext}
-                                disabled={loading}
-                            />
+                            <Button label="Selanjutnya" icon="pi pi-arrow-right" iconPos="right" onClick={handleNext} disabled={loading} />
                         ) : (
                             <Button
                                 label={loading ? 'Memproses...' : 'Daftar Sekarang'}
