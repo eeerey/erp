@@ -66,7 +66,15 @@ const app = express();
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ── CORS
-const allowedOrigins = ["http://localhost:3000"];
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3005",
+  "http://223.27.152.100:3005",
+  "http://rintisku.id",
+  "https://rintisku.id",
+  "http://www.rintisku.id",
+  "https://www.rintisku.id"
+];
 app.use(
   cors({
     origin: (origin, callback) => {
