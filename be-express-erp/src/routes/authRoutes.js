@@ -17,6 +17,9 @@ const uploadKaryawanFiles = upload.fields([
  */
 router.post("/login", AuthController.login);
 
+// LOGIN VIA GOOGLE
+router.post("/google", AuthController.googleLogin);
+
 // VERIFIKASI EMAIL VIA OTP & RESEND OTP
 router.post("/verify-email", AuthController.verifyEmail);
 router.post("/resend-verification", AuthController.resendVerificationToken);
@@ -43,5 +46,6 @@ router.post(
  */
 router.get("/profile", verifyToken, AuthController.getProfile);
 router.post("/logout", verifyToken, AuthController.logout);
+
 
 export default router;

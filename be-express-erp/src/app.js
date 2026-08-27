@@ -57,6 +57,9 @@ import productPerformanceRoutes from "./routes/productPerformanceRoutes.js";
 // ── PAYMENT
 import paymentRoutes from "./routes/paymentRoutes.js";
 
+//log user
+import activityLogRoutes from "./routes/activityLogRoutes.js";
+
 const app = express();
 
 // ── Static Files
@@ -152,5 +155,8 @@ app.use("/api/payment", paymentRoutes);
 
 // ── Static Files
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+// ── Log User
+app.use("/api/admin", activityLogRoutes);
 
 export default app;

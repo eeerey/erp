@@ -543,16 +543,178 @@ export default function LandingERP() {
                 </OverlayPanel>
             </>
 
-            {/* Mobile Menu */}
-            <div className={`md:hidden mobile-menu ${mobileMenuOpen ? 'open' : ''}`} style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: mobileMenuOpen ? '12px 24px 16px' : '0 24px' }}>
+            <div
+                className={`md:hidden mobile-menu ${mobileMenuOpen ? 'open' : ''}`}
+                style={{
+                    position: 'fixed', // 👈 WAJIB: Agar posisinya melayang (fixed) di atas konten lain
+                    top: '60px', // 👈 Menyesuaikan tinggi Navbar di atasnya
+                    left: 0,
+                    right: 0,
+                    zIndex: 99, // 👈 Memastikan layer menu berada paling depan
+                    background: '#fff',
+                    borderBottom: '1px solid #e2e8f0',
+                    padding: mobileMenuOpen ? '16px 24px 24px' : '0 24px',
+                    display: mobileMenuOpen ? 'block' : 'none',
+                    maxHeight: 'calc(100vh - 60px)', // 👈 Membatasi tinggi maksimum setinggi layar HP
+                    overflowY: 'auto', // 👈 Mencegah terpotong & bisa di-scroll jika layar pendek
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }}
+            >
+                {/* Nav Links */}
                 {['Fitur', 'Modul', 'Harga', 'Testimoni'].map((item) => (
-                    <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', padding: '10px 0', color: '#374151', textDecoration: 'none', fontWeight: 500, borderBottom: '1px solid #f1f5f9' }}>
+                    <a
+                        key={item}
+                        href={`#${item.toLowerCase()}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                        style={{
+                            display: 'block',
+                            padding: '12px 0',
+                            color: '#374151',
+                            textDecoration: 'none',
+                            fontWeight: 500,
+                            borderBottom: '1px solid #f1f5f9'
+                        }}
+                    >
                         {item}
                     </a>
                 ))}
-                <button className="shimmer-btn mt-3" style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
-                    Coba Gratis ✨
-                </button>
+
+                {/* Action Buttons Kondisional (Mobile) */}
+                <div className="pt-3 flex flex-column gap-2">
+                    {!isLoggedIn ? (
+                        /* 🔹 TAMPILAN SEBELUM LOGIN (MOBILE) */
+                        <>
+                            <button
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    router.push('/auth/login');
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    borderRadius: 8,
+                                    border: '1.5px solid #e2e8f0',
+                                    background: 'transparent',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    color: '#374151',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Masuk
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    router.push('/auth/login');
+                                }}
+                                className="shimmer-btn"
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Coba Gratis ✨
+                            </button>
+                        </>
+                    ) : (
+                        /* 🔹 TAMPILAN SESUDAH LOGIN (MOBILE) */
+                        <div className="flex flex-column gap-2">
+                            {/* Info Ringkas User */}
+                            <div className="flex align-items-center gap-3 p-2 border-round bg-gray-50 mb-1">
+                                <Avatar label={userName ? userName.charAt(0).toUpperCase() : 'U'} shape="circle" style={{ background: '#4f46e5', color: '#fff' }} />
+                                <div>
+                                    <strong className="block text-900 text-sm">{userName}</strong>
+                                    <span className="text-xs text-500 uppercase">{userRole}</span>
+                                </div>
+                            </div>
+
+                            {/* Tombol Dashboard */}
+                            <button
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    router.push('/superadmin/dashboard');
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    background: '#4f46e5',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    color: '#fff',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <i className="pi pi-th-large" />
+                                Dashboard
+                            </button>
+
+                            {/* Tombol Profil Saya */}
+                            <button
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    router.push('/auth/profile');
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    borderRadius: 8,
+                                    border: '1px solid #e2e8f0',
+                                    background: '#fff',
+                                    fontWeight: 500,
+                                    fontSize: '0.9rem',
+                                    color: '#374151',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <i className="pi pi-user text-primary" />
+                                Profil Saya
+                            </button>
+
+                            {/* Tombol Logout */}
+                            <button
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    handleLogout();
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px',
+                                    borderRadius: 8,
+                                    border: '1px solid #fee2e2',
+                                    background: '#fef2f2',
+                                    fontWeight: 500,
+                                    fontSize: '0.9rem',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <i className="pi pi-sign-out" />
+                                Logout
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* ================= HERO ================= */}
@@ -1156,6 +1318,7 @@ export default function LandingERP() {
                         </p>
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
                             <button
+                                onClick={() => router.push('/auth/register/owner')}
                                 style={{
                                     padding: '14px 32px',
                                     borderRadius: 12,
@@ -1221,9 +1384,17 @@ export default function LandingERP() {
                                 Solusi manajemen bisnis terpadu dari <span style={{ color: '#e2e8f0', fontWeight: 600 }}>PT. Garapan Indonesia Sukses</span> untuk efisiensi dan pertumbuhan di era digital.
                             </p>
                             <div style={{ display: 'flex', gap: 10 }}>
-                                {['pi-twitter', 'pi-linkedin', 'pi-instagram', 'pi-github'].map((icon) => (
-                                    <div
-                                        key={icon}
+                                {[
+                                    { icon: 'pi-twitter', url: 'https://twitter.com/username' },
+                                    { icon: 'pi-linkedin', url: 'https://linkedin.com/in/username' },
+                                    { icon: 'pi-instagram', url: 'https://www.instagram.com/rintisku.id/' },
+                                    { icon: 'pi-github', url: 'https://github.com/username' }
+                                ].map((item) => (
+                                    <a
+                                        key={item.icon}
+                                        href={item.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         style={{
                                             width: 36,
                                             height: 36,
@@ -1234,7 +1405,8 @@ export default function LandingERP() {
                                             justifyContent: 'center',
                                             cursor: 'pointer',
                                             border: '1px solid rgba(255,255,255,0.1)',
-                                            transition: 'all 0.2s'
+                                            transition: 'all 0.2s',
+                                            textDecoration: 'none' // Menghilangkan garis bawah pada link
                                         }}
                                         onMouseEnter={(e) => {
                                             (e.currentTarget as HTMLElement).style.background = '#4f46e5';
@@ -1245,8 +1417,8 @@ export default function LandingERP() {
                                             (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.1)';
                                         }}
                                     >
-                                        <i className={`pi ${icon}`} style={{ fontSize: '0.85rem', color: '#94a3b8' }} />
-                                    </div>
+                                        <i className={`pi ${item.icon}`} style={{ fontSize: '0.85rem', color: '#94a3b8' }} />
+                                    </a>
                                 ))}
                             </div>
                         </div>

@@ -1,297 +1,313 @@
-"use client";
-import React, { useContext, useState, useEffect } from "react";
-import AppMenuitem from "./AppMenuitem";
-import { LayoutContext } from "./context/layoutcontext";
-import { MenuProvider } from "./context/menucontext";
+'use client';
+import React, { useContext, useState, useEffect } from 'react';
+import AppMenuitem from './AppMenuitem';
+import { LayoutContext } from './context/layoutcontext';
+import { MenuProvider } from './context/menucontext';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Avatar } from 'primereact/avatar';
 
 const AppMenu = () => {
+    const router = useRouter();
     const { layoutConfig } = useContext(LayoutContext);
     const [userRole, setUserRole] = useState(null);
+    const [userName, setUserName] = useState('');
+    const [userEmail, setUserEmail] = useState('');
 
     useEffect(() => {
-        if (typeof window !== "undefined") {
-            const roleFromLocalStorage = localStorage.getItem("ROLE");
-            console.log("ROLE DI LOCALSTORAGE:", roleFromLocalStorage);
+        if (typeof window !== 'undefined') {
+            const roleFromLocalStorage = localStorage.getItem('ROLE');
+            const nameFromLocalStorage = localStorage.getItem('USER_NAME') || 'User';
+            const emailFromLocalStorage = localStorage.getItem('USER_EMAIL') || '';
+
             setUserRole(roleFromLocalStorage);
+            setUserName(nameFromLocalStorage);
+            setUserEmail(emailFromLocalStorage);
         }
     }, []);
 
+    const handleLogout = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.clear();
+            router.push('/auth/login');
+        }
+    };
+    const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
     if (!userRole) return null;
 
-    let model = [];// =========================
+    let model = []; // =========================
     // 1. SUPERADMIN (Versi Buka-Tutup)
     // =========================
-if (userRole === "SUPERADMIN") {
-    model = [
-        {
-            label: "UTAMA",
-            items: [
-                { label: "Dashboard Utama", icon: "pi pi-fw pi-home", to: "/superadmin/dashboard" },
-                { label: "Analitik Bisnis", icon: "pi pi-fw pi-chart-bar", to: "/superadmin/analytics" },
-                { label: "Master Perusahaan", icon: "pi pi-fw pi-briefcase", to: "/master/perusahaan" },
-            ]
-        },
-        {
-            label: "SUMBER DAYA MANUSIA",
-            icon: "pi pi-fw pi-users",
-            items: [
-                { label: "Data Karyawan", icon: "pi pi-fw pi-user", to: "/master/karyawan" },
-                { label: "Presensi Karyawan", icon: "pi pi-fw pi-calendar-plus", to: "/master/presensi-karyawan" }, // Menu baru Anda
-                { label: "Validasi Logbook", icon: "pi pi-fw pi-check-square", to: "/master/validasi-logbook" },
-                { label: "Master Pengajuan", icon: "pi pi-fw pi-file-export", to: "/master/master_pengajuan" },
-                { label: "Rekapitulasi Kinerja", icon: "pi pi-fw pi-chart-bar", to: "/master/rekapitulasi-kinerja" }
-            ]
-        },
-                    {
-                label: "PENGGAJIAN (PAYROLL)",
-                icon: "pi pi-fw pi-money-bill",
-                items: [
-                    {
-                        label: "Master Gaji",
-                        icon: "pi pi-fw pi-briefcase",
-                        items: [
-                            { label: "Gaji per Jabatan",    icon: "pi pi-fw pi-briefcase",    to: "/master/gaji-jabatan"   },
-                            { label: "Komponen Gaji",       icon: "pi pi-fw pi-user-edit",    to: "/master/komponen-gaji"  },
-                        ]
-                    },
-                    { label: "Payroll Bulanan",     icon: "pi pi-fw pi-wallet",           to: "/master/master-payroll"        },
-                ]
-            },
-        {
-            label: "MANAJEMEN GUDANG",
-            icon: "pi pi-fw pi-building",
-            items: [
-                {
-                    label: "Master Inventori",
-                    icon: "pi pi-fw pi-box",
-                    items: [
-                        { label: "Data Barang", icon: "pi pi-fw pi-box", to: "/master/master_barang" },
-                        { label: "Jenis Barang", icon: "pi pi-fw pi-tags", to: "/master/jenis_barang" },
-                        { label: "Satuan Barang", icon: "pi pi-fw pi-info-circle", to: "/master/satuan_barang" },
-                    ]
-                },
-                {
-                    label: "Lokasi & Penyimpanan",
-                    icon: "pi pi-fw pi-map",
-                    items: [
-                        { label: "Daftar Gudang", icon: "pi pi-fw pi-map-marker", to: "/master/gudang" },
-                        { label: "Daftar Rak", icon: "pi pi-fw pi-database", to: "/master/rak" },
-                        { label: "Batch Barang", icon: "pi pi-fw pi-clone", to: "/master/batch" },
-                        { label: "Batch Karyawan", icon: "pi pi-fw pi-id-card", to: "/master/batch-karyawan" },
-                    ]
-                },
-                {
-                    label: "Pergerakan Stok",
-                    icon: "pi pi-fw pi-directions",
-                    items: [
-                        { label: "Stok Lokasi", icon: "pi pi-fw pi-search", to: "/master/stok-lokasi" },
-                        { label: "Barang Masuk (Log)", icon: "pi pi-fw pi-download", to: "/master/tr-barang-masuk" },
-                    ]
-                }
-            ]
-        },
-        {
-            label: "TRANSAKSI & KEUANGAN",
-            icon: "pi pi-fw pi-money-bill",
-            items: [
-                { label: "Data Vendor", icon: "pi pi-fw pi-truck", to: "/master/vendor" },
-                { label: "Invoice Pembelian", icon: "pi pi-fw pi-wallet", to: "/master/invpembelian" },
-                { label: "Invoice Pengiriman", icon: "pi pi-fw pi-send", to: "/master/invpengiriman" },
-            ]
-        },
-        {
-            label: "SISTEM & ADMIN",
-            icon: "pi pi-fw pi-th-large",
-            items: [
-                { label: "User Management", icon: "pi pi-fw pi-user-edit", to: "/master/users" },
-                { label: "Logbook Pekerjaan", icon: "pi pi-fw pi-book", to: "/master/logbook-pekerjaan" },
-                { label: "Konfigurasi Hari", icon: "pi pi-fw pi-calendar", to: "/master/hari" },
-            ]
-        },
-        {
-            label: "PENGATURAN",
-            icon: "pi pi-fw pi-cog",
-            items: [
-                { label: "Informasi Perusahaan", icon: "pi pi-fw pi-info-circle", to: "/settings/company" },
-                { label: "Backup & Restore", icon: "pi pi-fw pi-cloud-download", to: "/settings/backup" },
-                { label: "Notifikasi Email", icon: "pi pi-fw pi-envelope", to: "/settings/notification" }
-            ]
-        }
-    ];
-}
-    // =========================
-    // 1.1 SDM (Versi Buka-Tutup)
-    // =========================
-    else if (userRole === "SDM") {
+    if (userRole === 'SUPERADMIN') {
         model = [
             {
-                label: "UTAMA",
+                label: 'UTAMA',
                 items: [
-                    { label: "Dashboard Utama", icon: "pi pi-fw pi-home", to: "/superadmin/dashboard" },
-                    { label: "Analitik Bisnis", icon: "pi pi-fw pi-chart-bar", to: "/superadmin/analytics" },
-                    { label: "Master Perusahaan", icon: "pi pi-fw pi-briefcase", to: "/master/perusahaan" },
+                    { label: 'Dashboard Utama', icon: 'pi pi-fw pi-home', to: '/superadmin/dashboard' },
+                    { label: 'Analitik Bisnis', icon: 'pi pi-fw pi-chart-bar', to: '/superadmin/analytics' },
+                    { label: 'Master Perusahaan', icon: 'pi pi-fw pi-briefcase', to: '/master/perusahaan' }
                 ]
             },
             {
-                label: "SUMBER DAYA MANUSIA",
-                icon: "pi pi-fw pi-users",
+                label: 'SUMBER DAYA MANUSIA',
+                icon: 'pi pi-fw pi-users',
                 items: [
-                    { label: "Data Karyawan", icon: "pi pi-fw pi-user", to: "/master/karyawan" },
-                    { label: "Presensi Karyawan", icon: "pi pi-fw pi-calendar-plus", to: "/master/presensi-karyawan" }, // Menu baru Anda
-                    { label: "Validasi Logbook", icon: "pi pi-fw pi-check-square", to: "/master/validasi-logbook" },
-                    { label: "Master Pengajuan", icon: "pi pi-fw pi-file-export", to: "/master/master_pengajuan" },
-                    { label: "Rekapitulasi Kinerja", icon: "pi pi-fw pi-chart-bar", to: "/master/rekapitulasi-kinerja" }
+                    { label: 'Data Karyawan', icon: 'pi pi-fw pi-user', to: '/master/karyawan' },
+                    { label: 'Presensi Karyawan', icon: 'pi pi-fw pi-calendar-plus', to: '/master/presensi-karyawan' }, // Menu baru Anda
+                    { label: 'Validasi Logbook', icon: 'pi pi-fw pi-check-square', to: '/master/validasi-logbook' },
+                    { label: 'Master Pengajuan', icon: 'pi pi-fw pi-file-export', to: '/master/master_pengajuan' },
+                    { label: 'Rekapitulasi Kinerja', icon: 'pi pi-fw pi-chart-bar', to: '/master/rekapitulasi-kinerja' }
                 ]
             },
-                        {
-                    label: "PENGGAJIAN (PAYROLL)",
-                    icon: "pi pi-fw pi-money-bill",
-                    items: [
-                        {
-                            label: "Master Gaji",
-                            icon: "pi pi-fw pi-briefcase",
-                            items: [
-                                { label: "Gaji per Jabatan",    icon: "pi pi-fw pi-briefcase",    to: "/master/gaji-jabatan"   },
-                                { label: "Komponen Gaji",       icon: "pi pi-fw pi-user-edit",    to: "/master/komponen-gaji"  },
-                            ]
-                        },
-                        { label: "Payroll Bulanan",     icon: "pi pi-fw pi-wallet",           to: "/master/master-payroll"        },
-                    ]
-                },
             {
-                label: "MANAJEMEN GUDANG",
-                icon: "pi pi-fw pi-building",
+                label: 'PENGGAJIAN (PAYROLL)',
+                icon: 'pi pi-fw pi-money-bill',
                 items: [
                     {
-                        label: "Master Inventori",
-                        icon: "pi pi-fw pi-box",
+                        label: 'Master Gaji',
+                        icon: 'pi pi-fw pi-briefcase',
                         items: [
-                            { label: "Data Barang", icon: "pi pi-fw pi-box", to: "/master/master_barang" },
-                            { label: "Jenis Barang", icon: "pi pi-fw pi-tags", to: "/master/jenis_barang" },
-                            { label: "Satuan Barang", icon: "pi pi-fw pi-info-circle", to: "/master/satuan_barang" },
+                            { label: 'Gaji per Jabatan', icon: 'pi pi-fw pi-briefcase', to: '/master/gaji-jabatan' },
+                            { label: 'Komponen Gaji', icon: 'pi pi-fw pi-user-edit', to: '/master/komponen-gaji' }
+                        ]
+                    },
+                    { label: 'Payroll Bulanan', icon: 'pi pi-fw pi-wallet', to: '/master/master-payroll' }
+                ]
+            },
+            {
+                label: 'MANAJEMEN GUDANG',
+                icon: 'pi pi-fw pi-building',
+                items: [
+                    {
+                        label: 'Master Inventori',
+                        icon: 'pi pi-fw pi-box',
+                        items: [
+                            { label: 'Data Barang', icon: 'pi pi-fw pi-box', to: '/master/master_barang' },
+                            { label: 'Jenis Barang', icon: 'pi pi-fw pi-tags', to: '/master/jenis_barang' },
+                            { label: 'Satuan Barang', icon: 'pi pi-fw pi-info-circle', to: '/master/satuan_barang' }
                         ]
                     },
                     {
-                        label: "Lokasi & Penyimpanan",
-                        icon: "pi pi-fw pi-map",
+                        label: 'Lokasi & Penyimpanan',
+                        icon: 'pi pi-fw pi-map',
                         items: [
-                            { label: "Daftar Gudang", icon: "pi pi-fw pi-map-marker", to: "/master/gudang" },
-                            { label: "Daftar Rak", icon: "pi pi-fw pi-database", to: "/master/rak" },
-                            { label: "Batch Barang", icon: "pi pi-fw pi-clone", to: "/master/batch" },
-                            { label: "Batch Karyawan", icon: "pi pi-fw pi-id-card", to: "/master/batch-karyawan" },
+                            { label: 'Daftar Gudang', icon: 'pi pi-fw pi-map-marker', to: '/master/gudang' },
+                            { label: 'Daftar Rak', icon: 'pi pi-fw pi-database', to: '/master/rak' },
+                            { label: 'Batch Barang', icon: 'pi pi-fw pi-clone', to: '/master/batch' },
+                            { label: 'Batch Karyawan', icon: 'pi pi-fw pi-id-card', to: '/master/batch-karyawan' }
                         ]
                     },
                     {
-                        label: "Pergerakan Stok",
-                        icon: "pi pi-fw pi-directions",
+                        label: 'Pergerakan Stok',
+                        icon: 'pi pi-fw pi-directions',
                         items: [
-                            { label: "Stok Lokasi", icon: "pi pi-fw pi-search", to: "/master/stok-lokasi" },
-                            { label: "Barang Masuk (Log)", icon: "pi pi-fw pi-download", to: "/master/tr-barang-masuk" },
+                            { label: 'Stok Lokasi', icon: 'pi pi-fw pi-search', to: '/master/stok-lokasi' },
+                            { label: 'Barang Masuk (Log)', icon: 'pi pi-fw pi-download', to: '/master/tr-barang-masuk' }
                         ]
                     }
                 ]
             },
             {
-                label: "TRANSAKSI & KEUANGAN",
-                icon: "pi pi-fw pi-money-bill",
+                label: 'TRANSAKSI & KEUANGAN',
+                icon: 'pi pi-fw pi-money-bill',
                 items: [
-                    { label: "Data Vendor", icon: "pi pi-fw pi-truck", to: "/master/vendor" },
-                    { label: "Invoice Pembelian", icon: "pi pi-fw pi-wallet", to: "/master/invpembelian" },
-                    { label: "Invoice Pengiriman", icon: "pi pi-fw pi-send", to: "/master/invpengiriman" },
+                    { label: 'Data Vendor', icon: 'pi pi-fw pi-truck', to: '/master/vendor' },
+                    { label: 'Invoice Pembelian', icon: 'pi pi-fw pi-wallet', to: '/master/invpembelian' },
+                    { label: 'Invoice Pengiriman', icon: 'pi pi-fw pi-send', to: '/master/invpengiriman' }
                 ]
             },
             {
-                label: "SISTEM & ADMIN",
-                icon: "pi pi-fw pi-th-large",
+                label: 'SISTEM & ADMIN',
+                icon: 'pi pi-fw pi-th-large',
                 items: [
-                    { label: "User Management", icon: "pi pi-fw pi-user-edit", to: "/master/users" },
-                    { label: "Logbook Pekerjaan", icon: "pi pi-fw pi-book", to: "/master/logbook-pekerjaan" },
-                    { label: "Konfigurasi Hari", icon: "pi pi-fw pi-calendar", to: "/master/hari" },
+                    { label: 'User Management', icon: 'pi pi-fw pi-user-edit', to: '/master/users' },
+                    { label: 'Logbook Pekerjaan', icon: 'pi pi-fw pi-book', to: '/master/logbook-pekerjaan' },
+                    { label: 'Konfigurasi Hari', icon: 'pi pi-fw pi-calendar', to: '/master/hari' },
+                    { label: 'Log User', icon: 'pi pi-fw pi-clock', to: '/user_log' }
                 ]
             },
             {
-                label: "PENGATURAN",
-                icon: "pi pi-fw pi-cog",
+                label: 'PENGATURAN',
+                icon: 'pi pi-fw pi-cog',
                 items: [
-                    { label: "Informasi Perusahaan", icon: "pi pi-fw pi-info-circle", to: "/settings/company" },
-                    { label: "Backup & Restore", icon: "pi pi-fw pi-cloud-download", to: "/settings/backup" },
-                    { label: "Notifikasi Email", icon: "pi pi-fw pi-envelope", to: "/settings/notification" }
+                    { label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
+                    { label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
+                    { label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
                 ]
             }
         ];
-    }   
+    }
+    // =========================
+    // 1.1 SDM (Versi Buka-Tutup)
+    // =========================
+    else if (userRole === 'SDM') {
+        model = [
+            {
+                label: 'UTAMA',
+                items: [
+                    { label: 'Dashboard Utama', icon: 'pi pi-fw pi-home', to: '/superadmin/dashboard' },
+                    { label: 'Analitik Bisnis', icon: 'pi pi-fw pi-chart-bar', to: '/superadmin/analytics' },
+                    { label: 'Master Perusahaan', icon: 'pi pi-fw pi-briefcase', to: '/master/perusahaan' }
+                ]
+            },
+            {
+                label: 'SUMBER DAYA MANUSIA',
+                icon: 'pi pi-fw pi-users',
+                items: [
+                    { label: 'Data Karyawan', icon: 'pi pi-fw pi-user', to: '/master/karyawan' },
+                    { label: 'Presensi Karyawan', icon: 'pi pi-fw pi-calendar-plus', to: '/master/presensi-karyawan' }, // Menu baru Anda
+                    { label: 'Validasi Logbook', icon: 'pi pi-fw pi-check-square', to: '/master/validasi-logbook' },
+                    { label: 'Master Pengajuan', icon: 'pi pi-fw pi-file-export', to: '/master/master_pengajuan' },
+                    { label: 'Rekapitulasi Kinerja', icon: 'pi pi-fw pi-chart-bar', to: '/master/rekapitulasi-kinerja' }
+                ]
+            },
+            {
+                label: 'PENGGAJIAN (PAYROLL)',
+                icon: 'pi pi-fw pi-money-bill',
+                items: [
+                    {
+                        label: 'Master Gaji',
+                        icon: 'pi pi-fw pi-briefcase',
+                        items: [
+                            { label: 'Gaji per Jabatan', icon: 'pi pi-fw pi-briefcase', to: '/master/gaji-jabatan' },
+                            { label: 'Komponen Gaji', icon: 'pi pi-fw pi-user-edit', to: '/master/komponen-gaji' }
+                        ]
+                    },
+                    { label: 'Payroll Bulanan', icon: 'pi pi-fw pi-wallet', to: '/master/master-payroll' }
+                ]
+            },
+            {
+                label: 'MANAJEMEN GUDANG',
+                icon: 'pi pi-fw pi-building',
+                items: [
+                    {
+                        label: 'Master Inventori',
+                        icon: 'pi pi-fw pi-box',
+                        items: [
+                            { label: 'Data Barang', icon: 'pi pi-fw pi-box', to: '/master/master_barang' },
+                            { label: 'Jenis Barang', icon: 'pi pi-fw pi-tags', to: '/master/jenis_barang' },
+                            { label: 'Satuan Barang', icon: 'pi pi-fw pi-info-circle', to: '/master/satuan_barang' }
+                        ]
+                    },
+                    {
+                        label: 'Lokasi & Penyimpanan',
+                        icon: 'pi pi-fw pi-map',
+                        items: [
+                            { label: 'Daftar Gudang', icon: 'pi pi-fw pi-map-marker', to: '/master/gudang' },
+                            { label: 'Daftar Rak', icon: 'pi pi-fw pi-database', to: '/master/rak' },
+                            { label: 'Batch Barang', icon: 'pi pi-fw pi-clone', to: '/master/batch' },
+                            { label: 'Batch Karyawan', icon: 'pi pi-fw pi-id-card', to: '/master/batch-karyawan' }
+                        ]
+                    },
+                    {
+                        label: 'Pergerakan Stok',
+                        icon: 'pi pi-fw pi-directions',
+                        items: [
+                            { label: 'Stok Lokasi', icon: 'pi pi-fw pi-search', to: '/master/stok-lokasi' },
+                            { label: 'Barang Masuk (Log)', icon: 'pi pi-fw pi-download', to: '/master/tr-barang-masuk' }
+                        ]
+                    }
+                ]
+            },
+            {
+                label: 'TRANSAKSI & KEUANGAN',
+                icon: 'pi pi-fw pi-money-bill',
+                items: [
+                    { label: 'Data Vendor', icon: 'pi pi-fw pi-truck', to: '/master/vendor' },
+                    { label: 'Invoice Pembelian', icon: 'pi pi-fw pi-wallet', to: '/master/invpembelian' },
+                    { label: 'Invoice Pengiriman', icon: 'pi pi-fw pi-send', to: '/master/invpengiriman' }
+                ]
+            },
+            {
+                label: 'SISTEM & ADMIN',
+                icon: 'pi pi-fw pi-th-large',
+                items: [
+                    { label: 'User Management', icon: 'pi pi-fw pi-user-edit', to: '/master/users' },
+                    { label: 'Logbook Pekerjaan', icon: 'pi pi-fw pi-book', to: '/master/logbook-pekerjaan' },
+                    { label: 'Konfigurasi Hari', icon: 'pi pi-fw pi-calendar', to: '/master/hari' }
+                ]
+            },
+            {
+                label: 'PENGATURAN',
+                icon: 'pi pi-fw pi-cog',
+                items: [
+                    { label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
+                    { label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
+                    { label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
+                ]
+            }
+        ];
+    }
 
     // =========================
     // 2. GUDANG
     // =========================
-    else if (userRole === "GUDANG") {
+    else if (userRole === 'GUDANG') {
         model = [
             {
-                label: "Dashboard Gudang",
-                icon: "pi pi-fw pi-home",
-                items: [
-                    { label: "Beranda", icon: "pi pi-fw pi-home", to: "/gudang/dashboard" }
-                ]
+                label: 'Dashboard Gudang',
+                icon: 'pi pi-fw pi-home',
+                items: [{ label: 'Beranda', icon: 'pi pi-fw pi-home', to: '/gudang/dashboard' }]
             },
             {
-                label: "Manajemen Inventory",
-                icon: "pi pi-fw pi-box",
+                label: 'Manajemen Inventory',
+                icon: 'pi pi-fw pi-box',
                 items: [
                     {
-                        label: "Stok & Persediaan",
-                        icon: "pi pi-fw pi-database",
+                        label: 'Stok & Persediaan',
+                        icon: 'pi pi-fw pi-database',
                         items: [
-                            { label: "Data Barang", icon: "pi pi-fw pi-box", to: "/master/master_barang" },
-                            { label: "Data Stok", icon: "pi pi-fw pi-list", to: "/master/stok-lokasi" },
-                            { label: "Jenis Barang", icon: "pi pi-fw pi-tags", to: "/master/jenis_barang" },
-                            { label: "Satuan Barang", icon: "pi pi-fw pi-info-circle", to: "/master/satuan_barang" },
+                            { label: 'Data Barang', icon: 'pi pi-fw pi-box', to: '/master/master_barang' },
+                            { label: 'Data Stok', icon: 'pi pi-fw pi-list', to: '/master/stok-lokasi' },
+                            { label: 'Jenis Barang', icon: 'pi pi-fw pi-tags', to: '/master/jenis_barang' },
+                            { label: 'Satuan Barang', icon: 'pi pi-fw pi-info-circle', to: '/master/satuan_barang' }
                             //{ label: "Minimum Stok Alert", icon: "pi pi-fw pi-exclamation-triangle", to: "/gudang/min-stok" }
                         ]
                     },
                     {
-                    label: "Lokasi & Penyimpanan",
-                    icon: "pi pi-fw pi-map",
-                    items: [
-                        { label: "Daftar Gudang", icon: "pi pi-fw pi-map-marker", to: "/master/gudang" },
-                        { label: "Daftar Rak", icon: "pi pi-fw pi-database", to: "/master/rak" },
-                        { label: "Batch Barang", icon: "pi pi-fw pi-clone", to: "/master/batch" },
-
-                    ]
-                },
-                    {
-                        label: "Barang Masuk",
-                        icon: "pi pi-fw pi-arrow-down",
+                        label: 'Lokasi & Penyimpanan',
+                        icon: 'pi pi-fw pi-map',
                         items: [
-                            { label: "Penerimaan Barang", icon: "pi pi-fw pi-download", to: "/master/tr-barang-masuk" },
-                            { label: "Retur Pembelian", icon: "pi pi-fw pi-replay", to: "/gudang/retur-pembelian" }
+                            { label: 'Daftar Gudang', icon: 'pi pi-fw pi-map-marker', to: '/master/gudang' },
+                            { label: 'Daftar Rak', icon: 'pi pi-fw pi-database', to: '/master/rak' },
+                            { label: 'Batch Barang', icon: 'pi pi-fw pi-clone', to: '/master/batch' }
                         ]
                     },
                     {
-                        label: "Barang Keluar",
-                        icon: "pi pi-fw pi-arrow-up",
+                        label: 'Barang Masuk',
+                        icon: 'pi pi-fw pi-arrow-down',
                         items: [
-                            { label: "Pengiriman Barang", icon: "pi pi-fw pi-upload", to: "/master/tr-barang-keluar" },
-                            { label: "Retur Penjualan", icon: "pi pi-fw pi-replay", to: "/gudang/retur-penjualan" }
+                            { label: 'Penerimaan Barang', icon: 'pi pi-fw pi-download', to: '/master/tr-barang-masuk' },
+                            { label: 'Retur Pembelian', icon: 'pi pi-fw pi-replay', to: '/gudang/retur-pembelian' }
+                        ]
+                    },
+                    {
+                        label: 'Barang Keluar',
+                        icon: 'pi pi-fw pi-arrow-up',
+                        items: [
+                            { label: 'Pengiriman Barang', icon: 'pi pi-fw pi-upload', to: '/master/tr-barang-keluar' },
+                            { label: 'Retur Penjualan', icon: 'pi pi-fw pi-replay', to: '/gudang/retur-penjualan' }
                         ]
                     }
                 ]
             },
             {
-                label: "Pembelian & Supplier",
-                icon: "pi pi-fw pi-shopping-cart",
+                label: 'Pembelian & Supplier',
+                icon: 'pi pi-fw pi-shopping-cart',
                 items: [
-                    { label: "Purchase Order", icon: "pi pi-fw pi-file-edit", to: "/master/customer" },
-                    { label: "Data Vendor", icon: "pi pi-fw pi-truck", to: "/master/vendor" },
+                    { label: 'Purchase Order', icon: 'pi pi-fw pi-file-edit', to: '/master/customer' },
+                    { label: 'Data Vendor', icon: 'pi pi-fw pi-truck', to: '/master/vendor' }
                 ]
-            },
+            }
             //{
-                //label: "Laporan",
-                //icon: "pi pi-fw pi-chart-bar",
-                //items: [
-                    //{ label: "Laporan Stok", icon: "pi pi-fw pi-chart-line", to: "/gudang/laporan-stok" },
-                    //{ label: "Laporan Barang Masuk", icon: "pi pi-fw pi-file", to: "/gudang/laporan-masuk" },
-                    //{ label: "Laporan Barang Keluar", icon: "pi pi-fw pi-file", to: "/gudang/laporan-keluar" }
-                //]
+            //label: "Laporan",
+            //icon: "pi pi-fw pi-chart-bar",
+            //items: [
+            //{ label: "Laporan Stok", icon: "pi pi-fw pi-chart-line", to: "/gudang/laporan-stok" },
+            //{ label: "Laporan Barang Masuk", icon: "pi pi-fw pi-file", to: "/gudang/laporan-masuk" },
+            //{ label: "Laporan Barang Keluar", icon: "pi pi-fw pi-file", to: "/gudang/laporan-keluar" }
+            //]
             //}
         ];
     }
@@ -299,91 +315,89 @@ if (userRole === "SUPERADMIN") {
     // =========================
     // 3. PRODUKSI
     // =========================
-    else if (userRole === "PRODUKSI") {
+    else if (userRole === 'PRODUKSI') {
         model = [
             {
-                label: "Dashboard Produksi",
-                icon: "pi pi-fw pi-home",
-                items: [
-                    { label: "Beranda", icon: "pi pi-fw pi-home", to: "/produksi/dashboard" }
-                ]
+                label: 'Dashboard Produksi',
+                icon: 'pi pi-fw pi-home',
+                items: [{ label: 'Beranda', icon: 'pi pi-fw pi-home', to: '/produksi/dashboard' }]
             },
             //{
-                //label: "Perencanaan Produksi",
-                //icon: "pi pi-fw pi-calendar",
-                //items: [
-                    //{
-                        //label: "Planning & Scheduling",
-                        //icon: "pi pi-fw pi-calendar-plus",
-                        //items: [
-                            //{ label: "Rencana Produksi", icon: "pi pi-fw pi-list", to: "/produksi/rencana" },
-                            //{ label: "Jadwal Produksi", icon: "pi pi-fw pi-calendar", to: "/produksi/jadwal" },
-                            //{ label: "Kapasitas Produksi", icon: "pi pi-fw pi-chart-bar", to: "/produksi/kapasitas" },
-                            //{ Label: "Logbook Pekerjaan", icon: "pi pi-fw pi-file-edit", to: "/produksi/menu/logbook-pekerjaan" },
-                            //{ label: "Rekapitulasi Kinerja", icon: "pi pi-fw pi-chart-bar", to: "/master/rekapitulasi-kinerja" }
-                       //]
-                    //},
-                    //{
-                       // label: "BOM & Formula",
-                        //icon: "pi pi-fw pi-sitemap",
-                        //items: [
-                            //{ label: "Bill of Materials", icon: "pi pi-fw pi-copy", to: "/produksi/bom" },
-                            //{ label: "Formula Produk", icon: "pi pi-fw pi-table", to: "/produksi/formula" }
-                        //]
-                   // }
-                //]
+            //label: "Perencanaan Produksi",
+            //icon: "pi pi-fw pi-calendar",
+            //items: [
+            //{
+            //label: "Planning & Scheduling",
+            //icon: "pi pi-fw pi-calendar-plus",
+            //items: [
+            //{ label: "Rencana Produksi", icon: "pi pi-fw pi-list", to: "/produksi/rencana" },
+            //{ label: "Jadwal Produksi", icon: "pi pi-fw pi-calendar", to: "/produksi/jadwal" },
+            //{ label: "Kapasitas Produksi", icon: "pi pi-fw pi-chart-bar", to: "/produksi/kapasitas" },
+            //{ Label: "Logbook Pekerjaan", icon: "pi pi-fw pi-file-edit", to: "/produksi/menu/logbook-pekerjaan" },
+            //{ label: "Rekapitulasi Kinerja", icon: "pi pi-fw pi-chart-bar", to: "/master/rekapitulasi-kinerja" }
+            //]
             //},
-             {
-                label: "Produksi & Eksekusi",
-                icon: "pi pi-fw pi-box",
+            //{
+            // label: "BOM & Formula",
+            //icon: "pi pi-fw pi-sitemap",
+            //items: [
+            //{ label: "Bill of Materials", icon: "pi pi-fw pi-copy", to: "/produksi/bom" },
+            //{ label: "Formula Produk", icon: "pi pi-fw pi-table", to: "/produksi/formula" }
+            //]
+            // }
+            //]
+            //},
+            {
+                label: 'Produksi & Eksekusi',
+                icon: 'pi pi-fw pi-box',
                 items: [
-                        { label: "Produksi", icon: "pi pi-fw pi-box", to: "/produksi/menu/jenis_produksi" },
-                        { label: "Produksi Gudang", icon: "pi pi-fw pi-box", to: "/produksi/menu/produksiGudang" },
-                         { label: "HPP Erp", icon: "pi pi-fw pi-chart-line", to: "/produksi/menu/hppErp" },
-                         { label: "Harga Jual", icon: "pi pi-fw pi-box", to: "/produksi/menu/hargaJual" }
-                    ]
-            },
+                    //{ label: "Produksi", icon: "pi pi-fw pi-box", to: "/produksi/menu/jenis_produksi" },
+                    //{ label: "Produksi Gudang", icon: "pi pi-fw pi-box", to: "/produksi/menu/produksiGudang" },
+                    { label: 'HPP Erp', icon: 'pi pi-fw pi-chart-line', to: '/produksi/menu/hppErp' },
+                    { label: 'Harga Jual', icon: 'pi pi-fw pi-box', to: '/produksi/menu/hargaJual' }
+                ]
+            }
             //{
-                //label: "Eksekusi Produksi",
-                //icon: "pi pi-fw pi-cog",
-                //items: [
-                   // {
-                       // label: "Work Order",
-                        //icon: "pi pi-fw pi-file-edit",
-                        //items: [
-                            //{ label: "Buat Work Order", icon: "pi pi-fw pi-plus", to: "/produksi/work-order/create" },
-                            //{ label: "Monitor Work Order", icon: "pi pi-fw pi-eye", to: "/produksi/work-order" },
-                           //{ label: "Quality Control", icon: "pi pi-fw pi-check-circle", to: "/produksi/qc" }
-                        //]
-                    //},
-                    //{
-                        //label: "Proses Produksi",
-                        //icon: "pi pi-fw pi-sync",
-                        //items: [
-                            //{ label: "Input Produksi", icon: "pi pi-fw pi-pencil", to: "/produksi/input" },
-                           // { label: "Monitoring Real-time", icon: "pi pi-fw pi-desktop", to: "/produksi/monitoring" },
-                           // { label: "Hasil Produksi", icon: "pi pi-fw pi-box", to: "/produksi/hasil" }
-                        //]
-                    //}
-               // ]
-           // },
+            //label: "Eksekusi Produksi",
+            //icon: "pi pi-fw pi-cog",
+            //items: [
+            // {
+            // label: "Work Order",
+            //icon: "pi pi-fw pi-file-edit",
+            //items: [
+            //{ label: "Buat Work Order", icon: "pi pi-fw pi-plus", to: "/produksi/work-order/create" },
+            //{ label: "Monitor Work Order", icon: "pi pi-fw pi-eye", to: "/produksi/work-order" },
+            //{ label: "Quality Control", icon: "pi pi-fw pi-check-circle", to: "/produksi/qc" }
+            //]
+            //},
             //{
-               // label: "Mesin & Peralatan",
-               // icon: "pi pi-fw pi-wrench",
-               // items: [
-                    //{ label: "Data Mesin", icon: "pi pi-fw pi-server", to: "/produksi/mesin" },
-                   // { label: "Maintenance Schedule", icon: "pi pi-fw pi-calendar-times", to: "/produksi/maintenance" },
-                    //{ label: "Downtime Log", icon: "pi pi-fw pi-times-circle", to: "/produksi/downtime" }
-               // ]
-           //},
+            //label: "Proses Produksi",
+            //icon: "pi pi-fw pi-sync",
+            //items: [
+            //{ label: "Input Produksi", icon: "pi pi-fw pi-pencil", to: "/produksi/input" },
+            // { label: "Monitoring Real-time", icon: "pi pi-fw pi-desktop", to: "/produksi/monitoring" },
+            // { label: "Hasil Produksi", icon: "pi pi-fw pi-box", to: "/produksi/hasil" }
+            //]
+            //}
+            // ]
+            // },
             //{
-                //label: "Laporan",
-                //icon: "pi pi-fw pi-chart-line",
-                //items: [
-                    //{ label: "Laporan Produksi", icon: "pi pi-fw pi-file", to: "/produksi/laporan" },
-                   // { label: "Efisiensi Produksi", icon: "pi pi-fw pi-chart-bar", to: "/produksi/efisiensi" },
-                   // { label: "Waste & Reject", icon: "pi pi-fw pi-trash", to: "/produksi/waste" }
-               // ]
+            // label: "Mesin & Peralatan",
+            // icon: "pi pi-fw pi-wrench",
+            // items: [
+            //{ label: "Data Mesin", icon: "pi pi-fw pi-server", to: "/produksi/mesin" },
+            // { label: "Maintenance Schedule", icon: "pi pi-fw pi-calendar-times", to: "/produksi/maintenance" },
+            //{ label: "Downtime Log", icon: "pi pi-fw pi-times-circle", to: "/produksi/downtime" }
+            // ]
+            //},
+            //{
+            //label: "Laporan",
+            //icon: "pi pi-fw pi-chart-line",
+            //items: [
+            //{ label: "Laporan Produksi", icon: "pi pi-fw pi-file", to: "/produksi/laporan" },
+            // { label: "Efisiensi Produksi", icon: "pi pi-fw pi-chart-bar", to: "/produksi/efisiensi" },
+            // { label: "Waste & Reject", icon: "pi pi-fw pi-trash", to: "/produksi/waste" }
+            // ]
             //}
         ];
     }
@@ -391,51 +405,46 @@ if (userRole === "SUPERADMIN") {
     // =========================
     // 4. HR (Human Resources)
     // =========================
-    else if (userRole === "HR") {
+    else if (userRole === 'HR') {
         model = [
             {
-                label: "Dashboard HR",
-                icon: "pi pi-fw pi-home",
+                label: 'Dashboard HR',
+                icon: 'pi pi-fw pi-home',
+                items: [{ label: 'Beranda', icon: 'pi pi-fw pi-home', to: '/hr/dashboard' }]
+            },
+            {
+                label: 'Manajemen Karyawan',
+                icon: 'pi pi-fw pi-users',
+                items: [{ label: 'Data Pegawai', icon: 'pi pi-fw pi-users', to: '/master/karyawan' }]
+            },
+            {
+                label: 'Absensi & Kehadiran',
+                icon: 'pi pi-fw pi-clock',
                 items: [
-                    { label: "Beranda", icon: "pi pi-fw pi-home", to: "/hr/dashboard" }
+                    { label: 'Data Absensi', icon: 'pi pi-fw pi-calendar-times', to: '/master/presensi-karyawan' },
+                    { label: 'Master Pengajuan', icon: 'pi pi-fw pi-file-export', to: '/master/master_pengajuan' },
+                    { label: 'Logbook Pekerjaan', icon: 'pi pi-fw pi-file', to: '/hr/menu/logbook-pekerjaan' },
+                    { label: 'Validasi Logbook', icon: 'pi pi-fw pi-check-circle', to: '/hr/menu/validasi-logbook' }
                 ]
             },
             {
-                label: "Manajemen Karyawan",
-                icon: "pi pi-fw pi-users",
-                items: [
-                    { label: "Data Pegawai", icon: "pi pi-fw pi-users", to: "/master/karyawan" },
-                 
-                ]
-            },
-            {
-                label: "Absensi & Kehadiran",
-                icon: "pi pi-fw pi-clock",
-                items: [
-                    { label: "Data Absensi", icon: "pi pi-fw pi-calendar-times", to: "/master/presensi-karyawan" },
-                    { label: "Master Pengajuan", icon: "pi pi-fw pi-file-export", to: "/master/master_pengajuan" },
-                    { label: "Logbook Pekerjaan", icon: "pi pi-fw pi-file", to: "/hr/menu/logbook-pekerjaan" },
-                    { label: "Validasi Logbook", icon: "pi pi-fw pi-check-circle", to: "/hr/menu/validasi-logbook" }
-                ]
-            },
-            {
-                label: "Penggajian",
-                icon: "pi pi-fw pi-money-bill",
+                label: 'Penggajian',
+                icon: 'pi pi-fw pi-money-bill',
                 items: [
                     //{ label: "Slip Gaji", icon: "pi pi-fw pi-wallet", to: "/hr/slip-gaji" },
-                    { label: "Komponen Gaji", icon: "pi pi-fw pi-list", to: "/master/komponen-gaji" },
-                    { label: "Payroll", icon: "pi pi-fw pi-credit-card", to: "/master/master-payroll" },
+                    { label: 'Komponen Gaji', icon: 'pi pi-fw pi-list', to: '/master/komponen-gaji' },
+                    { label: 'Payroll', icon: 'pi pi-fw pi-credit-card', to: '/master/master-payroll' }
                     //{ label: "THR & Bonus", icon: "pi pi-fw pi-gift", to: "/hr/thr" }
                 ]
             },
-            
+
             {
-                label: "Laporan",
-                icon: "pi pi-fw pi-chart-bar",
+                label: 'Laporan',
+                icon: 'pi pi-fw pi-chart-bar',
                 items: [
-                    { label: "Laporan Karyawan", icon: "pi pi-fw pi-file", to: "/hr/laporan-karyawan" },
-                    { label: "Laporan Absensi", icon: "pi pi-fw pi-file-edit", to: "/hr/laporan-absensi" },
-                    { label: "Laporan Penggajian", icon: "pi pi-fw pi-file-excel", to: "/hr/laporan-gaji" }
+                    { label: 'Laporan Karyawan', icon: 'pi pi-fw pi-file', to: '/hr/laporan-karyawan' },
+                    { label: 'Laporan Absensi', icon: 'pi pi-fw pi-file-edit', to: '/hr/laporan-absensi' },
+                    { label: 'Laporan Penggajian', icon: 'pi pi-fw pi-file-excel', to: '/hr/laporan-gaji' }
                 ]
             }
         ];
@@ -444,130 +453,209 @@ if (userRole === "SUPERADMIN") {
     // =========================
     // 5. KEUANGAN (Finance)
     // =========================
-    else if (userRole === "KEUANGAN") {
+    else if (userRole === 'KEUANGAN') {
         model = [
             {
-                label: "Dashboard Keuangan",
-                icon: "pi pi-fw pi-home",
+                label: 'Dashboard Keuangan',
+                icon: 'pi pi-fw pi-home',
                 items: [
-                    { label: "Beranda", icon: "pi pi-fw pi-home", to: "/keuangan/dashboard" },
+                    { label: 'Beranda', icon: 'pi pi-fw pi-home', to: '/keuangan/dashboard' }
                     //{ label: "Ringkasan Keuangan", icon: "pi pi-fw pi-chart-line", to: "/keuangan/ringkasan" }
                 ]
             },
             //{
-               // label: "Kas & Bank",
-                //icon: "pi pi-fw pi-wallet",
-                //items: [
-                    //{
-                        //label: "Transaksi Kas",
-                        //icon: "pi pi-fw pi-money-bill",
-                        //items: [
-                            //{ label: "Kas Masuk", icon: "pi pi-fw pi-arrow-down", to: "/keuangan/kas-masuk" },
-                            //{ label: "Kas Keluar", icon: "pi pi-fw pi-arrow-up", to: "/keuangan/kas-keluar" },
-                            //{ label: "Mutasi Kas", icon: "pi pi-fw pi-sync", to: "/keuangan/mutasi-kas" }
-                        //]
-                    //},
-                    //{
-                        //label: "Bank",
-                        //icon: "pi pi-fw pi-building",
-                        //items: [
-                            //{ label: "Rekening Bank", icon: "pi pi-fw pi-credit-card", to: "/keuangan/bank" },
-                            //{ label: "Mutasi Bank", icon: "pi pi-fw pi-list", to: "/keuangan/mutasi-bank" },
-                            //{ label: "Rekonsiliasi", icon: "pi pi-fw pi-check-square", to: "/keuangan/rekonsiliasi" }
-                        //]
-                    //},
-                   
-                //]
+            // label: "Kas & Bank",
+            //icon: "pi pi-fw pi-wallet",
+            //items: [
+            //{
+            //label: "Transaksi Kas",
+            //icon: "pi pi-fw pi-money-bill",
+            //items: [
+            //{ label: "Kas Masuk", icon: "pi pi-fw pi-arrow-down", to: "/keuangan/kas-masuk" },
+            //{ label: "Kas Keluar", icon: "pi pi-fw pi-arrow-up", to: "/keuangan/kas-keluar" },
+            //{ label: "Mutasi Kas", icon: "pi pi-fw pi-sync", to: "/keuangan/mutasi-kas" }
+            //]
             //},
             //{
-                //label: "Hutang & Piutang",
-                //icon: "pi pi-fw pi-file-edit",
-                //items: [
-                    //{ label: "Hutang Supplier", icon: "pi pi-fw pi-arrow-right", to: "/keuangan/hutang" },
-                    //{ label: "Piutang Customer", icon: "pi pi-fw pi-arrow-left", to: "/keuangan/piutang" },
-                    //{ label: "Aging Analysis", icon: "pi pi-fw pi-chart-bar", to: "/keuangan/aging" }
-                //]
+            //label: "Bank",
+            //icon: "pi pi-fw pi-building",
+            //items: [
+            //{ label: "Rekening Bank", icon: "pi pi-fw pi-credit-card", to: "/keuangan/bank" },
+            //{ label: "Mutasi Bank", icon: "pi pi-fw pi-list", to: "/keuangan/mutasi-bank" },
+            //{ label: "Rekonsiliasi", icon: "pi pi-fw pi-check-square", to: "/keuangan/rekonsiliasi" }
+            //]
+            //},
+
+            //]
+            //},
+            //{
+            //label: "Hutang & Piutang",
+            //icon: "pi pi-fw pi-file-edit",
+            //items: [
+            //{ label: "Hutang Supplier", icon: "pi pi-fw pi-arrow-right", to: "/keuangan/hutang" },
+            //{ label: "Piutang Customer", icon: "pi pi-fw pi-arrow-left", to: "/keuangan/piutang" },
+            //{ label: "Aging Analysis", icon: "pi pi-fw pi-chart-bar", to: "/keuangan/aging" }
+            //]
             //},
             {
-                label: "Pembelian & Penjualan",
-                icon: "pi pi-fw pi-shopping-cart",
+                label: 'Pembelian & Penjualan',
+                icon: 'pi pi-fw pi-shopping-cart',
                 items: [
                     //{ label: "Faktur Pembelian", icon: "pi pi-fw pi-file", to: "/keuangan/faktur-beli" },
-                    { label: "Faktur Penjualan", icon: "pi pi-fw pi-file-edit", to: "/keuangan/menu/fakturPenjualan" },
+                    { label: 'Faktur Penjualan', icon: 'pi pi-fw pi-file-edit', to: '/keuangan/menu/fakturPenjualan' }
                     //{ label: "Pembayaran", icon: "pi pi-fw pi-credit-card", to: "/keuangan/pembayaran" }
                 ]
             },
-             {
-                label: "Kinerja Penjualan",
-                icon: "pi pi-fw pi-chart-bar",
+            {
+                label: 'Kinerja Penjualan',
+                icon: 'pi pi-fw pi-chart-bar',
                 items: [
-                     { label: "sumary", icon: "pi pi-fw pi-credit-card", to: "/keuangan/menu/labaBarang" },
-                     { label: "Laba", icon: "pi pi-fw pi-credit-card", to: "/keuangan/menu/labaErp" },
-                     {label: "Customer Profitability", icon: "pi pi-fw pi-chart-line", to: "/keuangan/menu/customerProfit"},
-                     { label: "Product Selling Performance", icon: "pi pi-fw pi-box", to: "/keuangan/menu/productPerformance" }  
+                    { label: 'sumary', icon: 'pi pi-fw pi-credit-card', to: '/keuangan/menu/labaBarang' },
+                    { label: 'Laba', icon: 'pi pi-fw pi-credit-card', to: '/keuangan/menu/labaErp' },
+                    { label: 'Customer Profitability', icon: 'pi pi-fw pi-chart-line', to: '/keuangan/menu/customerProfit' },
+                    { label: 'Product Selling Performance', icon: 'pi pi-fw pi-box', to: '/keuangan/menu/productPerformance' }
                 ]
-            },
-            
+            }
+
             //{
-                //label: "Biaya & Beban",
-                //icon: "pi pi-fw pi-calculator",
-                //items: [
-                    //{ label: "Biaya Operasional", icon: "pi pi-fw pi-cog", to: "/keuangan/biaya-operasional" },
-                    //{ label: "Beban Gaji", icon: "pi pi-fw pi-users", to: "/keuangan/beban-gaji" },
-                    //{ label: "Kategori Biaya", icon: "pi pi-fw pi-tags", to: "/keuangan/kategori-biaya" }
-                //]
+            //label: "Biaya & Beban",
+            //icon: "pi pi-fw pi-calculator",
+            //items: [
+            //{ label: "Biaya Operasional", icon: "pi pi-fw pi-cog", to: "/keuangan/biaya-operasional" },
+            //{ label: "Beban Gaji", icon: "pi pi-fw pi-users", to: "/keuangan/beban-gaji" },
+            //{ label: "Kategori Biaya", icon: "pi pi-fw pi-tags", to: "/keuangan/kategori-biaya" }
+            //]
             //},
             //{
-                //label: "Akuntansi",
-                //icon: "pi pi-fw pi-book",
-                //items: [
-                    //{
-                        //label: "Buku Besar",
-                        //icon: "pi pi-fw pi-database",
-                        //items: [
-                            //{ label: "Chart of Account", icon: "pi pi-fw pi-sitemap", to: "/keuangan/coa" },
-                            //{ label: "Jurnal Umum", icon: "pi pi-fw pi-file-edit", to: "/keuangan/jurnal" },
-                            //{ label: "Buku Besar", icon: "pi pi-fw pi-book", to: "/keuangan/buku-besar" }
-                        //]
-                    //},
-                    //{
-                        //label: "Penutupan & Audit",
-                        //icon: "pi pi-fw pi-lock",
-                        //items: [
-                            //{ label: "Tutup Buku", icon: "pi pi-fw pi-lock", to: "/keuangan/tutup-buku" },
-                            //{ label: "Adjustment Entry", icon: "pi pi-fw pi-pencil", to: "/keuangan/adjustment" }
-                        //]
-                    //}
-                //]
+            //label: "Akuntansi",
+            //icon: "pi pi-fw pi-book",
+            //items: [
+            //{
+            //label: "Buku Besar",
+            //icon: "pi pi-fw pi-database",
+            //items: [
+            //{ label: "Chart of Account", icon: "pi pi-fw pi-sitemap", to: "/keuangan/coa" },
+            //{ label: "Jurnal Umum", icon: "pi pi-fw pi-file-edit", to: "/keuangan/jurnal" },
+            //{ label: "Buku Besar", icon: "pi pi-fw pi-book", to: "/keuangan/buku-besar" }
+            //]
             //},
             //{
-                //label: "Laporan Keuangan",
-                //icon: "pi pi-fw pi-chart-line",
-                //items: [
-                    //{ label: "Neraca", icon: "pi pi-fw pi-balance-scale", to: "/keuangan/neraca" },
-                    //{ label: "Laba Rugi", icon: "pi pi-fw pi-chart-bar", to: "/keuangan/laba-rugi" },
-                    //{ label: "Arus Kas", icon: "pi pi-fw pi-arrow-right-arrow-left", to: "/keuangan/arus-kas" },
-                    //{ label: "Laporan Custom", icon: "pi pi-fw pi-file-pdf", to: "/keuangan/laporan-custom" }
-                //]
+            //label: "Penutupan & Audit",
+            //icon: "pi pi-fw pi-lock",
+            //items: [
+            //{ label: "Tutup Buku", icon: "pi pi-fw pi-lock", to: "/keuangan/tutup-buku" },
+            //{ label: "Adjustment Entry", icon: "pi pi-fw pi-pencil", to: "/keuangan/adjustment" }
+            //]
+            //}
+            //]
             //},
             //{
-                //label: "Pajak",
-                //icon: "pi pi-fw pi-percentage",
-                //items: [
-                    //{ label: "PPh", icon: "pi pi-fw pi-tag", to: "/keuangan/pph" },
-                    //{ label: "PPN", icon: "pi pi-fw pi-tags", to: "/keuangan/ppn" },
-                    //{ label: "Pelaporan Pajak", icon: "pi pi-fw pi-file", to: "/keuangan/laporan-pajak" }
-                //]
+            //label: "Laporan Keuangan",
+            //icon: "pi pi-fw pi-chart-line",
+            //items: [
+            //{ label: "Neraca", icon: "pi pi-fw pi-balance-scale", to: "/keuangan/neraca" },
+            //{ label: "Laba Rugi", icon: "pi pi-fw pi-chart-bar", to: "/keuangan/laba-rugi" },
+            //{ label: "Arus Kas", icon: "pi pi-fw pi-arrow-right-arrow-left", to: "/keuangan/arus-kas" },
+            //{ label: "Laporan Custom", icon: "pi pi-fw pi-file-pdf", to: "/keuangan/laporan-custom" }
+            //]
+            //},
+            //{
+            //label: "Pajak",
+            //icon: "pi pi-fw pi-percentage",
+            //items: [
+            //{ label: "PPh", icon: "pi pi-fw pi-tag", to: "/keuangan/pph" },
+            //{ label: "PPN", icon: "pi pi-fw pi-tags", to: "/keuangan/ppn" },
+            //{ label: "Pelaporan Pajak", icon: "pi pi-fw pi-file", to: "/keuangan/laporan-pajak" }
+            //]
             //}
         ];
     }
 
     return (
         <MenuProvider>
-            <ul className="layout-menu">
-                {model.map((item, i) => (
-                    <AppMenuitem item={item} root={true} index={i} key={i} />
-                ))}
+            <ul className="layout-menu flex flex-column justify-content-between h-full">
+                {/* 1. DAFTAR MENU UTAMA */}
+                <div>
+                    {model.map((item, i) => (
+                        <AppMenuitem item={item} root={true} index={i} key={i} />
+                    ))}
+                </div>
+
+                {/* ========================================================= */}
+                {/* AKUN & PROFIL USER DROP-UP (KHUSUS MOBILE / LAYAR HP)     */}
+                {/* ========================================================= */}
+                <li className="layout-root-menuitem mt-auto pt-3 border-top-1 border-200 list-none block lg:hidden">
+                    <div className="layout-menuitem-root-text text-xs uppercase font-bold text-500 mb-2">AKUN SAYA</div>
+
+                    <div className="relative">
+                        {/* Submenu Drop-up (Muncung KE ATAS ketika profileDropdownOpen = true) */}
+                        {profileDropdownOpen && (
+                            <div className="flex flex-column gap-2 p-2 border-round surface-0 shadow-4 absolute left-0 right-0 mb-2 z-5" style={{ bottom: '100%', border: '1px solid #e2e8f0' }}>
+                                <Link href="/auth/profile" className="w-full no-underline">
+                                    <button
+                                        onClick={() => setProfileDropdownOpen(false)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 14px',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e2e8f0',
+                                            background: '#ffffff',
+                                            color: '#374151',
+                                            fontWeight: 500,
+                                            fontSize: '0.9rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px'
+                                        }}
+                                    >
+                                        <i className="pi pi-user text-primary text-base" />
+                                        <span>Profil Saya</span>
+                                    </button>
+                                </Link>
+
+                                <button
+                                    onClick={() => {
+                                        setProfileDropdownOpen(false);
+                                        handleLogout();
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px 14px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #fee2e2',
+                                        background: '#fef2f2',
+                                        color: '#ef4444',
+                                        fontWeight: 500,
+                                        fontSize: '0.9rem',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px'
+                                    }}
+                                >
+                                    <i className="pi pi-sign-out text-base" />
+                                    <span>Logout</span>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Box Profil Clickable (Trigger Drop-up) */}
+                        <div
+                            onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                            className="flex align-items-center justify-content-between p-3 border-round surface-100 hover:surface-200 cursor-pointer transition-colors transition-duration-150"
+                        >
+                            <div className="flex align-items-center gap-3 overflow-hidden">
+                                <Avatar label={userName ? userName.charAt(0).toUpperCase() : 'U'} shape="circle" style={{ background: '#4f46e5', color: '#fff', minWidth: '36px', height: '36px' }} />
+                                <div className="flex flex-column overflow-hidden">
+                                    <strong className="text-900 text-sm font-semibold text-ellipsis overflow-hidden whitespace-nowrap">{userName}</strong>
+                                    <span className="text-xs text-500 uppercase font-medium">{userRole}</span>
+                                </div>
+                            </div>
+                            <i className={`pi ${profileDropdownOpen ? 'pi-chevron-down' : 'pi-chevron-up'} text-600 text-sm`} />
+                        </div>
+                    </div>
+                </li>
             </ul>
         </MenuProvider>
     );

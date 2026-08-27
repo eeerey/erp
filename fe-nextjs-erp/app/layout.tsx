@@ -1,6 +1,8 @@
 'use client';
+
 import { LayoutProvider } from '../layout/context/layoutcontext';
 import { PrimeReactProvider } from 'primereact/api';
+import { useAutoLogout } from './hooks/useAutoLogout';
 import 'primereact/resources/primereact.css';
 import 'primeflex/primeflex.css';
 import 'primeicons/primeicons.css';
@@ -12,6 +14,9 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
+    // 👈 2. Panggil hook di sini (Otomatis logout jika user diam selama 15 menit)
+    useAutoLogout(15);
+
     return (
         <html lang="en" suppressHydrationWarning>
             <head>

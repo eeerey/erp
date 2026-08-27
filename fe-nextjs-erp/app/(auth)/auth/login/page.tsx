@@ -2,11 +2,18 @@
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Checkbox } from 'primereact/checkbox';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { roleRoutes } from 'utils/roleRoutes';
 import ToastNotifier from '../../../components/ToastNotifier';
 import axios from 'axios';
+import Script from 'next/script';
+
+declare global {
+    interface Window {
+        google: any;
+    }
+}
 
 type ToastNotifierHandle = {
     showToast: (status: string, message?: string) => void;
@@ -22,50 +29,92 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    // Callback saat user berhasil login via tombol Google
+    const handleGoogleResponse = async (response: any) => {
         setLoading(true);
-
         try {
-            const res = await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/auth/login`, // TAMBAHKAN /api DI SINI
-                { email, password },
-                {
-                    headers: { 'Content-Type': 'application/json' }
-                }
-            );
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, { credential: response.credential }, { headers: { 'Content-Type': 'application/json' } });
 
             const data = res.data;
 
-            // Cek apakah response sukses berdasarkan status code
             if (data.status !== '00' || !data.token || !data.user) {
-                toastRef.current?.showToast('01', data.message || 'Login gagal');
+                toastRef.current?.showToast('01', data.message || 'Login Google gagal');
                 setLoading(false);
                 return;
             }
 
-            // Simpan token & data user ke localStorage
             localStorage.setItem('TOKEN', data.token);
             localStorage.setItem('ROLE', data.user.role);
             localStorage.setItem('USER_NAME', data.user.name);
             localStorage.setItem('USER_EMAIL', data.user.email);
             localStorage.setItem('USER_ID', data.user.id.toString());
 
-            // Tampilkan toast sukses
             toastRef.current?.showToast('00', `Selamat datang, ${data.user.name}!`);
 
-            // Redirect sesuai role setelah 1 detik
+            setTimeout(() => {
+                const redirect = roleRoutes[data.user.role] || '/';
+                router.push(redirect);
+            }, 1000);
+        } catch (err: any) {
+            console.error('Google login error:', err);
+            const errorMessage = err.response?.data?.message || 'Gagal login menggunakan akun Google';
+            toastRef.current?.showToast('01', errorMessage);
+            setLoading(false);
+        }
+    };
+
+    // Inisialisasi Google Auth Button setelah script dimuat
+    const initializeGoogleAuth = () => {
+        if (window.google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+            window.google.accounts.id.initialize({
+                client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+                callback: handleGoogleResponse
+            });
+
+            const targetDiv = document.getElementById('googleBtnDiv');
+            if (targetDiv) {
+                window.google.accounts.id.renderButton(targetDiv, {
+                    theme: 'outline',
+                    size: 'large',
+                    width: '100%',
+                    text: 'signin_with',
+                    shape: 'pill'
+                });
+            }
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, { email, password }, { headers: { 'Content-Type': 'application/json' } });
+
+            const data = res.data;
+
+            if (data.status !== '00' || !data.token || !data.user) {
+                toastRef.current?.showToast('01', data.message || 'Login gagal');
+                setLoading(false);
+                return;
+            }
+
+            localStorage.setItem('TOKEN', data.token);
+            localStorage.setItem('ROLE', data.user.role);
+            localStorage.setItem('USER_NAME', data.user.name);
+            localStorage.setItem('USER_EMAIL', data.user.email);
+            localStorage.setItem('USER_ID', data.user.id.toString());
+
+            toastRef.current?.showToast('00', `Selamat datang, ${data.user.name}!`);
+
             setTimeout(() => {
                 const redirect = roleRoutes[data.user.role] || '/';
                 router.push(redirect);
             }, 1000);
         } catch (err: any) {
             console.error('Login error:', err);
-
-            // Handle error dari backend
             const errorMessage = err.response?.data?.message || 'Terjadi kesalahan koneksi ke server';
             toastRef.current?.showToast('01', errorMessage);
-
             setLoading(false);
         }
     };
@@ -73,6 +122,7 @@ const LoginPage = () => {
     return (
         <>
             <ToastNotifier ref={toastRef} />
+            <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={initializeGoogleAuth} />
 
             <div className="min-h-screen flex align-items-center justify-content-center p-4" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
                 <div className="surface-card shadow-8 border-round-2xl overflow-hidden" style={{ maxWidth: '1000px', width: '100%' }}>
@@ -85,21 +135,6 @@ const LoginPage = () => {
                                 minHeight: '500px'
                             }}
                         >
-                            {/* Decorative circles */}
-                            <div className="absolute" style={{ top: '20px', left: '30px', opacity: 0.3 }}>
-                                <div className="border-circle border-2 border-white" style={{ width: '60px', height: '60px' }}></div>
-                            </div>
-                            <div className="absolute" style={{ top: '40px', right: '50px', opacity: 0.2 }}>
-                                <div className="border-circle bg-white" style={{ width: '40px', height: '40px' }}></div>
-                            </div>
-                            <div className="absolute" style={{ bottom: '80px', left: '40px', opacity: 0.2 }}>
-                                <div className="border-circle bg-white" style={{ width: '30px', height: '30px' }}></div>
-                            </div>
-                            <div className="absolute" style={{ bottom: '150px', right: '60px', opacity: 0.3 }}>
-                                <div className="border-circle border-2 border-white" style={{ width: '50px', height: '50px' }}></div>
-                            </div>
-
-                            {/* Content */}
                             <div className="flex flex-column justify-content-center h-full px-6 py-8">
                                 <div className="mb-4">
                                     <div className="flex align-items-center gap-2 mb-2">
@@ -121,13 +156,23 @@ const LoginPage = () => {
                         {/* Right Side - Login Form */}
                         <div className="col-12 lg:col-6 p-6 lg:p-8">
                             <div className="flex flex-column h-full justify-content-center">
-                                <div className="mb-6">
+                                <div className="mb-5">
                                     <h2 className="text-900 text-4xl font-bold mb-2">Login Account</h2>
-                                    <p className="text-600 text-sm line-height-3 mt-0 mb-6">Enter your credentials to access your account and start managing your business operations.</p>
+                                    <p className="text-600 text-sm line-height-3 mt-0 mb-4">Enter your credentials to access your account.</p>
+                                </div>
+
+                                {/* TOMBOL LOGIN GOOGLE */}
+                                <div className="mb-4">
+                                    <div id="googleBtnDiv" style={{ width: '100%', minHeight: '44px' }}></div>
+                                </div>
+
+                                <div className="flex align-items-center mb-4">
+                                    <div style={{ flex: 1, borderBottom: '1px solid #e2e8f0' }}></div>
+                                    <span className="px-3 text-500 font-medium text-sm">OR</span>
+                                    <div style={{ flex: 1, borderBottom: '1px solid #e2e8f0' }}></div>
                                 </div>
 
                                 <form onSubmit={handleSubmit}>
-                                    {/* Email Input */}
                                     <div className="mb-4">
                                         <label htmlFor="email" className="block text-900 font-medium mb-2">
                                             Email Address
@@ -148,7 +193,6 @@ const LoginPage = () => {
                                         </span>
                                     </div>
 
-                                    {/* Password Input */}
                                     <div className="mb-4">
                                         <label htmlFor="password" className="block text-900 font-medium mb-2">
                                             Password
@@ -170,7 +214,6 @@ const LoginPage = () => {
                                         </span>
                                     </div>
 
-                                    {/* Remember Me & Forgot Password */}
                                     <div className="flex align-items-center justify-content-between mb-5">
                                         <div className="flex align-items-center">
                                             <Checkbox inputId="keepSignedIn" checked={keepSignedIn} onChange={(e) => setKeepSignedIn(e.checked || false)} className="mr-2" disabled={loading} />
@@ -183,7 +226,6 @@ const LoginPage = () => {
                                         </a>
                                     </div>
 
-                                    {/* Submit Button */}
                                     <Button
                                         type="submit"
                                         label={loading ? 'Logging in...' : 'LOGIN'}
@@ -195,25 +237,16 @@ const LoginPage = () => {
                                         style={{
                                             background: loading ? '#94a3b8' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                             border: 'none',
-                                            borderRadius: '50px',
-                                            transition: 'all 0.3s ease'
+                                            borderRadius: '50px'
                                         }}
                                     />
                                 </form>
+
                                 <div className="text-center mt-4">
                                     <span className="text-700 font-medium">Don't have an account? </span>
-                                    <a href="/auth/register/karyawan" className="text-primary font-bold no-underline hover:underline cursor-pointer" style={{ color: '#764ba2' }}>
+                                    <a href="/auth/register/owner" className="text-primary font-bold no-underline hover:underline cursor-pointer" style={{ color: '#764ba2' }}>
                                         Register here
                                     </a>
-                                </div>
-                                {/* Footer Text */}
-                                <div className="text-center mt-5">
-                                    <span className="text-600 font-medium text-sm">
-                                        Having trouble logging in?{' '}
-                                        <a href="mailto:support@garapan.com" className="text-primary font-medium no-underline hover:underline">
-                                            Contact IT Support
-                                        </a>
-                                    </span>
                                 </div>
                             </div>
                         </div>

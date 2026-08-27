@@ -22,6 +22,13 @@ import {
 import { comparePassword, hashPassword } from "../utils/hash.js";
 import { generateToken } from "../utils/jwt.js";
 import { datetime, status } from "../utils/general.js";
+import { OAuth2Client } from "google-auth-library";
+import {
+  createActivityLog,
+  updateActivityLogOnLogout,
+} from "../models/activityLogModel.js";
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const removeUploadedFiles = async (...filePaths) => {
   for (const filePath of filePaths) {
@@ -85,6 +92,7 @@ export const register = async (req, res) => {
     const otpCode = generateOTP();
     const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
     const hashedPassword = await hashPassword(password);
+    const isSuperAdminRole = role === "SUPERADMIN";
 
     const user = await db.transaction(async (trx) => {
       const existingUser = await trx("users").where({ email }).first();
@@ -108,9 +116,10 @@ export const register = async (req, res) => {
           password: hashedPassword,
           role,
           company_id: companyId,
-          is_verified: false,
-          verification_token: otpCode,
-          token_expires_at: tokenExpiresAt,
+          // SUPERADMIN otomatis terverifikasi
+          is_verified: isSuperAdminRole ? true : false,
+          verification_token: isSuperAdminRole ? null : otpCode,
+          token_expires_at: isSuperAdminRole ? null : tokenExpiresAt,
           created_at: new Date(),
         })
         .returning("id");
@@ -120,25 +129,28 @@ export const register = async (req, res) => {
       return trx("users").where({ id: userId }).first();
     });
 
-    try {
-      await sendVerificationEmail(email, otpCode);
-    } catch (emailErr) {
-      console.error("Gagal mengirim email verifikasi:", emailErr);
-      return res.status(201).json({
-        status: status.SUKSES,
-        message:
-          "User berhasil didaftarkan, namun gagal mengirim OTP. Silakan resend OTP.",
-        datetime: datetime(),
-        otp_dev: otpCode,
-      });
+    if (!isSuperAdminRole) {
+      try {
+        await sendVerificationEmail(email, otpCode);
+      } catch (emailErr) {
+        console.error("Gagal mengirim email verifikasi:", emailErr);
+        return res.status(201).json({
+          status: status.SUKSES,
+          message:
+            "User berhasil didaftarkan, namun gagal mengirim OTP. Silakan resend OTP.",
+          datetime: datetime(),
+          otp_dev: otpCode,
+        });
+      }
     }
 
     return res.status(201).json({
       status: status.SUKSES,
-      message:
-        "User berhasil didaftarkan. Silakan periksa email Anda untuk kode OTP verifikasi.",
+      message: isSuperAdminRole
+        ? "Super Admin berhasil didaftarkan dan dapat langsung login."
+        : "User berhasil didaftarkan. Silakan periksa email Anda untuk kode OTP verifikasi.",
       datetime: datetime(),
-      otp_dev: otpCode,
+      otp_dev: isSuperAdminRole ? null : otpCode,
     });
   } catch (error) {
     console.error("Error register:", error);
@@ -194,7 +206,8 @@ export const login = async (req, res) => {
       });
     }
 
-    if (!existingUser.is_verified) {
+    // 👈 SUPERADMIN bypass verifikasi OTP
+    if (existingUser.role !== "SUPERADMIN" && !existingUser.is_verified) {
       return res.status(403).json({
         status: status.GAGAL,
         message: "Akun Anda belum diverifikasi. Masukkan kode OTP verifikasi.",
@@ -224,12 +237,17 @@ export const login = async (req, res) => {
       if (karyawan) karyawanId = karyawan.KARYAWAN_ID;
     }
 
+    // 👈 1. Buat record activity log
+    const logId = await createActivityLog(existingUser.id);
+
+    // 👈 2. Masukkan log_id ke payload JWT
     const token = await generateToken({
       userId: existingUser.id,
       role: existingUser.role,
       email: existingUser.email,
       karyawan_id: karyawanId,
       company_id: existingUser.company_id,
+      log_id: logId,
     });
 
     addLoginHistory({
@@ -250,6 +268,7 @@ export const login = async (req, res) => {
         email: existingUser.email,
         role: existingUser.role,
         karyawan_id: karyawanId,
+        log_id: logId,
       },
     });
   } catch (error) {
@@ -303,6 +322,7 @@ export const logout = async (req, res) => {
   try {
     const token = req.headers["authorization"]?.split(" ")[1];
     const userId = req.user?.userId;
+    const logId = req.user?.log_id; // 👈 Ambil log_id dari decoded JWT Token
 
     if (!token || !userId) {
       return res.status(401).json({
@@ -310,6 +330,11 @@ export const logout = async (req, res) => {
         message: "Token tidak valid atau tidak ditemukan",
         datetime: datetime(),
       });
+    }
+
+    // 👈 Update logout_at & duration_seconds di database
+    if (logId) {
+      await updateActivityLogOnLogout(logId);
     }
 
     const expiryDate = req.user?.exp
@@ -644,7 +669,6 @@ export const registerOwner = async (req, res) => {
       npwp,
     } = req.body;
 
-    // 1. Cek Duplikasi Email & NIK awal
     if (await checkEmailExists(email)) {
       await removeUploadedFiles(fotoPath, fotoKtpPath);
       return res.status(400).json({
@@ -663,7 +687,6 @@ export const registerOwner = async (req, res) => {
       });
     }
 
-    // 2. Periksa / Buat Perusahaan Baru
     let company = await getCompanyByName(nama_perusahaan);
     if (!company) {
       company = await createCompany(nama_perusahaan);
@@ -678,16 +701,12 @@ export const registerOwner = async (req, res) => {
           nib: nib || null,
           alamat: alamat_perusahaan || null,
           no_telp: no_telp_perusahaan || null,
-          // updated_at dihapus agar cocok dengan tabel MySQL kamu
         });
     }
 
-    // 3. Generate OTP & Expired Time
     const otpCode = generateOTP();
     const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-    // 4. Panggil `createKaryawan()` untuk auto generate ID_Karyawan (`KRY-XXXX`)
-    //    serta mengisikan Role User sebagai 'SDM' dan Jabatan 'Owner'
     const { userId, karyawanId, id } = await createKaryawan(
       {
         EMAIL: email,
@@ -711,7 +730,7 @@ export const registerOwner = async (req, res) => {
         name: nama,
         email: email,
         password: password,
-        role: "SDM", // 👈 Role di tabel users diisi SDM
+        role: "SDM",
         company_id: companyId,
       },
       {
@@ -720,7 +739,6 @@ export const registerOwner = async (req, res) => {
       },
     );
 
-    // 5. Kirim Email Verifikasi
     try {
       await sendVerificationEmail(email, otpCode);
     } catch (emailErr) {
@@ -757,6 +775,131 @@ export const registerOwner = async (req, res) => {
     return res.status(500).json({
       status: status.GAGAL,
       message: `Terjadi kesalahan server: ${error.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * LOGIN & AUTO-REGISTER VIA GOOGLE
+ */
+export const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Credential token Google wajib dikirim.",
+        datetime: datetime(),
+      });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
+
+    let existingUser = await getUserByEmail(email);
+
+    if (!existingUser) {
+      existingUser = await db.transaction(async (trx) => {
+        let defaultCompany = await trx("companies")
+          .where({ nama_perusahaan: "Umum / Perorangan" })
+          .first();
+
+        let companyId;
+        if (!defaultCompany) {
+          const [insertedCompany] = await trx("companies")
+            .insert({ nama_perusahaan: "Umum / Perorangan" })
+            .returning("id");
+          companyId =
+            typeof insertedCompany === "object"
+              ? insertedCompany.id
+              : insertedCompany;
+        } else {
+          companyId = defaultCompany.id;
+        }
+
+        const [insertedUser] = await trx("users")
+          .insert({
+            name: name || "Google User",
+            email: email,
+            password: "",
+            role: "SDM",
+            company_id: companyId,
+            is_verified: true,
+            created_at: new Date(),
+          })
+          .returning("id");
+
+        const userId =
+          typeof insertedUser === "object" ? insertedUser.id : insertedUser;
+
+        return trx("users").where({ id: userId }).first();
+      });
+    } else {
+      if (!existingUser.is_verified) {
+        await db("users").where({ id: existingUser.id }).update({
+          is_verified: true,
+          updated_at: new Date(),
+        });
+        existingUser.is_verified = true;
+      }
+    }
+
+    let karyawanId = null;
+    if (!["SUPERADMIN"].includes(existingUser.role)) {
+      const karyawan = await db("master_karyawan")
+        .where("EMAIL", existingUser.email)
+        .select("KARYAWAN_ID")
+        .first();
+
+      if (karyawan) karyawanId = karyawan.KARYAWAN_ID;
+    }
+
+    // 👈 1. Buat activity log
+    const logId = await createActivityLog(existingUser.id);
+
+    // 👈 2. Generate Token dengan log_id
+    const token = await generateToken({
+      userId: existingUser.id,
+      role: existingUser.role,
+      email: existingUser.email,
+      karyawan_id: karyawanId,
+      company_id: existingUser.company_id,
+      log_id: logId,
+    });
+
+    addLoginHistory({
+      userId: existingUser.id,
+      action: "LOGIN_REGISTER_GOOGLE",
+      ip: req.ip,
+      userAgent: req.headers["user-agent"] || "unknown",
+    }).catch((err) => console.error("Gagal menyimpan login history:", err));
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Login / Register via Google berhasil",
+      datetime: datetime(),
+      token,
+      user: {
+        id: existingUser.id,
+        name: existingUser.name,
+        email: existingUser.email,
+        role: existingUser.role,
+        karyawan_id: karyawanId,
+        log_id: logId,
+      },
+    });
+  } catch (error) {
+    console.error("Error Google Login/Register:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Autentikasi Google gagal: ${error.message}`,
       datetime: datetime(),
     });
   }
