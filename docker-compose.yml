@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Nginx Proxy otomatis menangani routing domain tanpa perlu config manual!
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    restart: always
+
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: erp_root_password
+      MARIADB_DATABASE: erp_kmm_project
+    volumes:
+      - db_data:/var/lib/mysql
+      # Folder ini untuk import .sql otomatis saat pertama kali menyala
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    restart: always
+
+  backend:
+    build:
+      context: ./be-express-erp
+    environment:
+      # Nginx Proxy akan otomatis merutekan api.rintisku.id ke service ini
+      - VIRTUAL_HOST=api.rintisku.id
+      - PORT=8000
+    env_file:
+      - ./be-express-erp/.env
+    restart: always
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./fe-nextjs-erp
+    environment:
+      # Nginx Proxy akan otomatis merutekan rintisku.id dan www.rintisku.id ke service ini
+      - VIRTUAL_HOST=rintisku.id,www.rintisku.id
+    env_file:
+      - ./fe-nextjs-erp/.env
+    restart: always
+
+volumes:
+  db_data:

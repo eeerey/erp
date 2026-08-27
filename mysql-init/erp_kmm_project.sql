@@ -2,10 +2,10 @@
 -- version 5.2.0
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost:3306
--- Generation Time: Jul 01, 2026 at 07:32 AM
+-- Host: localhost:3307
+-- Generation Time: Aug 27, 2026 at 02:04 PM
 -- Server version: 8.0.30
--- PHP Version: 8.1.10
+-- PHP Version: 7.4.0
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,6 +20,33 @@ SET time_zone = "+00:00";
 --
 -- Database: `erp_kmm_project`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `activity_logs`
+--
+
+CREATE TABLE `activity_logs` (
+  `id` int UNSIGNED NOT NULL,
+  `user_id` int UNSIGNED NOT NULL,
+  `login_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `logout_at` timestamp NULL DEFAULT NULL,
+  `duration_seconds` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `activity_logs`
+--
+
+INSERT INTO `activity_logs` (`id`, `user_id`, `login_at`, `logout_at`, `duration_seconds`, `created_at`) VALUES
+(1, 13, '2026-08-27 03:38:21', '2026-08-27 03:56:12', 1071, '2026-08-27 03:38:20'),
+(2, 48, '2026-08-27 03:56:31', '2026-08-27 03:56:37', 6, '2026-08-27 03:56:30'),
+(3, 13, '2026-08-27 03:56:43', '2026-08-27 04:21:54', 1511, '2026-08-27 03:56:43'),
+(4, 13, '2026-08-27 04:22:02', '2026-08-27 04:41:48', 1186, '2026-08-27 04:22:02'),
+(5, 48, '2026-08-27 04:43:22', '2026-08-27 04:45:35', 133, '2026-08-27 04:43:21'),
+(6, 48, '2026-08-27 04:45:51', '2026-08-27 05:13:51', 1679, '2026-08-27 04:45:50');
 
 -- --------------------------------------------------------
 
@@ -145,7 +172,23 @@ INSERT INTO `blacklist_tokens` (`id`, `token`, `created_at`, `expired_at`) VALUE
 (89, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEsInJvbGUiOiJTVVBFUkFETUlOIiwiZW1haWwiOiJ1d2lAZ21haWwuY29tIiwia2FyeWF3YW5faWQiOm51bGwsImlhdCI6MTc3MzI4MzcwMSwiZXhwIjoxNzczMzcwMTAxfQ.GGk75u3dejDesWiZU-TT5kw_VtFIEtG8OYvgk4PwGfp9MScEGky1NQvb2ZUvzGf2CYbW-mzaxJggWBsUqKUu6w', '2026-03-12 04:19:58', '2026-03-13 02:48:21'),
 (90, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEyLCJyb2xlIjoiUFJPRFVLU0kiLCJlbWFpbCI6InB1bmdraUBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6IktSWS0wMDA4IiwiaWF0IjoxNzczMjg5MjExLCJleHAiOjE3NzMzNzU2MTF9.MQX4b0aFI-dNInXGu9BwiwMUP3TTwQDFQ_iNoTZFXjz28AlCd53H5N1GaSJhDWmW2EcJGTEx9O4Kt8DVPInU6w', '2026-03-12 04:22:17', '2026-03-13 04:20:11'),
 (91, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjE3LCJyb2xlIjoiS0VVQU5HQU4iLCJlbWFpbCI6ImtldWF5b0BnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6IktSWS0wMDEyIiwiaWF0IjoxNzgxNjczOTEzLCJleHAiOjE3ODE3NjAzMTN9.PEsFZn4GBrXsFLyDjo7dqoHT1aWys9_K7vDRU8ZjwR20e7GzjjSuS6iU1AqSs8uwgtJY3tCZCT782jkghJLIvw', '2026-06-17 07:12:07', '2026-06-18 05:25:13'),
-(92, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEzLCJyb2xlIjoiU1VQRVJBRE1JTiIsImVtYWlsIjoic3VwZXJhZG1pbkBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6bnVsbCwiaWF0IjoxNzgxNjgwMzM2LCJleHAiOjE3ODE3NjY3MzZ9.nO3Qs529i8TF2WiSZOojel3Eoyq6riwdFgAT1EUqRrwLdzS6XuVJr3aeKZ9Q87QYK8vzHa9v0SCoKJnZlu6fbA', '2026-06-17 07:13:58', '2026-06-18 07:12:16');
+(92, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEzLCJyb2xlIjoiU1VQRVJBRE1JTiIsImVtYWlsIjoic3VwZXJhZG1pbkBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6bnVsbCwiaWF0IjoxNzgxNjgwMzM2LCJleHAiOjE3ODE3NjY3MzZ9.nO3Qs529i8TF2WiSZOojel3Eoyq6riwdFgAT1EUqRrwLdzS6XuVJr3aeKZ9Q87QYK8vzHa9v0SCoKJnZlu6fbA', '2026-06-17 07:13:58', '2026-06-18 07:12:16'),
+(93, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjI5LCJyb2xlIjoiU0RNIiwiZW1haWwiOiJidXJnZXJraXRhQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMjEiLCJjb21wYW55X2lkIjoxLCJpYXQiOjE3ODI5NTQ3NzksImV4cCI6MTc4MzA0MTE3OX0.a9etokQAKEV1CGKzG1MJbIyuGA-qH_12_K2GNAbt1zGXMFIbWy9NOjhG1dFhlUjRBQhUuImK-r8TWtBDlE3h5A', '2026-07-02 03:11:59', '2026-07-03 01:12:59'),
+(94, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEzLCJyb2xlIjoiU1VQRVJBRE1JTiIsImVtYWlsIjoic3VwZXJhZG1pbkBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6bnVsbCwiY29tcGFueV9pZCI6bnVsbCwiaWF0IjoxNzgyOTYyMDk4LCJleHAiOjE3ODMwNDg0OTh9.y7K_kMEHTQjAYd3nZVMcXthhkPP7q1a99--aE26nXaE4GtL0Xy_KzyjqrMBzjEZXcJTlMV8o_VFhJi7TMtL9Mg', '2026-07-02 03:15:54', '2026-07-03 03:14:58'),
+(95, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjI5LCJyb2xlIjoiU0RNIiwiZW1haWwiOiJidXJnZXJraXRhQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMjEiLCJjb21wYW55X2lkIjoxLCJpYXQiOjE3ODQ0Nzc0MTcsImV4cCI6MTc4NDU2MzgxN30.1Mo0KJWA4VoYdSCClIDGmkWmASvZST9coAc5w2IFjRVyqLJwRZ4lhepzCHlObX6UFoizRmX65oRe54RwAzmsIQ', '2026-07-19 16:11:05', '2026-07-20 16:10:17'),
+(96, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjM4LCJyb2xlIjoiR1VEQU5HIiwiZW1haWwiOiJjb2JhQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMjgiLCJjb21wYW55X2lkIjo1LCJpYXQiOjE3ODQ0NzgyMDksImV4cCI6MTc4NDU2NDYwOX0.ocfdxeRnTn9YcCyB8Hctc6isRun_iCbuzE6-D4JVA9s5kS-xynmqqqoy8lNl6YVm67Bqk_kALZ9pxxSfTKK3Xg', '2026-07-19 17:58:57', '2026-07-20 16:23:29'),
+(97, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjM4LCJyb2xlIjoiR1VEQU5HIiwiZW1haWwiOiJjb2JhQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMjgiLCJjb21wYW55X2lkIjo1LCJpYXQiOjE3ODQ0ODM5NjAsImV4cCI6MTc4NDU3MDM2MH0.JQqlS8ktklY3QSvaGrY-cDqvc3BGBclWGOBPAfCJ1D3ezEvnmAUA-eZ7SuloFPo95yuR_g9mZb4gLXVVVmDwVg', '2026-07-19 17:59:28', '2026-07-20 17:59:20'),
+(98, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ2LCJyb2xlIjoiU0RNIiwiZW1haWwiOiJyYWloYW4wMDgwOUBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6IktSWS0wMDAxIiwiY29tcGFueV9pZCI6MTcsImlhdCI6MTc4NzQxMzg3NiwiZXhwIjoxNzg3NTAwMjc2fQ.Jaz89GxAQ2iyy_XNUEG5yZ-eX1USUZhgwk0YqK3uSl5ET_Iez5b8GLD_u9DEayhLuYcnC2CmxnWtdPgEC28TFA', '2026-08-22 15:51:29', '2026-08-23 15:51:16'),
+(99, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ2LCJyb2xlIjoiU0RNIiwiZW1haWwiOiJyYWloYW4wMDgwOUBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6IktSWS0wMDAxIiwiY29tcGFueV9pZCI6MTcsImlhdCI6MTc4NzU3MzAxNiwiZXhwIjoxNzg3NjU5NDE2fQ.bQ9ujd1GYJVGVnaaevdiRPFOvRvn1swyldlEUPLkdVkRoxjtBjbCgvMerI_iY5w-AdVCNFU6GSLJmO7T6ZWJeg', '2026-08-24 12:03:45', '2026-08-25 12:03:36'),
+(100, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ4LCJyb2xlIjoiUFJPRFVLU0kiLCJlbWFpbCI6InJhaWhhbjAxQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMDMiLCJjb21wYW55X2lkIjoxNywiaWF0IjoxNzg3NTczMDM3LCJleHAiOjE3ODc2NTk0Mzd9.TuA2Ke8KIGrn5RJValRDx-ZgxveIVXX1MF06J9_bvacIMRzG6fTDHa04Fm_Uy1iqvYkrecSpW92r2y8poTBUbQ', '2026-08-24 12:04:09', '2026-08-25 12:03:57'),
+(101, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ4LCJyb2xlIjoiUFJPRFVLU0kiLCJlbWFpbCI6InJhaWhhbjAxQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMDMiLCJjb21wYW55X2lkIjoxNywiaWF0IjoxNzg3NzIyMTUxLCJleHAiOjE3ODc4MDg1NTF9._XGaEyTqfFWqbt5J-KgpoMoYroGgwVjhbIurvLa2LjbshH8W3nyn9LRua_cHsOeCZNFljClZx8FfqmM5iuB8NA', '2026-08-26 05:30:35', '2026-08-27 05:29:11'),
+(102, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ5LCJyb2xlIjoiU0RNIiwiZW1haWwiOiJyYWloYW5kaWFuZHJhMDZAZ21haWwuY29tIiwia2FyeWF3YW5faWQiOm51bGwsImNvbXBhbnlfaWQiOjE4LCJpYXQiOjE3ODc3MjI1MTAsImV4cCI6MTc4NzgwODkxMH0.wTM9Qerz1MVLl9XhooLe7blhIb3zMkua4N8AaifbQHVpsjMYt4vSdt8OtzQ1UXC_irgj5kZGPn_6KVFALx4C8A', '2026-08-26 05:36:26', '2026-08-27 05:35:10'),
+(103, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEzLCJyb2xlIjoiU1VQRVJBRE1JTiIsImVtYWlsIjoic3VwZXJhZG1pbkBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6bnVsbCwiY29tcGFueV9pZCI6bnVsbCwibG9nX2lkIjoxLCJpYXQiOjE3ODc4MDE5MDAsImV4cCI6MTc4Nzg4ODMwMH0.BFGBwLf107v7e7q7uMKjD84EcTtkLqpJ8aspX5FtIgoQbsTk_jhh-xerLbimmoXxX_K_fv3kSebaQyEUIE0wfw', '2026-08-27 03:56:12', '2026-08-28 03:38:20'),
+(104, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ4LCJyb2xlIjoiUFJPRFVLU0kiLCJlbWFpbCI6InJhaWhhbjAxQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMDMiLCJjb21wYW55X2lkIjoxNywibG9nX2lkIjoyLCJpYXQiOjE3ODc4MDI5OTAsImV4cCI6MTc4Nzg4OTM5MH0.JGfGnbfOK5X-XvB9_gyxtrCKtnMCuy9BsT7ukz31n5tekQvqSzd9WwSDZa9BxBLChjiNWTkOltWoXGhMSM2XLA', '2026-08-27 03:56:37', '2026-08-28 03:56:30'),
+(105, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEzLCJyb2xlIjoiU1VQRVJBRE1JTiIsImVtYWlsIjoic3VwZXJhZG1pbkBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6bnVsbCwiY29tcGFueV9pZCI6bnVsbCwibG9nX2lkIjozLCJpYXQiOjE3ODc4MDMwMDMsImV4cCI6MTc4Nzg4OTQwM30.PA1wt7kO45eCujDSvlUTxSiF-T0SZhGu7-vHQs0Si2xrttMGVRhvRuxBbgFb34CAjEJ1pgac5ZfGb8qCZZiEQQ', '2026-08-27 04:21:54', '2026-08-28 03:56:43'),
+(106, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjEzLCJyb2xlIjoiU1VQRVJBRE1JTiIsImVtYWlsIjoic3VwZXJhZG1pbkBnbWFpbC5jb20iLCJrYXJ5YXdhbl9pZCI6bnVsbCwiY29tcGFueV9pZCI6bnVsbCwibG9nX2lkIjo0LCJpYXQiOjE3ODc4MDQ1MjIsImV4cCI6MTc4Nzg5MDkyMn0.-IBD1VwP8vIfMm8i3QQF8amJKzvIqEV0jqmIjeuPlSuuuHPbTbYWRPfvPUH52g1yv4pKRETLRQAZJmN6atD64g', '2026-08-27 04:41:48', '2026-08-28 04:22:02'),
+(107, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ4LCJyb2xlIjoiUFJPRFVLU0kiLCJlbWFpbCI6InJhaWhhbjAxQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMDMiLCJjb21wYW55X2lkIjoxNywibG9nX2lkIjo1LCJpYXQiOjE3ODc4MDU4MDEsImV4cCI6MTc4Nzg5MjIwMX0.Hla3-fqpswa1VOSBT6h-TKJ8WVAca_J7lQcsPg01bnaDOS_uJChXG5LJ6KW_bdpo04xl0a0w2fYk0TAyUZa1ig', '2026-08-27 04:45:35', '2026-08-28 04:43:21'),
+(108, 'eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjQ4LCJyb2xlIjoiUFJPRFVLU0kiLCJlbWFpbCI6InJhaWhhbjAxQGdtYWlsLmNvbSIsImthcnlhd2FuX2lkIjoiS1JZLTAwMDMiLCJjb21wYW55X2lkIjoxNywibG9nX2lkIjo2LCJpYXQiOjE3ODc4MDU5NTAsImV4cCI6MTc4Nzg5MjM1MH0.M5-QWHmvym1LzfHqHCruXL9b3whoTTVP7xwJeDwmbeLRoBk2yu9Idep4z8WnKCajhvhnZI9fx7Rxiuy2TmSK_g', '2026-08-27 05:13:50', '2026-08-28 04:45:50');
 
 -- --------------------------------------------------------
 
@@ -156,16 +199,26 @@ INSERT INTO `blacklist_tokens` (`id`, `token`, `created_at`, `expired_at`) VALUE
 CREATE TABLE `companies` (
   `id` int NOT NULL,
   `nama_perusahaan` varchar(255) NOT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `alamat` text,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `nib` varchar(50) DEFAULT NULL,
+  `npwp` varchar(50) DEFAULT NULL,
+  `no_telp` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `companies`
 --
 
-INSERT INTO `companies` (`id`, `nama_perusahaan`, `created_at`) VALUES
-(1, 'PT Burger Kita', '2026-06-29 18:46:54'),
-(2, 'PT Kebab Tursina', '2026-06-29 19:04:27');
+INSERT INTO `companies` (`id`, `nama_perusahaan`, `alamat`, `created_at`, `nib`, `npwp`, `no_telp`) VALUES
+(1, 'PT Burger Kita', NULL, '2026-06-29 18:46:54', NULL, NULL, NULL),
+(2, 'PT Kebab Tursina', NULL, '2026-06-29 19:04:27', NULL, NULL, NULL),
+(4, 'PT HALELUYA', NULL, '2026-07-01 07:51:25', NULL, NULL, NULL),
+(5, 'coba coba', NULL, '2026-07-19 16:23:15', NULL, NULL, NULL),
+(12, 'test', 'Singosari', '2026-08-03 17:53:08', '1234', '43567', '085725957101'),
+(16, 'testqa', 'Singosari', '2026-08-04 04:46:14', '123412', '4356712', '085725957101'),
+(17, 'testqq', 'Singosari', '2026-08-04 04:52:23', '12343', '435672', '085725957101'),
+(18, 'Umum / Perorangan', NULL, '2026-08-22 14:54:47', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -252,7 +305,8 @@ INSERT INTO `harga_jual` (`id`, `produk_id`, `margin`, `harga_jual`, `created_at
 (11, 73, '160.00', '5381.61', '2026-06-24 17:01:17', '2026-06-24 17:01:17', 0),
 (12, 74, '183.00', '11376.60', '2026-06-24 17:06:22', '2026-06-24 17:06:22', 0),
 (13, 77, '180.00', '5991.16', '2026-06-30 17:34:44', '2026-06-30 17:34:44', 1),
-(14, 80, '170.00', '19008.00', '2026-06-30 17:34:44', '2026-06-30 17:34:44', 1);
+(14, 80, '170.00', '19008.00', '2026-06-30 17:34:44', '2026-06-30 17:34:44', 1),
+(15, 84, '100.00', '58640.00', '2026-07-06 04:08:31', '2026-07-06 04:08:31', 1);
 
 -- --------------------------------------------------------
 
@@ -290,9 +344,7 @@ INSERT INTO `hpp` (`id`, `company_id`, `produk_jadi`, `total_hpp`, `hpp_awal`, `
 (25, NULL, NULL, '108000.00', '0.00', '2026-06-24 16:01:15', 73, NULL, 1, '0.00', '0.00', '0.00', NULL, 'FASE1', '2026-06-29 11:13:49', '1080.00'),
 (26, NULL, NULL, '402000.00', '0.00', '2026-06-24 17:06:08', 74, NULL, 1, '0.00', '0.00', '0.00', NULL, 'FASE1', '2026-06-24 17:06:07', '4020.00'),
 (27, NULL, NULL, '240000.00', '0.00', '2026-06-29 08:40:49', 75, NULL, 1, '0.00', '0.00', '0.00', NULL, 'FASE1', '2026-06-29 08:40:48', '2400.00'),
-(34, 1, NULL, '354000.00', '0.00', '2026-07-01 01:40:33', 81, NULL, 1, '20.00', '0.00', '0.00', 'Cone', 'FASE1', '2026-07-01 01:47:07', '17700.00'),
 (35, 1, NULL, '975500.00', '0.00', '2026-07-01 01:47:07', 83, 34, 2, '20.00', '20.00', '0.00', 'Cone', 'FASE2', '2026-07-01 01:47:07', '48775.00'),
-(36, 1, NULL, '1466000.00', '0.00', '2026-07-01 02:02:15', 84, NULL, 1, '50.00', '0.00', '0.00', 'Cone', 'FASE1', '2026-07-01 02:03:05', '29320.00'),
 (37, 1, NULL, '1452800.00', '0.00', '2026-07-01 02:03:05', 85, 36, 2, '50.00', '50.00', '0.00', 'Cone', 'FASE2', '2026-07-01 02:03:05', '29056.00');
 
 -- --------------------------------------------------------
@@ -356,18 +408,9 @@ INSERT INTO `hpp_detail` (`id`, `hpp_id`, `parent_hpp_id`, `is_fase1`, `fase`, `
 (203, 25, NULL, 0, 1, 'BRG002', 'BAHAN_BAKU', 'Gula Pasir', '18000.00', 'Kilo Gram', '6.00', '0.00', '108000.00'),
 (204, 25, NULL, 0, 1, '', 'TENAGA_KERJA', 'Karyawan', '3999.00', '', '5.00', '0.00', '19995.00'),
 (205, 25, NULL, 0, 1, '', 'OVERHEAD', 'aduk', '3900.00', '', '5.00', '0.00', '19500.00'),
-(312, 34, NULL, 0, 1, 'BRG-0101', 'BAHAN_BAKU', 'Beef', '25000.00', 'Pack', '10.00', '0.00', '250000.00'),
-(313, 34, NULL, 0, 1, 'BRG002', 'BAHAN_BAKU', 'Gula Pasir', '18000.00', 'Kilo Gram', '2.00', '0.00', '36000.00'),
-(314, 34, NULL, 0, 1, 'BRG005', 'BAHAN_BAKU_TAMBAHAN', 'Kantong Plastik', '16000.00', 'Pack', '3.00', '0.00', '48000.00'),
-(315, 34, NULL, 0, 1, '', 'TENAGA_KERJA', 'karyyawan', '6000.00', '', '2.00', '0.00', '12000.00'),
-(316, 34, NULL, 0, 1, '', 'OVERHEAD', 'goreng', '4000.00', '', '2.00', '0.00', '8000.00'),
 (317, 35, NULL, 0, 1, NULL, 'BAHAN_BAKU', 'Nuget', '17700.00', 'Cone', '15.00', '0.00', '265500.00'),
 (318, 35, NULL, 0, 1, 'BRG-0101', 'BAHAN_BAKU', 'Beef', '2000.00', 'Pack', '10.00', '0.00', '20000.00'),
 (319, 35, NULL, 0, 1, '', 'OVERHEAD', 'kemas', '69000.00', '', '5.00', '0.00', '345000.00'),
-(328, 36, NULL, 0, 1, 'BRG-0101', 'BAHAN_BAKU', 'Beef', '25000.00', 'Pack', '50.00', '0.00', '1250000.00'),
-(329, 36, NULL, 0, 1, 'BRG004', 'BAHAN_BAKU_TAMBAHAN', 'Thinkwall', '10000.00', 'Pack', '20.00', '0.00', '200000.00'),
-(330, 36, NULL, 0, 1, '', 'TENAGA_KERJA', 'karyawan', '5000.00', '', '2.00', '0.00', '10000.00'),
-(331, 36, NULL, 0, 1, '', 'OVERHEAD', 'panggang', '3000.00', '', '2.00', '0.00', '6000.00'),
 (332, 37, 36, 1, 2, NULL, 'BAHAN_BAKU', 'Burger Baru', '29320.00', 'Cone', '40.00', '0.00', '1172800.00'),
 (333, 37, NULL, 0, 2, 'BRG006', 'BAHAN_BAKU', 'Coklat Batang(Varian Matcha)', '12000.00', 'Pieces ', '10.00', '0.00', '120000.00'),
 (334, 37, NULL, 0, 2, '', 'OVERHEAD', 'kemas', '80000.00', '', '1.00', '2.00', '80000.00');
@@ -395,15 +438,6 @@ CREATE TABLE `inv_pembelian` (
 --
 
 INSERT INTO `inv_pembelian` (`ID_INV_BELI`, `NO_INVOICE_BELI`, `VENDOR_ID`, `TGL_INVOICE`, `TOTAL_BAYAR`, `SISA_TAGIHAN`, `STATUS_BAYAR`, `created_at`, `updated_at`) VALUES
-(1, 'INV-BELI-001', 'V0001', '2026-05-20', '1250000.00', '0.00', 'Lunas', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(2, 'INV-BELI-002', 'V0002', '2026-05-20', '980000.00', '250000.00', 'Cicil', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(3, 'INV-BELI-003', 'V0003', '2026-05-21', '1500000.00', '1500000.00', 'Belum Lunas', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(4, 'INV-BELI-004', 'V0004', '2026-05-21', '760000.00', '0.00', 'Lunas', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(5, 'INV-BELI-005', 'V0005', '2026-05-22', '2100000.00', '500000.00', 'Cicil', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(6, 'INV-BELI-006', 'V0006', '2026-05-22', '540000.00', '0.00', 'Lunas', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(7, 'INV-BELI-007', 'V0007', '2026-05-23', '3200000.00', '3200000.00', 'Belum Lunas', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(8, 'INV-BELI-008', 'V0008', '2026-05-23', '890000.00', '0.00', 'Lunas', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
-(9, 'INV-BELI-009', 'V0009', '2026-05-24', '430000.00', '100000.00', 'Cicil', '2026-05-24 14:42:14', '2026-05-24 14:42:14'),
 (10, 'INV-BELI-010', 'V0010', '2026-05-24', '2750000.00', '0.00', 'Lunas', '2026-05-24 14:42:14', '2026-05-24 14:42:14');
 
 -- --------------------------------------------------------
@@ -431,15 +465,6 @@ CREATE TABLE `inv_pembelian_detail` (
 --
 
 INSERT INTO `inv_pembelian_detail` (`ID_BELI_DETAIL`, `NO_INVOICE_BELI`, `BARANG_KODE`, `KODE_GUDANG`, `KODE_RAK`, `QTY_BELI`, `HARGA_SATUAN`, `SUBTOTAL`, `BATCH_NO`, `TGL_KADALUARSA`, `created_at`) VALUES
-(1, 'INV-BELI-001', 'BRG001', 'GDG001', 'RAK-001', '10.00', '18000.00', '180000.00', 'BCH-001', '2027-01-01', '2026-05-24 15:05:18'),
-(2, 'INV-BELI-002', 'BRG002', 'GDG001', 'RAK-002', '20.00', '14500.00', '290000.00', 'BCH-002', '2027-01-01', '2026-05-24 15:05:18'),
-(3, 'INV-BELI-003', 'BRG003', 'GDG001', 'RAK-003', '15.00', '35000.00', '525000.00', 'BCH-003', '2027-02-01', '2026-05-24 15:05:18'),
-(4, 'INV-BELI-004', 'BRG004', 'GDG001', 'RAK-004', '50.00', '500.00', '25000.00', 'BCH-004', '2027-02-01', '2026-05-24 15:05:18'),
-(5, 'INV-BELI-005', 'BRG005', 'GDG001', 'RAK-005', '30.00', '12000.00', '360000.00', 'BCH-005', '2027-03-01', '2026-05-24 15:05:18'),
-(6, 'INV-BELI-006', 'BRG006', 'GDG001', 'RAK-006', '40.00', '8000.00', '320000.00', 'BCH-006', '2027-03-01', '2026-05-24 15:05:18'),
-(7, 'INV-BELI-007', 'BRG001', 'GDG001', 'RAK-001', '12.00', '18000.00', '216000.00', 'BCH-007', '2027-04-01', '2026-05-24 15:05:18'),
-(8, 'INV-BELI-008', 'BRG002', 'GDG001', 'RAK-002', '25.00', '14500.00', '362500.00', 'BCH-008', '2027-04-01', '2026-05-24 15:05:18'),
-(9, 'INV-BELI-009', 'BRG003', 'GDG001', 'RAK-003', '18.00', '35000.00', '630000.00', 'BCH-009', '2027-05-01', '2026-05-24 15:05:18'),
 (10, 'INV-BELI-010', 'BRG004', 'GDG001', 'RAK-004', '60.00', '500.00', '30000.00', 'BCH-010', '2027-05-01', '2026-05-24 15:05:18');
 
 -- --------------------------------------------------------
@@ -517,17 +542,18 @@ CREATE TABLE `jenis_produksi` (
   `SKALA` varchar(20) DEFAULT NULL,
   `TUJUAN` varchar(20) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `company_id` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `jenis_produksi`
 --
 
-INSERT INTO `jenis_produksi` (`ID`, `ID_JENIS_PRODUKSI`, `NAMA_PRODUK`, `BARANG_KODE`, `NO_BATCH`, `TARGET`, `HASIL`, `GAGAL`, `SKALA`, `TUJUAN`, `created_at`, `updated_at`) VALUES
-(2, 'JP-1777216971543', 'Tepung Sagu', 'BRG007', '009', 800, 700, 100, 'massal', 'gudang', '2026-04-26 15:23:55', '2026-04-26 15:23:55'),
-(3, 'JP-1777217362517', 'Oat', 'BRG011', '991', 50, 40, 10, 'kecil', 'customer', '2026-04-26 15:30:11', '2026-04-26 15:30:11'),
-(4, 'JP-1777262468222', 'Jelly', 'BRG008', '8954', 100, 85, 15, 'kecil', 'customer', '2026-04-27 04:01:43', '2026-04-27 04:01:43');
+INSERT INTO `jenis_produksi` (`ID`, `ID_JENIS_PRODUKSI`, `NAMA_PRODUK`, `BARANG_KODE`, `NO_BATCH`, `TARGET`, `HASIL`, `GAGAL`, `SKALA`, `TUJUAN`, `created_at`, `updated_at`, `company_id`) VALUES
+(2, 'JP-1777216971543', 'Tepung Sagu', 'BRG007', '009', 800, 700, 100, 'massal', 'gudang', '2026-04-26 15:23:55', '2026-04-26 15:23:55', 0),
+(3, 'JP-1777217362517', 'Oat', 'BRG011', '991', 50, 40, 10, 'kecil', 'customer', '2026-04-26 15:30:11', '2026-04-26 15:30:11', 0),
+(4, 'JP-1777262468222', 'Jelly', 'BRG008', '8954', 100, 85, 15, 'kecil', 'customer', '2026-04-27 04:01:43', '2026-04-27 04:01:43', 0);
 
 -- --------------------------------------------------------
 
@@ -581,7 +607,8 @@ INSERT INTO `knex_migrations` (`id`, `name`, `batch`, `migration_time`) VALUES
 (52, '20260305053802_create_master_gaji_jabatan.js', 13, '2026-03-05 20:53:33'),
 (53, '20260305053828_create_master_komponen_gaji.js', 13, '2026-03-05 20:53:34'),
 (54, '20260305053852_create_master_payroll.js', 13, '2026-03-05 20:53:35'),
-(55, '20260305155454_create_master_shift.js', 13, '2026-03-05 20:53:35');
+(55, '20260305155454_create_master_shift.js', 13, '2026-03-05 20:53:35'),
+(56, '20260827032429_create_activity_logs_table.js', 14, '2026-08-27 03:26:12');
 
 -- --------------------------------------------------------
 
@@ -833,7 +860,108 @@ INSERT INTO `login_history` (`id`, `user_id`, `action`, `ip_address`, `user_agen
 (446, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 04:13:36'),
 (447, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 04:16:55'),
 (448, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 04:37:19'),
-(449, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 04:39:50');
+(449, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 04:39:50'),
+(450, 35, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 07:51:36'),
+(451, 35, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 07:52:28'),
+(452, 35, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-01 07:52:32'),
+(453, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-02 01:12:59'),
+(454, 29, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-02 03:11:59'),
+(455, 13, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-02 03:14:58'),
+(456, 13, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-02 03:15:54'),
+(458, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-05 10:36:51'),
+(459, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-06 03:59:13'),
+(460, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-06 04:02:17'),
+(461, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-06 04:02:41'),
+(462, 34, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-06 04:20:58'),
+(463, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-07 07:49:51'),
+(464, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-07 07:52:27'),
+(465, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-07 07:57:36'),
+(466, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-07 08:01:13'),
+(467, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-07 08:09:16'),
+(468, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-07 08:17:21'),
+(469, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-08 02:02:16'),
+(470, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-08 02:03:14'),
+(471, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-08 02:05:37'),
+(472, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-08 02:17:53'),
+(473, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-08 02:20:38'),
+(474, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-08 02:24:05'),
+(475, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-07-08 02:24:50'),
+(476, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-12 12:39:34'),
+(477, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-12 13:29:23'),
+(478, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-12 13:31:24'),
+(479, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-12 13:34:56'),
+(480, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-12 13:35:38'),
+(481, 34, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-12 15:13:36'),
+(482, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 03:28:38'),
+(483, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 03:28:56'),
+(484, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 03:35:15'),
+(485, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 03:53:53'),
+(486, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 04:13:12'),
+(487, 13, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 04:16:52'),
+(488, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 04:23:18'),
+(489, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-13 04:24:29'),
+(490, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 02:44:27'),
+(491, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 02:55:48'),
+(492, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 03:52:37'),
+(493, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 03:53:42'),
+(494, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 05:01:24'),
+(495, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 05:02:45'),
+(496, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 05:03:20'),
+(497, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 05:11:45'),
+(498, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 05:11:56'),
+(499, 32, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 06:06:07'),
+(500, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-14 06:06:58'),
+(501, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-16 12:40:27'),
+(502, 30, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-16 12:55:27'),
+(503, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-16 13:26:57'),
+(504, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-16 13:47:17'),
+(505, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-16 13:54:49'),
+(506, 37, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-16 14:08:34'),
+(507, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-19 16:10:17'),
+(508, 29, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-19 16:11:05'),
+(509, 38, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-19 16:23:29'),
+(510, 38, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-19 17:58:57'),
+(511, 38, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-19 17:59:20'),
+(512, 38, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-07-19 17:59:28'),
+(513, 29, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-08-01 16:15:16'),
+(514, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-08-04 04:54:02'),
+(515, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36', '2026-08-04 05:08:59'),
+(516, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-04 16:35:01'),
+(517, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.132.0 Chrome/148.0.7778.280 Electron/42.7.1 Safari/537.36', '2026-08-16 14:41:24'),
+(518, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-16 14:42:27'),
+(519, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-16 15:04:48'),
+(520, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-16 15:07:57'),
+(521, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-17 14:47:39'),
+(522, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-18 04:31:55'),
+(523, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-18 04:33:08'),
+(524, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-18 04:39:44'),
+(525, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-20 15:56:09'),
+(526, 49, '', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-22 14:54:47'),
+(527, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-22 15:51:16'),
+(528, 46, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-22 15:51:29'),
+(529, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-22 15:51:36'),
+(530, 46, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-24 12:03:36'),
+(531, 46, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-24 12:03:45'),
+(532, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-24 12:03:57'),
+(533, 48, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-24 12:04:09'),
+(534, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-24 14:31:59'),
+(535, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-24 14:52:51'),
+(536, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-26 05:29:11'),
+(537, 48, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-26 05:30:35'),
+(538, 49, '', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-26 05:35:10'),
+(539, 49, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-26 05:36:26'),
+(540, 13, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 03:38:20'),
+(541, 13, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 03:56:12'),
+(542, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 03:56:30'),
+(543, 48, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 03:56:37'),
+(544, 13, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 03:56:43'),
+(545, 13, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 04:21:54'),
+(546, 13, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 04:22:02'),
+(547, 13, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 04:41:48'),
+(548, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 04:43:21'),
+(549, 48, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 04:45:35'),
+(550, 48, 'LOGIN', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 04:45:50'),
+(551, 48, 'LOGOUT', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36', '2026-08-27 05:13:50');
 
 -- --------------------------------------------------------
 
@@ -870,10 +998,7 @@ INSERT INTO `master_barang` (`ID`, `company_id`, `BARANG_KODE`, `NAMA_BARANG`, `
 (18, NULL, 'BRG005', 'Kantong Plastik', 21, 224, '3.00', '5.00', '15000.00', '16000.00', 'Aktif', '2026-05-24 08:23:57', '2026-06-21 08:29:57'),
 (19, NULL, 'BRG006', 'Coklat Batang(Varian Matcha)', 23, 1, '5.00', '6.00', '10500.00', '12000.00', 'Aktif', '2026-05-24 08:23:57', '2026-06-21 08:31:35'),
 (20, NULL, 'BRG00144', 'Pisang Kepok', 22, 214, '2.00', '3.00', '45000.00', '0.00', 'Aktif', '2026-06-20 09:39:28', '2026-06-21 08:23:28'),
-(21, NULL, 'BRG-034', 'Coklat Tiramisu', 22, 1, '5.00', '4.00', '10500.00', '0.00', 'Aktif', '2026-06-21 08:34:21', '2026-06-21 08:34:21'),
-(22, 1, 'BRG-0101', 'Beef', 22, 224, '5.00', '50.00', '25000.00', '0.00', 'Aktif', '2026-06-29 21:21:08', '2026-06-29 21:21:08'),
-(25, 1, 'BRG-0181', 'Roti Bun', 22, 214, '5.00', '100.00', '9000.00', '0.00', 'Aktif', '2026-07-01 06:34:19', '2026-07-01 06:34:19'),
-(28, 1, 'BRG-0190', 'Selada', 22, 214, '3.00', '100.00', '6000.00', '0.00', 'Aktif', '2026-07-01 06:44:47', '2026-07-01 06:44:47');
+(22, 1, 'BRG-0101', 'Beef', 22, 224, '5.00', '50.00', '25000.00', '0.00', 'Aktif', '2026-06-29 21:21:08', '2026-06-29 21:21:08');
 
 -- --------------------------------------------------------
 
@@ -1002,6 +1127,7 @@ INSERT INTO `master_gaji_jabatan` (`ID`, `JABATAN`, `DEPARTEMEN`, `GAJI_POKOK`, 
 
 CREATE TABLE `master_gudang` (
   `ID_GUDANG` int UNSIGNED NOT NULL,
+  `id_company` int NOT NULL,
   `KODE_GUDANG` varchar(50) NOT NULL,
   `NAMA_GUDANG` varchar(100) NOT NULL,
   `ALAMAT` text,
@@ -1014,13 +1140,15 @@ CREATE TABLE `master_gudang` (
 -- Dumping data for table `master_gudang`
 --
 
-INSERT INTO `master_gudang` (`ID_GUDANG`, `KODE_GUDANG`, `NAMA_GUDANG`, `ALAMAT`, `STATUS`, `created_at`, `updated_at`) VALUES
-(1, 'GDG001', 'Gudang Utama', 'Timur Mushola', 'Aktif', '2026-03-12 03:28:39', '2026-03-12 03:28:39'),
-(2, 'GDG002', 'Gudang Barat', 'Jl. Barat No. 10', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
-(3, 'GDG003', 'Gudang Timur 2', 'Jl. Barat No. 13', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
-(4, 'GDG004', 'Gudang Utara', 'Jl. Barat No. 15', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
-(5, 'GDG005', 'Gudang Selatan', 'Jl. Selatan No. 7', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
-(6, 'GDG006', 'Gudang Cabang A', 'Jl. Selatan No. 5', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58');
+INSERT INTO `master_gudang` (`ID_GUDANG`, `id_company`, `KODE_GUDANG`, `NAMA_GUDANG`, `ALAMAT`, `STATUS`, `created_at`, `updated_at`) VALUES
+(1, 1, 'GDG001', 'Gudang Utama', 'Timur Mushola', 'Aktif', '2026-03-12 03:28:39', '2026-03-12 03:28:39'),
+(2, 1, 'GDG002', 'Gudang Barat', 'Jl. Barat No. 10', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
+(3, 1, 'GDG003', 'Gudang Timur 2', 'Jl. Barat No. 13', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
+(4, 1, 'GDG004', 'Gudang Utara', 'Jl. Barat No. 15', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
+(5, 1, 'GDG005', 'Gudang Selatan', 'Jl. Selatan No. 7', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
+(6, 1, 'GDG006', 'Gudang Cabang A', 'Jl. Selatan No. 5', 'Aktif', '2026-05-24 14:49:58', '2026-05-24 14:49:58'),
+(11, 5, 'GDG001', 'gudang 1', 'bhj', 'Aktif', '2026-07-19 17:16:18', '2026-07-19 17:39:47'),
+(12, 17, 'GDG001', 'gudang barang', 'test', 'Aktif', '2026-08-04 16:36:02', '2026-08-04 16:36:02');
 
 -- --------------------------------------------------------
 
@@ -1097,6 +1225,9 @@ CREATE TABLE `master_karyawan` (
   `SHIFT` varchar(20) DEFAULT NULL,
   `PENDIDIKAN_TERAKHIR` varchar(100) DEFAULT NULL,
   `FOTO` varchar(255) DEFAULT NULL,
+  `NPWP` varchar(50) DEFAULT NULL,
+  `NIB` varchar(50) DEFAULT NULL,
+  `FOTO_KTP` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `company_id` int DEFAULT NULL
@@ -1106,20 +1237,27 @@ CREATE TABLE `master_karyawan` (
 -- Dumping data for table `master_karyawan`
 --
 
-INSERT INTO `master_karyawan` (`ID`, `KARYAWAN_ID`, `EMAIL`, `NIK`, `NAMA`, `GENDER`, `TEMPAT_LAHIR`, `TGL_LAHIR`, `ALAMAT`, `NO_TELP`, `DEPARTEMEN`, `JABATAN`, `TANGGAL_MASUK`, `STATUS_KARYAWAN`, `STATUS_AKTIF`, `SHIFT`, `PENDIDIKAN_TERAKHIR`, `FOTO`, `created_at`, `updated_at`, `company_id`) VALUES
-(11, 'KRY-0010', 'gdayo@gmail.com', '1231234567890234', 'mao', 'P', 'Bandung ', '2002-05-08', 'jalan jalan no.01', '089567895678', 'GUDANG', 'Supervisor', '2026-04-01', 'Tetap', 'Aktif', NULL, 'D3', NULL, '2026-04-01 08:47:40', '2026-04-01 08:47:40', NULL),
-(16, 'KRY-0014', 'adminkeuangan@gmail.com', '3503411234567890', 'adminkeuangan', 'P', 'Surabaya', '2026-06-10', 'jalan jalan', '081234567894567', 'KEUANGAN', 'Supervisor', '2026-06-19', 'Tetap', 'Aktif', NULL, 'D3', NULL, '2026-06-19 13:27:18', '2026-06-19 13:27:18', NULL),
-(17, 'KRY-0015', 'adminproduksi@gmail.com', '3504015678912345', 'adminproduksi', 'P', 'Surabaya', '2026-06-15', 'jalan aja', '089123452345123', 'PRODUKSI', 'Supervisor', '2026-06-19', 'Tetap', 'Aktif', NULL, 'D3', NULL, '2026-06-19 13:29:13', '2026-06-19 13:29:13', NULL),
-(18, 'KRY-0016', 'bananachipsjuara@gmail.com', '3504015734620001', 'Safitri', 'P', 'Madiun', '1990-06-29', 'Jl. Padat karya, Ds. Luworo, Kec. Pilangkenceng, Kab. Madiun', '0878642781372', 'PRODUKSI', 'Supervisor', '2025-06-15', 'Tetap', 'Aktif', NULL, 'D3', NULL, '2026-06-21 08:07:55', '2026-06-21 08:10:52', NULL),
-(19, 'KRY-0017', 'aning612@gmail.com', '35040280650001', 'Aning Anim Dhita', 'P', 'Madiun', '2002-12-21', 'Desa Kuwu, Kec. Balerejo, Kab. Madiun', '085765431235', 'KEUANGAN', 'Staff', '2025-06-15', 'Tetap', 'Aktif', NULL, 'SMA/SMK', NULL, '2026-06-21 08:15:35', '2026-06-21 08:15:35', NULL),
-(20, 'KRY-0018', 'prastiwi99@gmail.com', '3519135707040001', 'Prastiwi Dwi Astuti', 'P', 'Madiun', '2001-04-21', 'Desa Krebet,Kec.Pilangkenceng, Kab. Madiun', '085856355429', 'PRODUKSI', 'Staff', '2025-06-15', 'Tetap', 'Aktif', NULL, 'SMA/SMK', NULL, '2026-06-21 08:18:43', '2026-06-21 08:18:43', NULL),
-(21, 'KRY-0019', 'adminhr@gmail.com', '350401345670002', 'adminHr', 'L', 'Surabaya', '2000-02-14', 'Jl. Ngawi no.35', '0874729240143', 'HR', 'Supervisor', '2026-06-21', 'Tetap', 'Aktif', NULL, 'S1', NULL, '2026-06-21 14:38:26', '2026-06-21 14:38:26', NULL),
-(22, 'KRY-0020', 'produksi@gmail.com', '1234567890', 'produksi', 'L', 'Surabaya', '2026-06-23', 'sdfghjkl;', '09876543', 'PRODUKSI', 'Supervisor', '2026-06-25', 'Kontrak', 'Aktif', NULL, 'D3', NULL, '2026-06-24 17:04:36', '2026-06-24 17:04:36', NULL),
-(25, 'KRY-0021', 'burgerkita@gmail.com', '909872345678', 'Burger Kita', 'L', 'Madiun', '2026-06-10', 'qwertyuiop', '098765432345', 'SDM', 'Manager', '2026-06-30', 'Tetap', 'Aktif', NULL, 'S1', NULL, '2026-06-29 18:46:54', '2026-06-29 20:38:18', 1),
-(26, 'KRY-0022', 'burgerkitahr@gmail.com', '345678905678', 'HR Burger Kita', 'L', 'Malang', '2026-06-23', 'xcvbnmxcvbnm', '23476543', 'HR', 'Staff', '2026-06-30', 'Kontrak', 'Aktif', NULL, 'D3', NULL, '2026-06-29 19:02:29', '2026-06-29 20:38:18', 1),
-(27, 'KRY-0023', 'kebabtursina@gmail.com', '0987651234567890', 'Kebab Tursina', 'P', 'Bandung', '2026-06-02', 'rtyuifghjvbnm', '087652345567', 'SDM', 'Supervisor', '2026-06-30', 'Tetap', 'Aktif', NULL, 'S1', NULL, '2026-06-29 19:04:27', '2026-06-29 20:38:18', 2),
-(28, 'KRY-0024', 'burgerkitaProduksi@gmail.com', '2345678909876543', 'Produksi Burger Kita', 'P', 'Madiun', '2026-06-09', 'Jl. Cabang Bandung', '085678912340', 'PRODUKSI', 'Staff', '2026-06-30', 'Tetap', 'Aktif', NULL, 'D3', NULL, '2026-06-29 20:11:30', '2026-06-29 20:38:18', 1),
-(30, 'KRY-0025', 'burgerkitaKeuangan@gmail.com', '123456789987654', 'Keuangan Burger Kita', 'P', 'Madiun', '2026-07-07', 'Jalan jalan cakep', '098723456789', 'KEUANGAN', 'Staff', '2026-06-09', 'Tetap', 'Aktif', NULL, 'D3', NULL, '2026-06-30 17:29:19', '2026-06-30 17:29:19', 1);
+INSERT INTO `master_karyawan` (`ID`, `KARYAWAN_ID`, `EMAIL`, `NIK`, `NAMA`, `GENDER`, `TEMPAT_LAHIR`, `TGL_LAHIR`, `ALAMAT`, `NO_TELP`, `DEPARTEMEN`, `JABATAN`, `TANGGAL_MASUK`, `STATUS_KARYAWAN`, `STATUS_AKTIF`, `SHIFT`, `PENDIDIKAN_TERAKHIR`, `FOTO`, `NPWP`, `NIB`, `FOTO_KTP`, `created_at`, `updated_at`, `company_id`) VALUES
+(11, 'KRY-0010', 'gdayo@gmail.com', '1231234567890234', 'mao', 'P', 'Bandung ', '2002-05-08', 'jalan jalan no.01', '089567895678', 'GUDANG', 'Supervisor', '2026-04-01', 'Tetap', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-04-01 08:47:40', '2026-04-01 08:47:40', NULL),
+(16, 'KRY-0014', 'adminkeuangan@gmail.com', '3503411234567890', 'adminkeuangan', 'P', 'Surabaya', '2026-06-10', 'jalan jalan', '081234567894567', 'KEUANGAN', 'Supervisor', '2026-06-19', 'Tetap', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-06-19 13:27:18', '2026-06-19 13:27:18', NULL),
+(17, 'KRY-0015', 'adminproduksi@gmail.com', '3504015678912345', 'adminproduksi', 'P', 'Surabaya', '2026-06-15', 'jalan aja', '089123452345123', 'PRODUKSI', 'Supervisor', '2026-06-19', 'Tetap', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-06-19 13:29:13', '2026-06-19 13:29:13', NULL),
+(18, 'KRY-0016', 'bananachipsjuara@gmail.com', '3504015734620001', 'Safitri', 'P', 'Madiun', '1990-06-29', 'Jl. Padat karya, Ds. Luworo, Kec. Pilangkenceng, Kab. Madiun', '0878642781372', 'PRODUKSI', 'Supervisor', '2025-06-15', 'Tetap', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-06-21 08:07:55', '2026-06-21 08:10:52', NULL),
+(19, 'KRY-0017', 'aning612@gmail.com', '35040280650001', 'Aning Anim Dhita', 'P', 'Madiun', '2002-12-21', 'Desa Kuwu, Kec. Balerejo, Kab. Madiun', '085765431235', 'KEUANGAN', 'Staff', '2025-06-15', 'Tetap', 'Aktif', NULL, 'SMA/SMK', NULL, NULL, NULL, NULL, '2026-06-21 08:15:35', '2026-06-21 08:15:35', NULL),
+(20, 'KRY-0018', 'prastiwi99@gmail.com', '3519135707040001', 'Prastiwi Dwi Astuti', 'P', 'Madiun', '2001-04-21', 'Desa Krebet,Kec.Pilangkenceng, Kab. Madiun', '085856355429', 'PRODUKSI', 'Staff', '2025-06-15', 'Tetap', 'Aktif', NULL, 'SMA/SMK', NULL, NULL, NULL, NULL, '2026-06-21 08:18:43', '2026-06-21 08:18:43', NULL),
+(21, 'KRY-0019', 'adminhr@gmail.com', '350401345670002', 'adminHr', 'L', 'Surabaya', '2000-02-14', 'Jl. Ngawi no.35', '0874729240143', 'HR', 'Supervisor', '2026-06-21', 'Tetap', 'Aktif', NULL, 'S1', NULL, NULL, NULL, NULL, '2026-06-21 14:38:26', '2026-06-21 14:38:26', NULL),
+(22, 'KRY-0020', 'produksi@gmail.com', '1234567890', 'produksi', 'L', 'Surabaya', '2026-06-23', 'sdfghjkl;', '09876543', 'PRODUKSI', 'Supervisor', '2026-06-25', 'Kontrak', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-06-24 17:04:36', '2026-06-24 17:04:36', NULL),
+(25, 'KRY-0021', 'burgerkita@gmail.com', '909872345678', 'Burger Kita', 'L', 'Madiun', '2026-06-10', 'qwertyuiop', '098765432345', 'SDM', 'Manager', '2026-06-30', 'Tetap', 'Aktif', NULL, 'S1', NULL, NULL, NULL, NULL, '2026-06-29 18:46:54', '2026-06-29 20:38:18', 1),
+(26, 'KRY-0022', 'burgerkitahr@gmail.com', '345678905678', 'HR Burger Kita', 'L', 'Malang', '2026-06-23', 'xcvbnmxcvbnm', '23476543', 'HR', 'Staff', '2026-06-30', 'Kontrak', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-06-29 19:02:29', '2026-06-29 20:38:18', 1),
+(27, 'KRY-0023', 'kebabtursina@gmail.com', '0987651234567890', 'Kebab Tursina', 'P', 'Bandung', '2026-06-02', 'rtyuifghjvbnm', '087652345567', 'SDM', 'Supervisor', '2026-06-30', 'Tetap', 'Aktif', NULL, 'S1', NULL, NULL, NULL, NULL, '2026-06-29 19:04:27', '2026-06-29 20:38:18', 2),
+(28, 'KRY-0024', 'burgerkitaProduksi@gmail.com', '2345678909876543', 'Produksi Burger Kita', 'P', 'Madiun', '2026-06-09', 'Jl. Cabang Bandung', '085678912340', 'PRODUKSI', 'Staff', '2026-06-30', 'Tetap', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-06-29 20:11:30', '2026-06-29 20:38:18', 1),
+(30, 'KRY-0025', 'burgerkitaKeuangan@gmail.com', '123456789987654', 'Keuangan Burger Kita', 'P', 'Madiun', '2026-07-07', 'Jalan jalan cakep', '098723456789', 'KEUANGAN', 'Staff', '2026-06-09', 'Tetap', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-06-30 17:29:19', '2026-06-30 17:29:19', 1),
+(31, 'KRY-0026', 'aliffiyahrahma12@gmail.com', '12345678998765432345678', 'Aliffiyah Rahmanovita Dewi Ikrima', 'L', 'madiun', '2026-06-10', 'Jalan I Gusti Ngurah Rai VI, RT 03 RW 02, Deasa Bago, Nomor 21c', '098765434567', 'SDM', 'Manager', '2026-07-01', 'Tetap', 'Aktif', NULL, 'S1', NULL, NULL, NULL, NULL, '2026-07-01 07:51:25', '2026-07-01 07:51:25', NULL),
+(33, 'KRY-0027', 'burgerkitagudang@gmail.com', '2345678973456789', 'Gudang Burger Kita', 'L', 'Madiun', '2026-07-01', 'jalan', '082345678909', 'GUDANG', 'Operator', '2026-07-07', 'Kontrak', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-07-07 07:52:00', '2026-07-07 07:52:00', 1),
+(34, 'KRY-0028', 'coba@gmail.com', '12345679', 'coba coba', 'L', 'coba coba', '2026-07-01', 'coba coba', '08123456789', 'GUDANG', 'Manager', '2000-07-02', 'Kontrak', 'Aktif', 'Pagi', NULL, '/uploads/foto_karyawan/karyawan-1784478195882-761787293.png', NULL, NULL, NULL, '2026-07-19 16:23:16', '2026-07-19 16:23:16', NULL),
+(39, '', 'raihandiandra01@gmail.com', '2', 'Raihan Surya', 'L', 'w', '2026-04-06', 'Singosari', '085725957101', 'DIRECTOR', 'Owner', NULL, 'Tetap', 'Aktif', NULL, NULL, NULL, NULL, NULL, '/uploads/foto_ktp/karyawan-1785779587420-808739547.png', '2026-08-03 17:53:08', '2026-08-03 17:53:07', 12),
+(44, 'KRY-0001', 'raihan00809@gmail.com', '', 'Raihan Suryaq', 'P', 'wq', '2026-07-05', 'Singosari', '085725957101', 'DIRECTOR', 'Owner', '2026-08-04', 'Tetap', 'Aktif', NULL, NULL, NULL, NULL, '12343', '/uploads/foto_ktp/karyawan-1785819143732-119112218.png', '2026-08-04 04:52:24', '2026-08-09 14:43:23', 17),
+(45, 'KRY-0002', 'raihan1@gmail.com', '211', 'asep', 'L', 'madiun', '2026-07-01', 'madiun', '021984532', 'PRODUKSI', 'Staff', '2026-08-04', 'Tetap', 'Aktif', NULL, 'D3', NULL, NULL, NULL, NULL, '2026-08-04 05:03:31', '2026-08-04 05:03:30', 17),
+(46, 'KRY-0003', 'raihan01@gmail.com', '21211', 'asepe', 'L', 'madiun', '2026-07-02', 'madiun', '025412541', 'PRODUKSI', 'Staff', '2026-08-04', 'Kontrak', 'Aktif', NULL, 'S2', NULL, NULL, NULL, NULL, '2026-08-04 05:08:47', '2026-08-04 05:08:46', 17);
 
 -- --------------------------------------------------------
 
@@ -1238,7 +1376,10 @@ INSERT INTO `master_nama_produk` (`id`, `nama_produk_jadi`) VALUES
 (81, 'Nuget'),
 (83, 'Nuget Beef'),
 (84, 'Burger Baru'),
-(85, 'Burger Maniss');
+(85, 'Burger Maniss'),
+(86, 'Burger beef2'),
+(87, 'Beef Manis'),
+(88, 'Beef Manis sekali');
 
 -- --------------------------------------------------------
 
@@ -1300,13 +1441,7 @@ CREATE TABLE `master_payroll` (
 --
 
 INSERT INTO `master_payroll` (`ID`, `KODE_PAYROLL`, `KARYAWAN_ID`, `company_id`, `USER_ID`, `PERIODE`, `JABATAN_SNAPSHOT`, `DEPARTEMEN_SNAPSHOT`, `SUMBER_GAJI`, `HARI_KERJA_NORMAL`, `HARI_HADIR`, `HARI_ALPA`, `HARI_SAKIT`, `HARI_IZIN`, `HARI_CUTI`, `HARI_DINAS_LUAR`, `TOTAL_TERLAMBAT_MENIT`, `TOTAL_KEJADIAN_TERLAMBAT`, `TOTAL_PULANG_AWAL`, `PERFORMANCE_SCORE`, `TOTAL_OUTPUT`, `TOTAL_JAM_PRODUKTIF`, `TOTAL_LOGBOOK_APPROVED`, `GAJI_POKOK`, `TUNJANGAN_TRANSPORT`, `TUNJANGAN_MAKAN`, `TUNJANGAN_JABATAN`, `TUNJANGAN_LAINNYA`, `BONUS_KINERJA`, `BONUS_PERSEN_DIPAKAI`, `TOTAL_PENDAPATAN`, `POTONGAN_TERLAMBAT`, `POTONGAN_ALPA`, `POTONGAN_BPJS_KESEHATAN`, `POTONGAN_BPJS_TK`, `POTONGAN_PPH21`, `TOTAL_POTONGAN`, `TAKE_HOME_PAY`, `STATUS`, `APPROVED_BY`, `APPROVED_AT`, `PAID_BY`, `PAID_AT`, `KETERANGAN`, `created_at`, `updated_at`) VALUES
-(9, 'PAY-202601-KRY0010', 'KRY-0010', 0, NULL, '2026-01-01', 'Supervisor', 'GUDANG', 'Jabatan', 27, 0, 27, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-05-10 12:07:57', '2026-05-10 12:07:57'),
-(20, 'PAY-202605-KRY0010', 'KRY-0010', 0, NULL, '2026-05-01', 'Supervisor', 'GUDANG', 'Jabatan', 26, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-05-10 12:27:10', '2026-05-10 12:27:10'),
-(23, 'PAY-202606-KRY0014', 'KRY-0014', 0, NULL, '2026-06-01', 'Supervisor', 'KEUANGAN', 'Jabatan', 26, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-06-21 09:34:53', '2026-06-21 09:34:53'),
-(24, 'PAY-202606-KRY0015', 'KRY-0015', 0, NULL, '2026-06-01', 'Supervisor', 'PRODUKSI', 'Jabatan', 26, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-06-21 09:34:53', '2026-06-21 09:34:53'),
-(25, 'PAY-202606-KRY0016', 'KRY-0016', 0, NULL, '2026-06-01', 'Supervisor', 'PRODUKSI', 'Jabatan', 26, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-06-21 09:34:53', '2026-06-21 09:34:53'),
-(26, 'PAY-202606-KRY0017', 'KRY-0017', 0, NULL, '2026-06-01', 'Staff', 'KEUANGAN', 'Jabatan', 26, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-06-21 09:34:53', '2026-06-21 09:34:53'),
-(27, 'PAY-202606-KRY0018', 'KRY-0018', 0, NULL, '2026-06-01', 'Staff', 'PRODUKSI', 'Jabatan', 26, 0, 26, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '800000.00', '400000.00', '0.00', '0.00', '0.00', '0.00', '0.00', '1200000.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '1200000.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-06-21 09:34:53', '2026-06-21 23:25:05');
+(31, 'PAY-202607-KRY0022', 'KRY-0022', 1, NULL, '2026-07-01', 'Staff', 'HR', 'Jabatan', 27, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, '0.00', '0.00', 0, '600000.00', '0.00', '0.00', '0.00', '0.00', '0.00', '0.00', '600000.00', '0.00', '0.00', '1200.00', '1200.00', '0.00', '2400.00', '597600.00', 'Draft', NULL, NULL, NULL, NULL, NULL, '2026-07-12 15:13:15', '2026-07-12 15:13:15');
 
 -- --------------------------------------------------------
 
@@ -1365,6 +1500,7 @@ CREATE TABLE `master_perusahaan` (
 
 CREATE TABLE `master_presensi` (
   `ID` int UNSIGNED NOT NULL,
+  `COMPANY_ID` int NOT NULL,
   `KODE_PRESENSI` varchar(30) NOT NULL,
   `KARYAWAN_ID` varchar(20) NOT NULL,
   `TANGGAL` date NOT NULL,
@@ -1382,6 +1518,13 @@ CREATE TABLE `master_presensi` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `master_presensi`
+--
+
+INSERT INTO `master_presensi` (`ID`, `COMPANY_ID`, `KODE_PRESENSI`, `KARYAWAN_ID`, `TANGGAL`, `JAM_MASUK`, `LOKASI_MASUK`, `FOTO_MASUK`, `JAM_KELUAR`, `LOKASI_KELUAR`, `FOTO_KELUAR`, `STATUS`, `KETERANGAN`, `IS_TERLAMBAT`, `IS_PULANG_AWAL`, `created_at`, `updated_at`) VALUES
+(5, 1, 'PRS-20260712-0022', 'KRY-0022', '2026-07-12', '20:35:26', '-8.0668570, 111.9089810', '/uploads/presensi/presensi-1783863326196-510067503.jpg', NULL, NULL, NULL, 'Hadir', 'Masuk Pagi', 0, 0, '2026-07-12 13:35:26', '2026-07-12 13:35:26');
+
 -- --------------------------------------------------------
 
 --
@@ -1390,6 +1533,7 @@ CREATE TABLE `master_presensi` (
 
 CREATE TABLE `master_rak` (
   `ID_RAK` int UNSIGNED NOT NULL,
+  `id_company` int NOT NULL,
   `KODE_GUDANG` varchar(50) NOT NULL,
   `KODE_RAK` varchar(50) NOT NULL,
   `NAMA_RAK` varchar(100) DEFAULT NULL,
@@ -1401,17 +1545,21 @@ CREATE TABLE `master_rak` (
 -- Dumping data for table `master_rak`
 --
 
-INSERT INTO `master_rak` (`ID_RAK`, `KODE_GUDANG`, `KODE_RAK`, `NAMA_RAK`, `created_at`, `updated_at`) VALUES
-(1, 'GDG001', 'RAK-001', 'Rak Elektronik A', '2026-03-12 03:29:27', '2026-03-12 03:29:27'),
-(2, 'GDG001', 'RAK-002', 'Rak Elektronik B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(3, 'GDG001', 'RAK-003', 'Rak Makanan A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(4, 'GDG001', 'RAK-004', 'Rak Makanan B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(5, 'GDG001', 'RAK-005', 'Rak Minuman A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(6, 'GDG001', 'RAK-006', 'Rak Minuman B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(7, 'GDG001', 'RAK-007', 'Rak Bahan Baku A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(8, 'GDG001', 'RAK-008', 'Rak Bahan Baku B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(9, 'GDG001', 'RAK-009', 'Rak Kemasan A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
-(10, 'GDG001', 'RAK-010', 'Rak Kemasan B', '2026-05-24 15:03:52', '2026-05-24 15:03:52');
+INSERT INTO `master_rak` (`ID_RAK`, `id_company`, `KODE_GUDANG`, `KODE_RAK`, `NAMA_RAK`, `created_at`, `updated_at`) VALUES
+(1, 1, 'GDG001', 'RAK-001', 'Rak Elektronik A', '2026-03-12 03:29:27', '2026-03-12 03:29:27'),
+(2, 1, 'GDG001', 'RAK-002', 'Rak Elektronik B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(3, 1, 'GDG001', 'RAK-003', 'Rak Makanan A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(4, 1, 'GDG001', 'RAK-004', 'Rak Makanan B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(5, 1, 'GDG001', 'RAK-005', 'Rak Minuman A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(6, 1, 'GDG001', 'RAK-006', 'Rak Minuman B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(7, 1, 'GDG001', 'RAK-007', 'Rak Bahan Baku A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(8, 1, 'GDG001', 'RAK-008', 'Rak Bahan Baku B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(9, 1, 'GDG001', 'RAK-009', 'Rak Kemasan A', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(10, 1, 'GDG001', 'RAK-010', 'Rak Kemasan B', '2026-05-24 15:03:52', '2026-05-24 15:03:52'),
+(11, 5, 'GDG001', 'RAK123', 'rak bangunan', '2026-07-19 17:25:20', '2026-07-19 17:25:20'),
+(12, 5, 'GDG001', 'RAK-123', 'rak bangunan', '2026-07-19 17:26:35', '2026-07-19 17:26:35'),
+(13, 5, 'GDG001', 'RAK-111', 'besi', '2026-07-19 17:29:26', '2026-07-19 17:29:26'),
+(14, 17, 'GDG001', 'RAK-01', 'pensil', '2026-08-04 16:36:17', '2026-08-04 16:36:17');
 
 -- --------------------------------------------------------
 
@@ -1595,7 +1743,6 @@ INSERT INTO `stok_lokasi` (`ID_STOK_LOKASI`, `BARANG_KODE`, `KODE_GUDANG`, `KODE
 (6, 'BRG003', 'GDG001', 'RAK-007', '501.00', 'STOK-AWAL', NULL, '2026-06-14 15:45:49', '2026-06-14 15:45:49'),
 (7, 'BRG004', 'GDG001', 'RAK-009', '10000.00', 'STOK-AWAL', NULL, '2026-06-14 15:45:49', '2026-06-14 15:45:49'),
 (8, 'BRG005', 'GDG001', 'RAK-007', '752.00', 'STOK-AWAL', NULL, '2026-06-14 15:45:49', '2026-06-14 15:45:49'),
-(9, 'BRG006', 'GDG001', 'RAK-007', '409.00', 'STOK-AWAL', NULL, '2026-06-14 15:45:49', '2026-06-14 15:45:49'),
 (10, 'BRG00144', 'GDG001', 'RAK-003', '200.00', 'BATCH-0057', NULL, '2026-06-20 09:43:57', '2026-06-20 09:43:57');
 
 -- --------------------------------------------------------
@@ -1635,7 +1782,20 @@ INSERT INTO `transaksi` (`id`, `order_id`, `plan`, `price`, `status`, `created_a
 (15, 'ORDER-1777261553404', 'Paket Enterprise', 159000, 'pending', '2026-04-27 03:45:53'),
 (16, 'ORDER-1777266697736', 'Paket Essential', 75000, 'pending', '2026-04-27 05:11:37'),
 (17, 'ORDER-1777274904009', 'Paket Enterprise', 159000, 'pending', '2026-04-27 07:28:24'),
-(18, 'ORDER-1777274959913', 'Paket Enterprise', 159000, 'pending', '2026-04-27 07:29:20');
+(18, 'ORDER-1777274959913', 'Paket Enterprise', 159000, 'pending', '2026-04-27 07:29:20'),
+(19, 'ORDER-1784210641478', 'Paket Essential', 75000, 'pending', '2026-07-16 14:04:01'),
+(20, 'ORDER-1785600966137', 'Paket Essential', 75000, 'pending', '2026-08-01 16:16:06'),
+(21, 'ORDER-1786980613605', 'Paket Essential (1 Bulan)', 75000, 'pending', '2026-08-17 15:30:13'),
+(22, 'ORDER-1786980902354', 'Essential (monthly)', 75000, 'pending', '2026-08-17 15:35:02'),
+(23, 'ORDER-1786981620257', 'Intermediate (monthly)', 89000, 'pending', '2026-08-17 15:47:00'),
+(24, 'ORDER-1786981707777', 'Intermediate (monthly)', 89000, 'pending', '2026-08-17 15:48:28'),
+(25, 'ORDER-1786983041609', 'Essential (monthly)', 75000, 'pending', '2026-08-17 16:10:41'),
+(26, 'ORDER-1786983134130', 'Essential (monthly)', 75000, 'pending', '2026-08-17 16:12:16'),
+(27, 'ORDER-1786983149257', 'Essential (monthly)', 75000, 'pending', '2026-08-17 16:12:32'),
+(28, 'ORDER-1786983174270', 'Essential (monthly)', 75000, 'pending', '2026-08-17 16:12:55'),
+(29, 'ORDER-1786983370079', 'Essential (monthly)', 75000, 'pending', '2026-08-17 16:16:12'),
+(30, 'ORDER-1786983942531', 'Essential (monthly)', 75000, 'pending', '2026-08-17 16:25:42'),
+(31, 'ORDER-1786983977370', 'Essential (monthly)', 75000, 'pending', '2026-08-17 16:26:17');
 
 -- --------------------------------------------------------
 
@@ -1698,32 +1858,50 @@ CREATE TABLE `users` (
   `role` enum('SUPERADMIN','SDM','GUDANG','PRODUKSI','HR','KEUANGAN') NOT NULL DEFAULT 'GUDANG',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `company_id` int DEFAULT NULL
+  `company_id` int DEFAULT NULL,
+  `is_verified` tinyint(1) DEFAULT '0',
+  `verification_token` varchar(255) DEFAULT NULL,
+  `token_expires_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `created_at`, `updated_at`, `company_id`) VALUES
-(13, 'superadmin', 'superadmin@gmail.com', '$2b$10$jKGCUzCBVbdR5SHoaZt8pO.jF8DA2WEK7RVT1.lHglGA/rFtuTGBy', 'SUPERADMIN', '2026-03-12 02:53:30', '2026-03-12 02:53:30', NULL),
-(15, 'mao', 'gdayo@gmail.com', '$2b$10$HEnU6U6EHpfE5L0Fn1Qzpe4XiaS565XMafBvvpc3RsNytdt3U5.dW', 'GUDANG', '2026-04-01 08:47:40', '2026-04-01 08:47:40', NULL),
-(20, 'adminkeuangan', 'adminkeuangan@gmail.com', '$2b$10$gIrsgNtihyP1NJ.9hOuTEO9j.MyfvkidkE4I.LGi3YTy8T9LnDfmy', 'KEUANGAN', '2026-06-19 13:27:18', '2026-06-19 13:27:18', NULL),
-(21, 'adminproduksi', 'adminproduksi@gmail.com', '$2b$10$R6F3ieP2EqWYyyPFqSmYBemxnlWRpYRpY4jxAns9hDTWxFCRTq46i', 'PRODUKSI', '2026-06-19 13:29:13', '2026-06-19 13:29:13', NULL),
-(22, 'Safitri', 'bananachipsjuara@gmail.com', '$2b$10$/IehufzDqZZ7laXdoWNjeuT2emGW91axJC3BodD5mpqTxsMIOfsge', 'SUPERADMIN', '2026-06-21 08:07:55', '2026-06-21 08:07:55', NULL),
-(23, 'Aning Anim Dhita', 'aning612@gmail.com', '$2b$10$N1Hqk7Mv8HmJLPJXRgs.nuxwqT6woDxSl0pGkzkPw3Fi6/sz.Fc5C', 'KEUANGAN', '2026-06-21 08:15:35', '2026-06-21 08:15:35', NULL),
-(24, 'Prastiwi Dwi Astuti', 'prastiwi99@gmail.com', '$2b$10$qHhk2.vfEkSBZFkUlP7b4uHJFhoFPwN7hAi5IMhgkYYrKGFhw9KgC', 'PRODUKSI', '2026-06-21 08:18:43', '2026-06-21 08:18:43', NULL),
-(25, 'adminHr', 'adminhr@gmail.com', '$2b$10$8Deucs1B6TjS96vZF4vu.eEE24wiy356cmPBvQad7BZggl58vEAuK', 'HR', '2026-06-21 14:38:26', '2026-06-21 14:38:26', NULL),
-(26, 'produksi', 'produksi@gmail.com', '$2b$10$EK5F0yJle3vRF.ooEnraouEMfXi8eaVgToT/sxoEF1McjvzMmtyM6', 'PRODUKSI', '2026-06-24 17:04:36', '2026-06-24 17:04:36', NULL),
-(29, 'Burger Kita', 'burgerkita@gmail.com', '$2b$10$jCWoxVVQiLQKCWBRxgywmuwwmVJAVQoaTQ9rRL6PLTW0KQXopd6ze', 'SDM', '2026-06-29 18:46:54', '2026-06-29 18:46:54', 1),
-(30, 'HR Burger Kita', 'burgerkitahr@gmail.com', '$2b$10$THRK/pQhtAdcNElDRqdbGuHkLegE75QYg.8CdBFMMaGjXJdKiiyKa', 'HR', '2026-06-29 19:02:29', '2026-06-29 19:02:29', 1),
-(31, 'Kebab Tursina', 'kebabtursina@gmail.com', '$2b$10$tPOOo4SDm2gveYQHEIvJ4eqXUlwb04xu0jhPu/5QFc2lY0bZ8.pSq', 'SDM', '2026-06-29 19:04:27', '2026-06-29 19:04:27', 2),
-(32, 'Produksi Burger Kita', 'burgerkitaProduksi@gmail.com', '$2b$10$9YCHghYQlfxDykrzwVH2Neh7YMxPdQNbBBr8Sno6UCBJVm3rixi62', 'PRODUKSI', '2026-06-29 20:11:30', '2026-06-29 20:11:30', 1),
-(34, 'Keuangan Burger Kita', 'burgerkitaKeuangan@gmail.com', '$2b$10$PmPe/xR0vGW1XeK5sGuEkeWQ0RSUZFqTvXsgi9uONnfygPlEEtE1y', 'KEUANGAN', '2026-06-30 17:29:19', '2026-06-30 17:29:19', 1);
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `role`, `created_at`, `updated_at`, `company_id`, `is_verified`, `verification_token`, `token_expires_at`) VALUES
+(13, 'superadmin', 'superadmin@gmail.com', '$2b$10$jKGCUzCBVbdR5SHoaZt8pO.jF8DA2WEK7RVT1.lHglGA/rFtuTGBy', 'SUPERADMIN', '2026-03-12 02:53:30', '2026-03-12 02:53:30', NULL, 0, NULL, NULL),
+(15, 'mao', 'gdayo@gmail.com', '$2b$10$HEnU6U6EHpfE5L0Fn1Qzpe4XiaS565XMafBvvpc3RsNytdt3U5.dW', 'GUDANG', '2026-04-01 08:47:40', '2026-04-01 08:47:40', NULL, 0, NULL, NULL),
+(20, 'adminkeuangan', 'adminkeuangan@gmail.com', '$2b$10$gIrsgNtihyP1NJ.9hOuTEO9j.MyfvkidkE4I.LGi3YTy8T9LnDfmy', 'KEUANGAN', '2026-06-19 13:27:18', '2026-06-19 13:27:18', NULL, 0, NULL, NULL),
+(21, 'adminproduksi', 'adminproduksi@gmail.com', '$2b$10$R6F3ieP2EqWYyyPFqSmYBemxnlWRpYRpY4jxAns9hDTWxFCRTq46i', 'PRODUKSI', '2026-06-19 13:29:13', '2026-06-19 13:29:13', NULL, 0, NULL, NULL),
+(22, 'Safitri', 'bananachipsjuara@gmail.com', '$2b$10$/IehufzDqZZ7laXdoWNjeuT2emGW91axJC3BodD5mpqTxsMIOfsge', 'SUPERADMIN', '2026-06-21 08:07:55', '2026-06-21 08:07:55', NULL, 0, NULL, NULL),
+(23, 'Aning Anim Dhita', 'aning612@gmail.com', '$2b$10$N1Hqk7Mv8HmJLPJXRgs.nuxwqT6woDxSl0pGkzkPw3Fi6/sz.Fc5C', 'KEUANGAN', '2026-06-21 08:15:35', '2026-06-21 08:15:35', NULL, 0, NULL, NULL),
+(24, 'Prastiwi Dwi Astuti', 'prastiwi99@gmail.com', '$2b$10$qHhk2.vfEkSBZFkUlP7b4uHJFhoFPwN7hAi5IMhgkYYrKGFhw9KgC', 'PRODUKSI', '2026-06-21 08:18:43', '2026-06-21 08:18:43', NULL, 0, NULL, NULL),
+(25, 'adminHr', 'adminhr@gmail.com', '$2b$10$8Deucs1B6TjS96vZF4vu.eEE24wiy356cmPBvQad7BZggl58vEAuK', 'HR', '2026-06-21 14:38:26', '2026-06-21 14:38:26', NULL, 0, NULL, NULL),
+(26, 'produksi', 'produksi@gmail.com', '$2b$10$EK5F0yJle3vRF.ooEnraouEMfXi8eaVgToT/sxoEF1McjvzMmtyM6', 'PRODUKSI', '2026-06-24 17:04:36', '2026-06-24 17:04:36', NULL, 0, NULL, NULL),
+(29, 'Burger Kita', 'burgerkita@gmail.com', '$2b$10$jCWoxVVQiLQKCWBRxgywmuwwmVJAVQoaTQ9rRL6PLTW0KQXopd6ze', 'SDM', '2026-06-29 18:46:54', '2026-06-29 18:46:54', 1, 0, NULL, NULL),
+(30, 'HR Burger Kita', 'burgerkitahr@gmail.com', '$2b$10$THRK/pQhtAdcNElDRqdbGuHkLegE75QYg.8CdBFMMaGjXJdKiiyKa', 'HR', '2026-06-29 19:02:29', '2026-06-29 19:02:29', 1, 0, NULL, NULL),
+(31, 'Kebab Tursina', 'kebabtursina@gmail.com', '$2b$10$tPOOo4SDm2gveYQHEIvJ4eqXUlwb04xu0jhPu/5QFc2lY0bZ8.pSq', 'SDM', '2026-06-29 19:04:27', '2026-06-29 19:04:27', 2, 0, NULL, NULL),
+(32, 'Produksi Burger Kita', 'burgerkitaProduksi@gmail.com', '$2b$10$9YCHghYQlfxDykrzwVH2Neh7YMxPdQNbBBr8Sno6UCBJVm3rixi62', 'PRODUKSI', '2026-06-29 20:11:30', '2026-06-29 20:11:30', 1, 0, NULL, NULL),
+(34, 'Keuangan Burger Kita', 'burgerkitaKeuangan@gmail.com', '$2b$10$PmPe/xR0vGW1XeK5sGuEkeWQ0RSUZFqTvXsgi9uONnfygPlEEtE1y', 'KEUANGAN', '2026-06-30 17:29:19', '2026-06-30 17:29:19', 1, 0, NULL, NULL),
+(35, 'Aliffiyah Rahmanovita Dewi Ikrima', 'aliffiyahrahma12@gmail.com', '$2b$10$3ZDOdtqWtbupfPoUpHRlTulCqLLAInPGxZ6VXmGpt0RjzeCl.kZKi', 'SDM', '2026-07-01 07:51:25', '2026-07-01 07:51:25', 4, 0, NULL, NULL),
+(37, 'Gudang Burger Kita', 'burgerkitagudang@gmail.com', '$2b$10$DZQ/DvLl2a5zVjg4/DFlOe/mCURMm2797tLzpCF0gYihE4YqEgx72', 'GUDANG', '2026-07-07 07:52:00', '2026-07-07 07:52:00', 1, 0, NULL, NULL),
+(38, 'coba coba', 'coba@gmail.com', '$2b$10$na9I9tOko3yZ9OCS9e/QjucF4S9nx7RyqOovLf43kbq47AZIEEIxK', 'GUDANG', '2026-07-19 16:23:16', '2026-07-19 16:23:16', 5, 0, NULL, NULL),
+(41, 'Raihan Surya', 'raihandiandra01@gmail.com', '$2b$10$oaGgCeZtJX8.tzEYLVMl0.QPQ3VOSfqirdntchrYQ8rU6rSWKEHhW', 'SDM', '2026-08-03 17:53:08', '2026-08-03 18:15:54', 12, 0, '647926', '2026-08-04 01:30:54'),
+(46, 'Raihan Suryaq', 'raihan00809@gmail.com', '$2b$10$taLrNLySgSzd1edLPV3FOOOzznGWU0Pdb2Jvnjbh/D3wQOCZTFsZS', 'SDM', '2026-08-04 04:52:24', '2026-08-04 04:53:46', 17, 1, NULL, NULL),
+(47, 'asep', 'raihan1@gmail.com', '$2b$10$p.T7iUJKP9UiY172ANNuDux603DvGEfGubybF2/wIH.XXSxhjtwKW', 'PRODUKSI', '2026-08-04 05:03:31', '2026-08-04 05:03:30', 17, 0, NULL, NULL),
+(48, 'asepe', 'raihan01@gmail.com', '$2b$10$z32/kK8X/wtFAC7qF.2wkOJ8o7XIfIfsO6xGi.hJnN/.y6kzBzTVa', 'PRODUKSI', '2026-08-04 05:08:47', '2026-08-04 05:08:46', 17, 1, NULL, NULL),
+(49, 'Raihan Surya', 'raihandiandra06@gmail.com', '', 'SDM', '2026-08-22 14:54:47', '2026-08-22 14:54:47', 18, 1, NULL, NULL);
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `activity_logs_user_id_foreign` (`user_id`);
 
 --
 -- Indexes for table `batch_karyawan`
@@ -1914,7 +2092,8 @@ ALTER TABLE `master_gaji_jabatan`
 --
 ALTER TABLE `master_gudang`
   ADD PRIMARY KEY (`ID_GUDANG`),
-  ADD UNIQUE KEY `master_gudang_kode_gudang_unique` (`KODE_GUDANG`);
+  ADD UNIQUE KEY `unique_company_gudang` (`id_company`,`KODE_GUDANG`),
+  ADD KEY `idx_master_gudang_company` (`id_company`);
 
 --
 -- Indexes for table `master_hari`
@@ -2003,7 +2182,9 @@ ALTER TABLE `master_presensi`
 ALTER TABLE `master_rak`
   ADD PRIMARY KEY (`ID_RAK`),
   ADD UNIQUE KEY `master_rak_kode_rak_unique` (`KODE_RAK`),
-  ADD KEY `master_rak_kode_gudang_foreign` (`KODE_GUDANG`);
+  ADD UNIQUE KEY `unique_company_rak` (`id_company`,`KODE_RAK`),
+  ADD KEY `master_rak_kode_gudang_foreign` (`KODE_GUDANG`),
+  ADD KEY `idx_master_rak_company` (`id_company`);
 
 --
 -- Indexes for table `master_satuan_barang`
@@ -2087,6 +2268,12 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
 -- AUTO_INCREMENT for table `batch_karyawan`
 --
 ALTER TABLE `batch_karyawan`
@@ -2096,13 +2283,13 @@ ALTER TABLE `batch_karyawan`
 -- AUTO_INCREMENT for table `blacklist_tokens`
 --
 ALTER TABLE `blacklist_tokens`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=109;
 
 --
 -- AUTO_INCREMENT for table `companies`
 --
 ALTER TABLE `companies`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `detail_faktur_penjualan`
@@ -2120,19 +2307,19 @@ ALTER TABLE `faktur_penjualan`
 -- AUTO_INCREMENT for table `harga_jual`
 --
 ALTER TABLE `harga_jual`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `hpp`
 --
 ALTER TABLE `hpp`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `hpp_detail`
 --
 ALTER TABLE `hpp_detail`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=335;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=349;
 
 --
 -- AUTO_INCREMENT for table `inv_pembelian`
@@ -2162,13 +2349,13 @@ ALTER TABLE `inv_pengiriman_h`
 -- AUTO_INCREMENT for table `jenis_produksi`
 --
 ALTER TABLE `jenis_produksi`
-  MODIFY `ID` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `ID` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `knex_migrations`
 --
 ALTER TABLE `knex_migrations`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- AUTO_INCREMENT for table `knex_migrations_lock`
@@ -2198,13 +2385,13 @@ ALTER TABLE `logbook_validasi`
 -- AUTO_INCREMENT for table `login_history`
 --
 ALTER TABLE `login_history`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=450;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=552;
 
 --
 -- AUTO_INCREMENT for table `master_barang`
 --
 ALTER TABLE `master_barang`
-  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `master_batch`
@@ -2228,7 +2415,7 @@ ALTER TABLE `master_gaji_jabatan`
 -- AUTO_INCREMENT for table `master_gudang`
 --
 ALTER TABLE `master_gudang`
-  MODIFY `ID_GUDANG` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `ID_GUDANG` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `master_hari`
@@ -2246,7 +2433,7 @@ ALTER TABLE `master_jenis_barang`
 -- AUTO_INCREMENT for table `master_karyawan`
 --
 ALTER TABLE `master_karyawan`
-  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
 
 --
 -- AUTO_INCREMENT for table `master_komponen_gaji`
@@ -2258,13 +2445,13 @@ ALTER TABLE `master_komponen_gaji`
 -- AUTO_INCREMENT for table `master_nama_produk`
 --
 ALTER TABLE `master_nama_produk`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=86;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
 
 --
 -- AUTO_INCREMENT for table `master_payroll`
 --
 ALTER TABLE `master_payroll`
-  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `master_pengajuan`
@@ -2282,13 +2469,13 @@ ALTER TABLE `master_perusahaan`
 -- AUTO_INCREMENT for table `master_presensi`
 --
 ALTER TABLE `master_presensi`
-  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `ID` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `master_rak`
 --
 ALTER TABLE `master_rak`
-  MODIFY `ID_RAK` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `ID_RAK` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `master_satuan_barang`
@@ -2330,7 +2517,7 @@ ALTER TABLE `stok_lokasi`
 -- AUTO_INCREMENT for table `transaksi`
 --
 ALTER TABLE `transaksi`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `tr_barang_keluar`
@@ -2348,11 +2535,17 @@ ALTER TABLE `tr_barang_masuk`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  ADD CONSTRAINT `activity_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `batch_karyawan`
@@ -2397,7 +2590,6 @@ ALTER TABLE `inv_pembelian`
 --
 ALTER TABLE `inv_pembelian_detail`
   ADD CONSTRAINT `inv_pembelian_detail_barang_kode_foreign` FOREIGN KEY (`BARANG_KODE`) REFERENCES `master_barang` (`BARANG_KODE`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `inv_pembelian_detail_kode_gudang_foreign` FOREIGN KEY (`KODE_GUDANG`) REFERENCES `master_gudang` (`KODE_GUDANG`) ON UPDATE CASCADE,
   ADD CONSTRAINT `inv_pembelian_detail_kode_rak_foreign` FOREIGN KEY (`KODE_RAK`) REFERENCES `master_rak` (`KODE_RAK`) ON UPDATE CASCADE,
   ADD CONSTRAINT `inv_pembelian_detail_no_invoice_beli_foreign` FOREIGN KEY (`NO_INVOICE_BELI`) REFERENCES `inv_pembelian` (`NO_INVOICE_BELI`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -2457,6 +2649,12 @@ ALTER TABLE `master_batch`
   ADD CONSTRAINT `master_batch_satuan_foreign` FOREIGN KEY (`SATUAN`) REFERENCES `master_satuan_barang` (`KODE_SATUAN`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
+-- Constraints for table `master_gudang`
+--
+ALTER TABLE `master_gudang`
+  ADD CONSTRAINT `fk_master_gudang_company` FOREIGN KEY (`id_company`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+--
 -- Constraints for table `master_karyawan`
 --
 ALTER TABLE `master_karyawan`
@@ -2487,7 +2685,7 @@ ALTER TABLE `master_presensi`
 -- Constraints for table `master_rak`
 --
 ALTER TABLE `master_rak`
-  ADD CONSTRAINT `master_rak_kode_gudang_foreign` FOREIGN KEY (`KODE_GUDANG`) REFERENCES `master_gudang` (`KODE_GUDANG`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_master_rak_company` FOREIGN KEY (`id_company`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `pembayaran_beli`
@@ -2506,7 +2704,6 @@ ALTER TABLE `pembayaran_penjualan`
 --
 ALTER TABLE `stok_lokasi`
   ADD CONSTRAINT `stok_lokasi_barang_kode_foreign` FOREIGN KEY (`BARANG_KODE`) REFERENCES `master_barang` (`BARANG_KODE`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `stok_lokasi_kode_gudang_foreign` FOREIGN KEY (`KODE_GUDANG`) REFERENCES `master_gudang` (`KODE_GUDANG`) ON UPDATE CASCADE,
   ADD CONSTRAINT `stok_lokasi_kode_rak_foreign` FOREIGN KEY (`KODE_RAK`) REFERENCES `master_rak` (`KODE_RAK`) ON UPDATE CASCADE;
 
 --
@@ -2520,7 +2717,6 @@ ALTER TABLE `tr_barang_keluar`
 --
 ALTER TABLE `tr_barang_masuk`
   ADD CONSTRAINT `tr_barang_masuk_barang_kode_foreign` FOREIGN KEY (`BARANG_KODE`) REFERENCES `master_barang` (`BARANG_KODE`),
-  ADD CONSTRAINT `tr_barang_masuk_kode_gudang_foreign` FOREIGN KEY (`KODE_GUDANG`) REFERENCES `master_gudang` (`KODE_GUDANG`),
   ADD CONSTRAINT `tr_barang_masuk_kode_rak_foreign` FOREIGN KEY (`KODE_RAK`) REFERENCES `master_rak` (`KODE_RAK`);
 COMMIT;
 
