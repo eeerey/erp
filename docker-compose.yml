@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
   db:
-    image: mariadb:10.11
+    image: mysql:8
     environment:
-      MARIADB_ROOT_PASSWORD: erp_root_password
-      MARIADB_DATABASE: erp_kmm_project
+      MYSQL_ROOT_PASSWORD: erp_root_password
+      MYSQL_DATABASE: erp_kmm_project
     volumes:
       - db_data:/var/lib/mysql
       # Folder ini untuk import .sql otomatis saat pertama kali menyala
