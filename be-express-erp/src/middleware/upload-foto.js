@@ -3,18 +3,27 @@ import path from "path";
 import fs from "fs";
 
 /**
- * 🔹 Universal upload function dengan custom folder
+ * 🔹 Universal upload function dengan dynamic subfolder berdasarkan fieldname
  */
-const createUpload = (folderName, filePrefix = "") => {
-  // Folder akan dibuat di dalam directory 'uploads'
-  const uploadDir = `./uploads/${folderName}`;
-
+const createUpload = (defaultFolder, filePrefix = "") => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      // Buat folder secara otomatis jika belum ada (recursive: true)
+      // Menentukan folder secara dinamis berdasarkan nama field form data
+      let folderName = defaultFolder;
+
+      if (file.fieldname === "foto_ktp") {
+        folderName = "foto_ktp";
+      } else if (file.fieldname === "foto_karyawan") {
+        folderName = "foto_karyawan";
+      }
+
+      const uploadDir = `./uploads/${folderName}`;
+
+      // Buat folder secara otomatis jika belum ada
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
+
       cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
@@ -31,39 +40,47 @@ const createUpload = (folderName, filePrefix = "") => {
     const ext = path.extname(file.originalname).toLowerCase();
     const mimeType = file.mimetype;
 
-    // Validasi double: cek ekstensi dan mimetype
     if (allowedTypes.test(ext) && allowedTypes.test(mimeType)) {
       cb(null, true);
     } else {
-      cb(new Error("Hanya file gambar yang diizinkan (jpg, jpeg, png, gif)"), false);
+      cb(
+        new Error("Hanya file gambar yang diizinkan (jpg, jpeg, png, gif)"),
+        false,
+      );
     }
   };
 
   return multer({
     storage,
     fileFilter,
-    limits: { 
-        fileSize: 5 * 1024 * 1024 // Batas maksimal 5MB per file
-    }, 
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
   });
 };
 
 /**
- * ✅ EXPORT UNTUK BERBAGAI KEPERLUAN
- * Gunakan ini di file Routes masing-masing
+ * 🔹 Helper Function untuk Menghapus Berkas Lama
  */
+export const removeFile = (filePath) => {
+  if (!filePath) return;
+  // Hapus slash di awal jika ada
+  const cleanPath = filePath.startsWith("/") ? filePath.substring(1) : filePath;
+  const fullPath = path.join(process.cwd(), cleanPath);
 
-// 1. Untuk modul Presensi (Karyawan Absen)
+  if (fs.existsSync(fullPath)) {
+    fs.unlink(fullPath, (err) => {
+      if (err) console.error(`Gagal menghapus file lama (${fullPath}):`, err);
+    });
+  }
+};
+
+/**
+ * ✅ EXPORT MIDDLEWARE
+ */
 export const uploadPresensi = createUpload("presensi", "presensi");
-
-// 2. Untuk modul Master Karyawan (Foto Profil)
 export const uploadKaryawan = createUpload("foto_karyawan", "karyawan");
-
-// 3. Untuk modul Logbook / Aktivitas
 export const uploadLogbook = createUpload("foto_logbook", "logbook");
-
-// 4. Untuk modul Batch / Produksi (jika ada)
 export const uploadBatch = createUpload("foto_batch", "batch");
 
-// Default export (optional)
 export default uploadKaryawan;

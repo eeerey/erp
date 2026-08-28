@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ActivityLog, ActivityLogApiResponse } from '../../types/activityLog';
+import { ActivityLog, ActivityLogApiResponse } from '../../../types/activityLog';
 
 export default function UserLogPage() {
     const [logs, setLogs] = useState<ActivityLog[]>([]);

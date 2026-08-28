@@ -2,7 +2,7 @@
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Checkbox } from 'primereact/checkbox';
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { roleRoutes } from 'utils/roleRoutes';
 import ToastNotifier from '../../../components/ToastNotifier';
@@ -29,20 +29,21 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // Callback saat user berhasil login via tombol Google
+    // 1. Callback Login via Google Button
     const handleGoogleResponse = async (response: any) => {
         setLoading(true);
         try {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, { credential: response.credential }, { headers: { 'Content-Type': 'application/json' } });
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/google-login`, { credential: response.credential }, { headers: { 'Content-Type': 'application/json' } });
 
             const data = res.data;
 
-            if (data.status !== '00' || !data.token || !data.user) {
+            if (res.status !== 200 || !data.token || !data.user) {
                 toastRef.current?.showToast('01', data.message || 'Login Google gagal');
                 setLoading(false);
                 return;
             }
 
+            // Simpan Session ke LocalStorage
             localStorage.setItem('TOKEN', data.token);
             localStorage.setItem('ROLE', data.user.role);
             localStorage.setItem('USER_NAME', data.user.name);
@@ -63,7 +64,7 @@ const LoginPage = () => {
         }
     };
 
-    // Inisialisasi Google Auth Button setelah script dimuat
+    // 2. Inisialisasi Google SDK Button
     const initializeGoogleAuth = () => {
         if (window.google && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
             window.google.accounts.id.initialize({
@@ -84,6 +85,7 @@ const LoginPage = () => {
         }
     };
 
+    // 3. Submit Login Form Biasa (Email & Password)
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
@@ -93,7 +95,7 @@ const LoginPage = () => {
 
             const data = res.data;
 
-            if (data.status !== '00' || !data.token || !data.user) {
+            if (res.status !== 200 || !data.token || !data.user) {
                 toastRef.current?.showToast('01', data.message || 'Login gagal');
                 setLoading(false);
                 return;
@@ -113,8 +115,19 @@ const LoginPage = () => {
             }, 1000);
         } catch (err: any) {
             console.error('Login error:', err);
-            const errorMessage = err.response?.data?.message || 'Terjadi kesalahan koneksi ke server';
-            toastRef.current?.showToast('01', errorMessage);
+            const statusErr = err.response?.status;
+            const messageErr = err.response?.data?.message || 'Terjadi kesalahan koneksi ke server';
+
+            // Jika Backend merespon status 403 (Perlu Verifikasi OTP), otomatis redirect ke Halaman OTP
+            if (statusErr === 403) {
+                toastRef.current?.showToast('01', messageErr);
+                setTimeout(() => {
+                    router.push(`/auth/resend-verification?email=${encodeURIComponent(email)}`);
+                }, 1500);
+            } else {
+                toastRef.current?.showToast('01', messageErr);
+            }
+
             setLoading(false);
         }
     };
@@ -161,7 +174,7 @@ const LoginPage = () => {
                                     <p className="text-600 text-sm line-height-3 mt-0 mb-4">Enter your credentials to access your account.</p>
                                 </div>
 
-                                {/* TOMBOL LOGIN GOOGLE */}
+                                {/* Google Button Mount Point */}
                                 <div className="mb-4">
                                     <div id="googleBtnDiv" style={{ width: '100%', minHeight: '44px' }}></div>
                                 </div>
@@ -221,7 +234,7 @@ const LoginPage = () => {
                                                 Keep me signed in
                                             </label>
                                         </div>
-                                        <a href="/forgot-password" className="text-primary font-medium no-underline hover:underline" style={{ pointerEvents: loading ? 'none' : 'auto' }}>
+                                        <a href="/auth/forgot-password" className="text-primary font-medium no-underline hover:underline" style={{ pointerEvents: loading ? 'none' : 'auto' }}>
                                             Forgot password?
                                         </a>
                                     </div>

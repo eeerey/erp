@@ -18,7 +18,7 @@ const uploadKaryawanFiles = upload.fields([
 router.post("/login", AuthController.login);
 
 // LOGIN VIA GOOGLE
-router.post("/google", AuthController.googleLogin);
+router.post("/google-login", AuthController.googleLogin);
 
 // VERIFIKASI EMAIL VIA OTP & RESEND OTP
 router.post("/verify-email", AuthController.verifyEmail);
@@ -45,7 +45,25 @@ router.post(
  * PROTECTED ROUTES
  */
 router.get("/profile", verifyToken, AuthController.getProfile);
+
+// UPDATE PROFILE & BERKAS FOTO/KTP
+router.put(
+  "/profile",
+  verifyToken,
+  uploadKaryawanFiles,
+  AuthController.updateProfile,
+);
+
+// UBAH PASSWORD
+router.put("/change-password", verifyToken, AuthController.changePassword);
+
 router.post("/logout", verifyToken, AuthController.logout);
 
+/**
+ * PUBLIC ROUTES
+ */
+router.post("/forgot-password/send-otp", AuthController.forgotPasswordSendOtp);
+router.post("/forgot-password/verify-otp", AuthController.verifyForgotOtp);
+router.post("/forgot-password/reset", AuthController.resetPasswordWithOtp);
 
 export default router;

@@ -22,6 +22,8 @@ const RegisterKaryawanPage = () => {
     const toastRef = useRef<ToastNotifierHandle>(null);
     const [loading, setLoading] = useState(false);
     const [activeStep, setActiveStep] = useState(0);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // State Skeleton
     const [isPageLoading, setIsPageLoading] = useState(true);
@@ -210,9 +212,18 @@ const RegisterKaryawanPage = () => {
                             <label htmlFor="password" className="block text-900 font-medium mb-2">
                                 Password *
                             </label>
-                            <span className="p-input-icon-left w-full">
+                            <span className="p-input-icon-left p-input-icon-right w-full">
                                 <i className="pi pi-lock text-400"></i>
-                                <InputText id="password" type="password" value={formData.password} onChange={handleInputChange} placeholder="Minimal 8 karakter" className="w-full" style={{ paddingLeft: '2.5rem' }} />
+                                <InputText
+                                    id="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={formData.password}
+                                    onChange={handleInputChange}
+                                    placeholder="Minimal 8 karakter"
+                                    className="w-full"
+                                    style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
+                                />
+                                <i className={`pi ${showPassword ? 'pi-eye-slash' : 'pi-eye'} cursor-pointer text-400 hover:text-700`} onClick={() => setShowPassword(!showPassword)}></i>
                             </span>
                         </div>
 
@@ -220,9 +231,18 @@ const RegisterKaryawanPage = () => {
                             <label htmlFor="confirmPassword" className="block text-900 font-medium mb-2">
                                 Konfirmasi Password *
                             </label>
-                            <span className="p-input-icon-left w-full">
+                            <span className="p-input-icon-left p-input-icon-right w-full">
                                 <i className="pi pi-lock text-400"></i>
-                                <InputText id="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Ulangi password" className="w-full" style={{ paddingLeft: '2.5rem' }} />
+                                <InputText
+                                    id="confirmPassword"
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    value={formData.confirmPassword}
+                                    onChange={handleInputChange}
+                                    placeholder="Ulangi password"
+                                    className="w-full"
+                                    style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
+                                />
+                                <i className={`pi ${showConfirmPassword ? 'pi-eye-slash' : 'pi-eye'} cursor-pointer text-400 hover:text-700`} onClick={() => setShowConfirmPassword(!showConfirmPassword)}></i>
                             </span>
                         </div>
                     </div>
@@ -389,8 +409,8 @@ const RegisterKaryawanPage = () => {
                                     <p className="text-900 font-medium">{formData.email}</p>
                                 </div>
                                 <div className="col-6">
-                                    <p className="text-600 mb-1 text-sm">NIK</p>
-                                    <p className="text-900 font-medium">{formData.nik}</p>
+                                    <p className="text-600 mb-1 text-sm">Alamat</p>
+                                    <p className="text-900 font-medium">{formData.alamat}</p>
                                 </div>
                                 <div className="col-6">
                                     <p className="text-600 mb-1 text-sm">Nama Lengkap</p>

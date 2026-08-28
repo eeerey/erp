@@ -15,75 +15,50 @@ export const countSuperAdmin = async () => {
  * GET USER PROFILE BY ID
  */
 export const getUserProfileById = async (userId) => {
+  // 1. Ambil data User utama
   const user = await db("users")
     .where({ id: userId })
-    .select(
-      "id",
-      "name",
-      "email",
-      "role",
-      "company_id",
-      "is_verified",
-      "created_at",
-      "updated_at",
-    )
+    .select("id", "name", "email", "role", "company_id", "is_verified")
     .first();
 
   if (!user) return null;
 
-  // 1. Data Perusahaan
-  let companyData = null;
-  if (user.company_id) {
-    companyData = await db("companies")
-      .where({ id: user.company_id })
-      .select("id", "nama_perusahaan", "alamat", "nib", "npwp", "no_telp")
-      .first();
-  }
+  // 2. Ambil data Perusahaan (NPWP & NIB ada di sini)
+  const company = await db("companies")
+    .where({ id: user.company_id })
+    .select("id", "nama_perusahaan", "alamat", "no_telp", "npwp", "nib")
+    .first();
 
-  // 2. Data Karyawan
-  const rolesWithKaryawan = [
-    "OWNER",
-    "HR",
-    "SDM",
-    "PRODUKSI",
-    "GUDANG",
-    "KEUANGAN",
-  ];
-
-  let karyawanData = null;
-  if (rolesWithKaryawan.includes(user.role)) {
-    karyawanData = await db("master_karyawan")
-      .where("EMAIL", user.email)
-      .select(
-        "ID",
-        "KARYAWAN_ID",
-        "EMAIL",
-        "NIK",
-        "NAMA",
-        "GENDER",
-        "TEMPAT_LAHIR",
-        "TGL_LAHIR",
-        "ALAMAT",
-        "NO_TELP",
-        "DEPARTEMEN",
-        "JABATAN",
-        "TANGGAL_MASUK",
-        "STATUS_KARYAWAN",
-        "STATUS_AKTIF",
-        "SHIFT",
-        "PENDIDIKAN_TERAKHIR",
-        "FOTO",
-        "FOTO_KTP",
-        "NPWP",
-        "NIB",
-      )
-      .first();
-  }
+  // 3. Ambil data Karyawan (Hapus NPWP & NIB dari select ini)
+  const karyawan = await db("master_karyawan")
+    .where({ EMAIL: user.email })
+    .select(
+      "ID",
+      "KARYAWAN_ID",
+      "NIK",
+      "NAMA",
+      "GENDER",
+      "TEMPAT_LAHIR",
+      "TGL_LAHIR",
+      "ALAMAT",
+      "NO_TELP",
+      "DEPARTEMEN",
+      "JABATAN",
+      "TANGGAL_MASUK",
+      "STATUS_KARYAWAN",
+      "STATUS_AKTIF",
+      "SHIFT",
+      "PENDIDIKAN_TERAKHIR",
+      "FOTO",
+      "FOTO_KTP"
+      // 👈 NPWP & NIB dihapus dari sini karena ada di tabel companies
+    )
+    .first();
 
   return {
     ...user,
-    company: companyData || null,
-    karyawan: karyawanData || null,
+    company: company || null,
+    karyawan: karyawan || null,
   };
 };
 
@@ -108,6 +83,9 @@ export const checkEmailExists = async (email) => {
  * CHECK NIK EXISTS
  */
 export const checkNikExists = async (nik) => {
+  // Jika nik bernilai undefined, null, atau string kosong "", langsung bypass (return null)
+  if (!nik) return null;
+
   return await db("master_karyawan").where({ NIK: nik }).first();
 };
 
@@ -174,7 +152,7 @@ export const createKaryawan = async (
       company_id: userData.company_id,
       KARYAWAN_ID: karyawanId,
       EMAIL: karyawanData.EMAIL,
-      NIK: karyawanData.NIK,
+      NIK: karyawanData.NIK || "-",
       NAMA: karyawanData.NAMA,
       GENDER: karyawanData.GENDER,
       TEMPAT_LAHIR: karyawanData.TEMPAT_LAHIR || null,
@@ -189,8 +167,6 @@ export const createKaryawan = async (
       SHIFT: karyawanData.SHIFT || null,
       PENDIDIKAN_TERAKHIR: karyawanData.PENDIDIKAN_TERAKHIR || null,
       FOTO: karyawanData.FOTO || null,
-      NPWP: karyawanData.NPWP || null,
-      NIB: karyawanData.NIB || null,
       FOTO_KTP: karyawanData.FOTO_KTP || null,
       created_at: new Date(),
     });

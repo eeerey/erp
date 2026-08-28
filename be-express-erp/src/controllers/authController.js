@@ -27,6 +27,8 @@ import {
   createActivityLog,
   updateActivityLogOnLogout,
 } from "../models/activityLogModel.js";
+import { removeFile } from "../middleware/upload-foto.js";
+import { sendEmailOtp } from "../utils/reset_password.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -90,7 +92,7 @@ export const register = async (req, res) => {
     }
 
     const otpCode = generateOTP();
-    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    const tokenExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
     const hashedPassword = await hashPassword(password);
     const isSuperAdminRole = role === "SUPERADMIN";
 
@@ -150,6 +152,7 @@ export const register = async (req, res) => {
         ? "Super Admin berhasil didaftarkan dan dapat langsung login."
         : "User berhasil didaftarkan. Silakan periksa email Anda untuk kode OTP verifikasi.",
       datetime: datetime(),
+      expiresAt: isSuperAdminRole ? null : tokenExpiresAt, // 👈 Tambahkan baris ini
       otp_dev: isSuperAdminRole ? null : otpCode,
     });
   } catch (error) {
@@ -206,25 +209,42 @@ export const login = async (req, res) => {
       });
     }
 
-    // 👈 SUPERADMIN bypass verifikasi OTP
-    if (existingUser.role !== "SUPERADMIN" && !existingUser.is_verified) {
-      return res.status(403).json({
-        status: status.GAGAL,
-        message: "Akun Anda belum diverifikasi. Masukkan kode OTP verifikasi.",
+    // 1. Cek apakah ini akun murni Google (Password Kosong/Null)
+    const isGoogleAccount =
+      !existingUser.password || existingUser.password === "";
+
+    if (isGoogleAccount) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message:
+          "Akun ini terdaftar menggunakan Google. Silakan login menggunakan tombol Google Login.",
         datetime: datetime(),
       });
     }
 
+    // 2. Cek Password Terlebih Dahulu
     const isPasswordTrue = await comparePassword(
       password,
       existingUser.password,
     );
+
     if (!isPasswordTrue) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "Email atau password salah",
         datetime: datetime(),
       });
+    }
+
+    // 3. Jika Password Benar & Belum Verifikasi OTP -> Otomatis Set is_verified = true di DB
+    if (!existingUser.is_verified) {
+      await db("users").where({ id: existingUser.id }).update({
+        is_verified: true,
+        verification_token: null,
+        token_expires_at: null,
+        updated_at: new Date(),
+      });
+      existingUser.is_verified = true;
     }
 
     let karyawanId = null;
@@ -237,10 +257,10 @@ export const login = async (req, res) => {
       if (karyawan) karyawanId = karyawan.KARYAWAN_ID;
     }
 
-    // 👈 1. Buat record activity log
+    // Buat activity log
     const logId = await createActivityLog(existingUser.id);
 
-    // 👈 2. Masukkan log_id ke payload JWT
+    // Generate Token dengan log_id
     const token = await generateToken({
       userId: existingUser.id,
       role: existingUser.role,
@@ -588,6 +608,7 @@ export const resendVerificationToken = async (req, res) => {
         message:
           "Jika email terdaftar, kami telah mengirimkan kode OTP verifikasi baru.",
         datetime: datetime(),
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 👈 Tambahkan ini agar struktur response konsisten
       });
     }
 
@@ -750,6 +771,7 @@ export const registerOwner = async (req, res) => {
       message:
         "Registrasi Owner berhasil dibuat. Silakan cek email Anda untuk kode OTP verifikasi.",
       datetime: datetime(),
+      expiresAt: tokenExpiresAt, // 👈 Tambahkan baris ini
       data: { companyId, karyawanId, userId, id },
       otp_dev: otpCode,
     });
@@ -845,6 +867,8 @@ export const googleLogin = async (req, res) => {
       if (!existingUser.is_verified) {
         await db("users").where({ id: existingUser.id }).update({
           is_verified: true,
+          verification_token: null, // 👈 Sebaiknya dikosongkan juga
+          token_expires_at: null,
           updated_at: new Date(),
         });
         existingUser.is_verified = true;
@@ -900,6 +924,287 @@ export const googleLogin = async (req, res) => {
     return res.status(500).json({
       status: status.GAGAL,
       message: `Autentikasi Google gagal: ${error.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * UPDATE PROFILE & UPLOAD BERKAS
+ */
+export const updateProfile = async (req, res) => {
+  const files = req.files || {};
+  const fotoKaryawanFile = files.foto_karyawan?.[0] || null;
+  const fotoKtpFile = files.foto_ktp?.[0] || null;
+
+  try {
+    const userId = req.user?.userId;
+    const user = await db("users").where({ id: userId }).first();
+    const karyawan = await db("master_karyawan")
+      .where({ EMAIL: user.email })
+      .first();
+
+    const updateDataKaryawan = {};
+
+    // 1. Jika mengunggah Foto Profil baru
+    if (fotoKaryawanFile) {
+      // Hapus foto profil fisik yang lama jika ada
+      if (karyawan?.FOTO) {
+        removeFile(karyawan.FOTO);
+      }
+      updateDataKaryawan.FOTO = `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`;
+    }
+
+    // 2. Jika mengunggah Foto KTP baru
+    if (fotoKtpFile) {
+      // Hapus foto KTP fisik yang lama jika ada
+      if (karyawan?.FOTO_KTP) {
+        removeFile(karyawan.FOTO_KTP);
+      }
+      updateDataKaryawan.FOTO_KTP = `/uploads/foto_ktp/${fotoKtpFile.filename}`;
+    }
+
+    // Update ke database
+    if (Object.keys(updateDataKaryawan).length > 0) {
+      await db("master_karyawan")
+        .where({ ID: karyawan.ID })
+        .update(updateDataKaryawan);
+    }
+
+    return res.status(200).json({
+      status: "SUKSES",
+      message: "Profil dan berkas berhasil diperbarui",
+    });
+  } catch (error) {
+    console.error("Error update profile:", error);
+    return res.status(500).json({ status: "GAGAL", message: error.message });
+  }
+};
+/**
+ * UBAH PASSWORD (SAAT LOGIN)
+ */
+export const changePassword = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Password lama dan password baru wajib diisi",
+        datetime: datetime(),
+      });
+    }
+
+    const user = await db("users").where({ id: userId }).first();
+    if (!user) {
+      return res.status(404).json({
+        status: status.GAGAL,
+        message: "User tidak ditemukan",
+        datetime: datetime(),
+      });
+    }
+
+    // Verifikasi password lama
+    const isPasswordValid = await comparePassword(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Password saat ini salah",
+        datetime: datetime(),
+      });
+    }
+
+    // Hash password baru & simpan
+    const hashedNewPassword = await hashPassword(newPassword);
+    await db("users").where({ id: userId }).update({
+      password: hashedNewPassword,
+      updated_at: new Date(),
+    });
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Password berhasil diperbarui",
+      datetime: datetime(),
+    });
+  } catch (error) {
+    console.error("Error changePassword:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * 1. KIRIM OTP LUPA PASSWORD (STEP 1)
+ */
+export const forgotPasswordSendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email wajib diisi",
+        datetime: datetime(),
+      });
+    }
+
+    const user = await db("users").where({ email }).first();
+    if (!user) {
+      return res.status(404).json({
+        status: status.GAGAL,
+        message: "Email tidak terdaftar",
+        datetime: datetime(),
+      });
+    }
+
+    // Generate 5 digit OTP
+    const otp = Math.floor(10000 + Math.random() * 90000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Berlaku 10 menit
+
+    await db("users").where({ id: user.id }).update({
+      verification_token: otp,
+      token_expires_at: expiresAt,
+      updated_at: new Date(),
+    });
+
+    // Kirim Email OTP menggunakan helper nodemailer
+    await sendEmailOtp(email, otp, "Kode OTP Reset Password");
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Kode OTP reset password telah dikirim ke email Anda",
+      datetime: datetime(),
+    });
+  } catch (error) {
+    console.error("Error forgotPasswordSendOtp:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * 2. VERIFIKASI OTP SAJA (STEP 2)
+ */
+export const verifyForgotOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email dan Kode OTP wajib diisi",
+        datetime: datetime(),
+      });
+    }
+
+    const user = await db("users").where({ email }).first();
+    if (!user) {
+      return res.status(404).json({
+        status: status.GAGAL,
+        message: "User tidak ditemukan",
+        datetime: datetime(),
+      });
+    }
+
+    // Cek kecocokan OTP
+    if (user.verification_token !== otp) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Kode OTP salah",
+        datetime: datetime(),
+      });
+    }
+
+    // Cek waktu kedaluwarsa OTP
+    if (new Date() > new Date(user.token_expires_at)) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Kode OTP telah kedaluwarsa",
+        datetime: datetime(),
+      });
+    }
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Kode OTP valid, silakan masukkan password baru Anda",
+      datetime: datetime(),
+    });
+  } catch (error) {
+    console.error("Error verifyForgotOtp:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * 3. RESET PASSWORD BARU DENGAN OTP (STEP 3)
+ */
+export const resetPasswordWithOtp = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Data tidak lengkap",
+        datetime: datetime(),
+      });
+    }
+
+    const user = await db("users").where({ email }).first();
+    if (!user) {
+      return res.status(404).json({
+        status: status.GAGAL,
+        message: "User tidak ditemukan",
+        datetime: datetime(),
+      });
+    }
+
+    // Double check verifikasi OTP sebelum update password
+    if (user.verification_token !== otp) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Kode OTP salah",
+        datetime: datetime(),
+      });
+    }
+
+    if (new Date() > new Date(user.token_expires_at)) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Kode OTP telah kedaluwarsa",
+        datetime: datetime(),
+      });
+    }
+
+    // Hash password baru & bersihkan token OTP
+    const hashedPassword = await hashPassword(newPassword);
+    await db("users").where({ id: user.id }).update({
+      password: hashedPassword,
+      verification_token: null,
+      token_expires_at: null,
+      updated_at: new Date(),
+    });
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Password berhasil diperbarui. Silakan login kembali.",
+      datetime: datetime(),
+    });
+  } catch (error) {
+    console.error("Error resetPasswordWithOtp:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
       datetime: datetime(),
     });
   }
