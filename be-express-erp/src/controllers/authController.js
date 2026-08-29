@@ -709,8 +709,7 @@ export const registerOwner = async (req, res) => {
           npwp: npwp_perusahaan || null,
           nib: nib || null,
           alamat: alamat_perusahaan || null,
-          no_telp: no_telp_perusahaan || null,
-          updated_at: new Date(),
+          no_telp: no_telp_perusahaan || null
         });
     }
 

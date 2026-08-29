@@ -299,7 +299,7 @@ const RegisterKaryawanPage = () => {
                                     <i className="pi pi-id-card mr-2"></i>
                                     Upload Foto KTP
                                 </label>
-                                <FileUpload mode="basic" accept="image/*" maxFileSize={2000000} onSelect={(e) => setFotoKtp(e.files[0])} chooseLabel="Pilih Foto KTP" className="w-full" auto />
+                                <FileUpload mode="basic" accept="image/*" maxFileSize={2000000} onSelect={(e) => setFotoKtp(e.files[0])} chooseLabel="Pilih Foto KTP" className="w-full" />
                                 {fotoKtp && (
                                     <div className="mt-2 p-2 surface-100 border-round flex align-items-center">
                                         <i className="pi pi-check-circle text-green-500 mr-2"></i>
@@ -388,7 +388,7 @@ const RegisterKaryawanPage = () => {
                                 <i className="pi pi-image mr-2"></i>
                                 Foto Profil (Opsional)
                             </label>
-                            <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} onSelect={(e) => setFoto(e.files[0])} chooseLabel="Pilih Foto" className="w-full" auto />
+                            <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} onSelect={(e) => setFoto(e.files[0])} chooseLabel="Pilih Foto" className="w-full" />
                             {foto && (
                                 <div className="mt-3 p-3 surface-100 border-round">
                                     <i className="pi pi-check-circle text-green-500 mr-2"></i>
