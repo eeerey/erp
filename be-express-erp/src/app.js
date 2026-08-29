@@ -69,7 +69,8 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3005",
-  "http://223.27.152.100:3005",
+  "http://223.27.152.100:3005", // IP Lama (Kampus)
+  "http://103.126.232.214:3005", // IP Baru (VPS Teman)
   "http://rintisku.id",
   "https://rintisku.id",
   "http://www.rintisku.id",
