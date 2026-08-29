@@ -29,7 +29,7 @@ services:
     build:
       context: ./fe-nextjs-erp
     ports:
-      - "3005:3000"
+      - "3000:3000"
     env_file:
       - ./fe-nextjs-erp/.env
     restart: always
