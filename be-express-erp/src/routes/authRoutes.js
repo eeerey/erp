@@ -2,12 +2,13 @@ import { Router } from "express";
 import * as AuthController from "../controllers/authController.js";
 import { verifyToken } from "../middleware/jwt.js";
 import { optionalAuth } from "../middleware/optionalAuth.js";
-import upload from "../middleware/upload-foto.js";
+// Cukup import uploadKaryawan dan handleUpload dari middleware
+import { uploadKaryawan, handleUpload } from "../middleware/upload-foto.js";
 
-// 1. Initialize router FIRST
 const router = Router();
 
-const uploadKaryawanFiles = upload.fields([
+// Konfigurasi field upload file
+const uploadKaryawanFiles = uploadKaryawan.fields([
   { name: "foto_karyawan", maxCount: 1 },
   { name: "foto_ktp", maxCount: 1 },
 ]);
@@ -16,28 +17,26 @@ const uploadKaryawanFiles = upload.fields([
  * PUBLIC ROUTES
  */
 router.post("/login", AuthController.login);
-
-// LOGIN VIA GOOGLE
 router.post("/google-login", AuthController.googleLogin);
-
-// VERIFIKASI EMAIL VIA OTP & RESEND OTP
 router.post("/verify-email", AuthController.verifyEmail);
 router.post("/resend-verification", AuthController.resendVerificationToken);
 
 /**
- * CONDITIONAL ROUTES
+ * CONDITIONAL & REGISTRATION ROUTES
  */
 router.post("/register", optionalAuth, AuthController.register);
 
+// Gunakan handleUpload pada register-karyawan
 router.post(
   "/register-karyawan",
-  uploadKaryawanFiles,
+  handleUpload(uploadKaryawanFiles),
   AuthController.registerKaryawan,
 );
 
+// Gunakan handleUpload pada register-owner
 router.post(
   "/register-owner",
-  uploadKaryawanFiles,
+  handleUpload(uploadKaryawanFiles),
   AuthController.registerOwner,
 );
 
@@ -46,21 +45,19 @@ router.post(
  */
 router.get("/profile", verifyToken, AuthController.getProfile);
 
-// UPDATE PROFILE & BERKAS FOTO/KTP
+// Gunakan handleUpload pada update profile
 router.put(
   "/profile",
   verifyToken,
-  uploadKaryawanFiles,
+  handleUpload(uploadKaryawanFiles),
   AuthController.updateProfile,
 );
 
-// UBAH PASSWORD
 router.put("/change-password", verifyToken, AuthController.changePassword);
-
 router.post("/logout", verifyToken, AuthController.logout);
 
 /**
- * PUBLIC ROUTES
+ * FORGOT PASSWORD ROUTES
  */
 router.post("/forgot-password/send-otp", AuthController.forgotPasswordSendOtp);
 router.post("/forgot-password/verify-otp", AuthController.verifyForgotOtp);

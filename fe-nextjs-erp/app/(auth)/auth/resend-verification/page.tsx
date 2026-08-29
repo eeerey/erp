@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from 'primereact/button';
 import axios from 'axios';
@@ -10,10 +10,10 @@ type ToastNotifierHandle = {
     showToast: (status: string, message?: string) => void;
 };
 
-// Durasi OTP dalam detik (15 menit = 900 detik)
-const INITIAL_TIMER_SECONDS = 5 * 60;
+// Disamakan dengan Backend (15 menit = 900 detik)
+const INITIAL_TIMER_SECONDS = 15 * 60;
 
-export default function ResendVerificationPage() {
+function ResendVerificationForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const toastRef = useRef<ToastNotifierHandle>(null);
@@ -23,20 +23,20 @@ export default function ResendVerificationPage() {
     const [loading, setLoading] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
 
-    // State untuk Countdown Timer
     const [timeLeft, setTimeLeft] = useState(INITIAL_TIMER_SECONDS);
-
-    // Ref untuk kontrol auto-focus tiap kotak
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     useEffect(() => {
         const emailParam = searchParams.get('email');
         if (emailParam) {
             setEmail(emailParam);
+        } else if (typeof window !== 'undefined') {
+            // Fallback membaca email dari localStorage jika query param tidak ada
+            const storedEmail = localStorage.getItem('pending_verify_email');
+            if (storedEmail) setEmail(storedEmail);
         }
     }, [searchParams]);
 
-    // Effect untuk menjalankan mundur Timer
     useEffect(() => {
         if (timeLeft <= 0) return;
 
@@ -47,14 +47,12 @@ export default function ResendVerificationPage() {
         return () => clearInterval(intervalId);
     }, [timeLeft]);
 
-    // Format detik ke format MM:SS
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
 
-    // Handle Perubahan Karakter Tiap Kotak
     const handleOtpChange = (index: number, value: string) => {
         if (!/^\d*$/.test(value)) return;
 
@@ -67,14 +65,12 @@ export default function ResendVerificationPage() {
         }
     };
 
-    // Handle Tombol Backspace
     const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
         }
     };
 
-    // Handle Paste 6 Digit OTP
     const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
         e.preventDefault();
         const pastedData = e.clipboardData.getData('text').trim();
@@ -85,7 +81,6 @@ export default function ResendVerificationPage() {
         }
     };
 
-    // Submit Form
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
         const fullOtp = otpValues.join('');
@@ -108,11 +103,17 @@ export default function ResendVerificationPage() {
                 otp: fullOtp
             });
 
-            if (res.data.status === '00' || res.status === 200) {
+            if (res.data.status === 'SUKSES' || res.status === 200) {
                 toastRef.current?.showToast('00', 'Verifikasi akun berhasil! Silakan login.');
+
+                // Bersihkan temp storage setelah verifikasi sukses
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('pending_verify_email');
+                }
+
                 setTimeout(() => {
                     router.push('/auth/login');
-                }, 2000);
+                }, 1500);
             }
         } catch (err: any) {
             const msg = err.response?.data?.message || 'Kode OTP salah atau sudah expired';
@@ -122,7 +123,6 @@ export default function ResendVerificationPage() {
         }
     };
 
-    // Kirim Ulang OTP
     const handleResendOtp = async () => {
         if (!email) {
             toastRef.current?.showToast('01', 'Email tidak ditemukan');
@@ -134,10 +134,10 @@ export default function ResendVerificationPage() {
         try {
             const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/resend-verification`, { email });
 
-            if (res.data.status === '00' || res.status === 200) {
+            if (res.data.status === 'SUKSES' || res.status === 200) {
                 toastRef.current?.showToast('00', 'Kode OTP baru berhasil dikirim ke email!');
-                setTimeLeft(INITIAL_TIMER_SECONDS); // Reset timer kembali ke 15 menit
-                setOtpValues(Array(6).fill('')); // Clear input
+                setTimeLeft(INITIAL_TIMER_SECONDS);
+                setOtpValues(Array(6).fill(''));
                 inputRefs.current[0]?.focus();
             }
         } catch (err: any) {
@@ -170,7 +170,6 @@ export default function ResendVerificationPage() {
                         <div className="mb-4 flex flex-column align-items-center">
                             <label className="block text-900 font-medium mb-3">Masukkan Kode OTP</label>
 
-                            {/* Container 6 Kotak OTP */}
                             <div className="flex gap-2 justify-content-center mb-3">
                                 {otpValues.map((digit, index) => (
                                     <input
@@ -191,7 +190,6 @@ export default function ResendVerificationPage() {
                                 ))}
                             </div>
 
-                            {/* Tampilan Masa Aktif OTP */}
                             <div className="text-sm">
                                 {timeLeft > 0 ? (
                                     <p className="text-600 m-0">
@@ -208,17 +206,19 @@ export default function ResendVerificationPage() {
 
                     <div className="border-top-1 surface-border pt-3">
                         <p className="text-600 text-sm mb-1">Belum menerima / OTP kadaluwarsa?</p>
-                        <Button
-                            label="Kirim Ulang OTP"
-                            icon="pi pi-refresh"
-                            className="p-button-text p-button-sm"
-                            loading={resendLoading}
-                            disabled={timeLeft > 0} // Di-disable sampai timer habis
-                            onClick={handleResendOtp}
-                        />
+                        <Button label="Kirim Ulang OTP" icon="pi pi-refresh" className="p-button-text p-button-sm" loading={resendLoading} disabled={timeLeft > 0} onClick={handleResendOtp} />
                     </div>
                 </div>
             </div>
         </>
+    );
+}
+
+// Bungkus dengan Suspense untuk keamanan useSearchParams di Next.js App Router
+export default function ResendVerificationPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex align-items-center justify-content-center text-white">Loading...</div>}>
+            <ResendVerificationForm />
+        </Suspense>
     );
 }

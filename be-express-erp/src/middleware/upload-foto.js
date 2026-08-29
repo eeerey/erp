@@ -8,7 +8,6 @@ import fs from "fs";
 const createUpload = (defaultFolder, filePrefix = "") => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      // Menentukan folder secara dinamis berdasarkan nama field form data
       let folderName = defaultFolder;
 
       if (file.fieldname === "foto_ktp") {
@@ -19,7 +18,6 @@ const createUpload = (defaultFolder, filePrefix = "") => {
 
       const uploadDir = `./uploads/${folderName}`;
 
-      // Buat folder secara otomatis jika belum ada
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
@@ -27,14 +25,12 @@ const createUpload = (defaultFolder, filePrefix = "") => {
       cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-      // Format: prefix-timestamp-random.ext
       const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
       const prefix = filePrefix ? `${filePrefix}-` : "";
       cb(null, prefix + uniqueSuffix + path.extname(file.originalname));
     },
   });
 
-  // Filter hanya menerima file gambar
   const fileFilter = (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
     const ext = path.extname(file.originalname).toLowerCase();
@@ -54,9 +50,37 @@ const createUpload = (defaultFolder, filePrefix = "") => {
     storage,
     fileFilter,
     limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB limit
+      fileSize: 5 * 1024 * 1024, // 5MB limit per file
     },
   });
+};
+
+/**
+ * 🔹 Middleware Wrapper untuk Menangkap Eror Multer secara Rapi
+ */
+export const handleUpload = (multerMiddleware) => {
+  return (req, res, next) => {
+    multerMiddleware(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({
+            status: "GAGAL",
+            message: "Ukuran berkas terlalu besar! Maksimal 5MB per berkas.",
+          });
+        }
+        return res.status(400).json({
+          status: "GAGAL",
+          message: `Gagal mengunggah berkas: ${err.message}`,
+        });
+      } else if (err) {
+        return res.status(400).json({
+          status: "GAGAL",
+          message: err.message,
+        });
+      }
+      next();
+    });
+  };
 };
 
 /**
@@ -64,7 +88,6 @@ const createUpload = (defaultFolder, filePrefix = "") => {
  */
 export const removeFile = (filePath) => {
   if (!filePath) return;
-  // Hapus slash di awal jika ada
   const cleanPath = filePath.startsWith("/") ? filePath.substring(1) : filePath;
   const fullPath = path.join(process.cwd(), cleanPath);
 
@@ -75,9 +98,6 @@ export const removeFile = (filePath) => {
   }
 };
 
-/**
- * ✅ EXPORT MIDDLEWARE
- */
 export const uploadPresensi = createUpload("presensi", "presensi");
 export const uploadKaryawan = createUpload("foto_karyawan", "karyawan");
 export const uploadLogbook = createUpload("foto_logbook", "logbook");

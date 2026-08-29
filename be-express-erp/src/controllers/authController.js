@@ -32,20 +32,13 @@ import { sendEmailOtp } from "../utils/reset_password.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+/**
+ * Helper Hapus Orphan Files
+ */
 const removeUploadedFiles = async (...filePaths) => {
   for (const filePath of filePaths) {
     if (filePath) {
-      try {
-        const absolutePath = path.join(process.cwd(), filePath);
-        await fs.unlink(absolutePath);
-      } catch (err) {
-        if (err.code !== "ENOENT") {
-          console.error(
-            `Gagal menghapus orphan file (${filePath}):`,
-            err.message,
-          );
-        }
-      }
+      removeFile(filePath);
     }
   }
 };
@@ -91,8 +84,8 @@ export const register = async (req, res) => {
       });
     }
 
-    const otpCode = generateOTP();
-    const tokenExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const otpCode = generateOTP(); // 6 Digit OTP
+    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // Disamakan 15 menit
     const hashedPassword = await hashPassword(password);
     const isSuperAdminRole = role === "SUPERADMIN";
 
@@ -118,7 +111,6 @@ export const register = async (req, res) => {
           password: hashedPassword,
           role,
           company_id: companyId,
-          // SUPERADMIN otomatis terverifikasi
           is_verified: isSuperAdminRole ? true : false,
           verification_token: isSuperAdminRole ? null : otpCode,
           token_expires_at: isSuperAdminRole ? null : tokenExpiresAt,
@@ -136,13 +128,6 @@ export const register = async (req, res) => {
         await sendVerificationEmail(email, otpCode);
       } catch (emailErr) {
         console.error("Gagal mengirim email verifikasi:", emailErr);
-        return res.status(201).json({
-          status: status.SUKSES,
-          message:
-            "User berhasil didaftarkan, namun gagal mengirim OTP. Silakan resend OTP.",
-          datetime: datetime(),
-          otp_dev: otpCode,
-        });
       }
     }
 
@@ -152,7 +137,7 @@ export const register = async (req, res) => {
         ? "Super Admin berhasil didaftarkan dan dapat langsung login."
         : "User berhasil didaftarkan. Silakan periksa email Anda untuk kode OTP verifikasi.",
       datetime: datetime(),
-      expiresAt: isSuperAdminRole ? null : tokenExpiresAt, // 👈 Tambahkan baris ini
+      expiresAt: isSuperAdminRole ? null : tokenExpiresAt,
       otp_dev: isSuperAdminRole ? null : otpCode,
     });
   } catch (error) {
@@ -209,7 +194,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // 1. Cek apakah ini akun murni Google (Password Kosong/Null)
     const isGoogleAccount =
       !existingUser.password || existingUser.password === "";
 
@@ -222,7 +206,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // 2. Cek Password Terlebih Dahulu
     const isPasswordTrue = await comparePassword(
       password,
       existingUser.password,
@@ -236,7 +219,6 @@ export const login = async (req, res) => {
       });
     }
 
-    // 3. Jika Password Benar & Belum Verifikasi OTP -> Otomatis Set is_verified = true di DB
     if (!existingUser.is_verified) {
       await db("users").where({ id: existingUser.id }).update({
         is_verified: true,
@@ -257,10 +239,8 @@ export const login = async (req, res) => {
       if (karyawan) karyawanId = karyawan.KARYAWAN_ID;
     }
 
-    // Buat activity log
     const logId = await createActivityLog(existingUser.id);
 
-    // Generate Token dengan log_id
     const token = await generateToken({
       userId: existingUser.id,
       role: existingUser.role,
@@ -342,7 +322,7 @@ export const logout = async (req, res) => {
   try {
     const token = req.headers["authorization"]?.split(" ")[1];
     const userId = req.user?.userId;
-    const logId = req.user?.log_id; // 👈 Ambil log_id dari decoded JWT Token
+    const logId = req.user?.log_id;
 
     if (!token || !userId) {
       return res.status(401).json({
@@ -352,7 +332,6 @@ export const logout = async (req, res) => {
       });
     }
 
-    // 👈 Update logout_at & duration_seconds di database
     if (logId) {
       await updateActivityLogOnLogout(logId);
     }
@@ -608,7 +587,7 @@ export const resendVerificationToken = async (req, res) => {
         message:
           "Jika email terdaftar, kami telah mengirimkan kode OTP verifikasi baru.",
         datetime: datetime(),
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 👈 Tambahkan ini agar struktur response konsisten
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
       });
     }
 
@@ -690,6 +669,15 @@ export const registerOwner = async (req, res) => {
       npwp,
     } = req.body;
 
+    if (!email || !password || !nama_perusahaan) {
+      await removeUploadedFiles(fotoPath, fotoKtpPath);
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email, Password, dan Nama Perusahaan wajib diisi!",
+        datetime: datetime(),
+      });
+    }
+
     if (await checkEmailExists(email)) {
       await removeUploadedFiles(fotoPath, fotoKtpPath);
       return res.status(400).json({
@@ -722,6 +710,7 @@ export const registerOwner = async (req, res) => {
           nib: nib || null,
           alamat: alamat_perusahaan || null,
           no_telp: no_telp_perusahaan || null,
+          updated_at: new Date(),
         });
     }
 
@@ -771,28 +760,13 @@ export const registerOwner = async (req, res) => {
       message:
         "Registrasi Owner berhasil dibuat. Silakan cek email Anda untuk kode OTP verifikasi.",
       datetime: datetime(),
-      expiresAt: tokenExpiresAt, // 👈 Tambahkan baris ini
+      expiresAt: tokenExpiresAt,
       data: { companyId, karyawanId, userId, id },
       otp_dev: otpCode,
     });
   } catch (error) {
     await removeUploadedFiles(fotoPath, fotoKtpPath);
     console.error("Register Owner Error:", error);
-
-    if (error.message === "EMAIL_EXISTS") {
-      return res.status(400).json({
-        status: status.BAD_REQUEST,
-        message: "Email sudah terdaftar",
-        datetime: datetime(),
-      });
-    }
-    if (error.message === "NIK_EXISTS") {
-      return res.status(400).json({
-        status: status.BAD_REQUEST,
-        message: "NIK sudah terdaftar",
-        datetime: datetime(),
-      });
-    }
 
     return res.status(500).json({
       status: status.GAGAL,
@@ -867,7 +841,7 @@ export const googleLogin = async (req, res) => {
       if (!existingUser.is_verified) {
         await db("users").where({ id: existingUser.id }).update({
           is_verified: true,
-          verification_token: null, // 👈 Sebaiknya dikosongkan juga
+          verification_token: null,
           token_expires_at: null,
           updated_at: new Date(),
         });
@@ -885,10 +859,8 @@ export const googleLogin = async (req, res) => {
       if (karyawan) karyawanId = karyawan.KARYAWAN_ID;
     }
 
-    // 👈 1. Buat activity log
     const logId = await createActivityLog(existingUser.id);
 
-    // 👈 2. Generate Token dengan log_id
     const token = await generateToken({
       userId: existingUser.id,
       role: existingUser.role,
@@ -946,25 +918,20 @@ export const updateProfile = async (req, res) => {
 
     const updateDataKaryawan = {};
 
-    // 1. Jika mengunggah Foto Profil baru
     if (fotoKaryawanFile) {
-      // Hapus foto profil fisik yang lama jika ada
       if (karyawan?.FOTO) {
         removeFile(karyawan.FOTO);
       }
       updateDataKaryawan.FOTO = `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`;
     }
 
-    // 2. Jika mengunggah Foto KTP baru
     if (fotoKtpFile) {
-      // Hapus foto KTP fisik yang lama jika ada
       if (karyawan?.FOTO_KTP) {
         removeFile(karyawan.FOTO_KTP);
       }
       updateDataKaryawan.FOTO_KTP = `/uploads/foto_ktp/${fotoKtpFile.filename}`;
     }
 
-    // Update ke database
     if (Object.keys(updateDataKaryawan).length > 0) {
       await db("master_karyawan")
         .where({ ID: karyawan.ID })
@@ -972,14 +939,17 @@ export const updateProfile = async (req, res) => {
     }
 
     return res.status(200).json({
-      status: "SUKSES",
+      status: status.SUKSES,
       message: "Profil dan berkas berhasil diperbarui",
     });
   } catch (error) {
     console.error("Error update profile:", error);
-    return res.status(500).json({ status: "GAGAL", message: error.message });
+    return res
+      .status(500)
+      .json({ status: status.GAGAL, message: error.message });
   }
 };
+
 /**
  * UBAH PASSWORD (SAAT LOGIN)
  */
@@ -1005,7 +975,6 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    // Verifikasi password lama
     const isPasswordValid = await comparePassword(oldPassword, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({
@@ -1015,7 +984,6 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    // Hash password baru & simpan
     const hashedNewPassword = await hashPassword(newPassword);
     await db("users").where({ id: userId }).update({
       password: hashedNewPassword,
@@ -1060,9 +1028,9 @@ export const forgotPasswordSendOtp = async (req, res) => {
       });
     }
 
-    // Generate 5 digit OTP
-    const otp = Math.floor(10000 + Math.random() * 90000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // Berlaku 10 menit
+    // Gunakan 6 Digit OTP disamakan dengan modul registrasi
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 Menit
 
     await db("users").where({ id: user.id }).update({
       verification_token: otp,
@@ -1070,7 +1038,6 @@ export const forgotPasswordSendOtp = async (req, res) => {
       updated_at: new Date(),
     });
 
-    // Kirim Email OTP menggunakan helper nodemailer
     await sendEmailOtp(email, otp, "Kode OTP Reset Password");
 
     return res.status(200).json({
@@ -1112,7 +1079,6 @@ export const verifyForgotOtp = async (req, res) => {
       });
     }
 
-    // Cek kecocokan OTP
     if (user.verification_token !== otp) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
@@ -1121,7 +1087,6 @@ export const verifyForgotOtp = async (req, res) => {
       });
     }
 
-    // Cek waktu kedaluwarsa OTP
     if (new Date() > new Date(user.token_expires_at)) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
@@ -1169,7 +1134,6 @@ export const resetPasswordWithOtp = async (req, res) => {
       });
     }
 
-    // Double check verifikasi OTP sebelum update password
     if (user.verification_token !== otp) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
@@ -1186,7 +1150,6 @@ export const resetPasswordWithOtp = async (req, res) => {
       });
     }
 
-    // Hash password baru & bersihkan token OTP
     const hashedPassword = await hashPassword(newPassword);
     await db("users").where({ id: user.id }).update({
       password: hashedPassword,
