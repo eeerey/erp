@@ -30,7 +30,7 @@ export default function HargaJualPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("TOKEN");
-      const res = await api.get("http://localhost:8000/api/harga-jual");
+      const res = await api.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/harga-jual`);
 
       const formatted = res.data.data.map((item) => ({
         ...item,
@@ -63,7 +63,7 @@ export default function HargaJualPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.post("http://localhost:8000/api/harga-jual", data);
+      await api.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/harga-jual`, data);
       setSavedAt(new Date());
     } catch (err) {
       console.error(err);

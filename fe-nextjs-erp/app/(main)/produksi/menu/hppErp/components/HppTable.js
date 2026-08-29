@@ -21,8 +21,8 @@ function HppTable({ title, data, setData, color, type }) {
     const fetchData = async () => {
       try {
         const [formRes, barangRes] = await Promise.all([
-          axios.get("http://localhost:8000/api/hppErp/form-data"),
-          axios.get("http://localhost:8000/api/hppErp/master-barang"),
+          axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/hppErp/form-data`),
+          axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/hppErp/master-barang`),
         ]);
 
         setSatuanList(formRes.data.data.satuan || []);

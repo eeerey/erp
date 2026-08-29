@@ -20,7 +20,7 @@ export default function Fase1ResultCard({
     const fetchSatuan = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:8000/api/hppErp/form-data"
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/hppErp/form-data`
         );
 
         setSatuanList(res.data.data.satuan || []);

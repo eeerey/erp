@@ -10,7 +10,7 @@ export default function LabaBarangPage() {
   const getData = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:8000/api/labaBarang"
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/labaBarang`
       );
 
       setData(res.data.data || []);
