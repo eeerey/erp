@@ -158,7 +158,7 @@ const RegisterKaryawanPage = () => {
                 }
             });
 
-            if (foto) data.append('foto', foto);
+            if (foto) data.append('foto_karyawan', foto);
             if (fotoKtp) data.append('foto_ktp', fotoKtp);
 
             const token = localStorage.getItem('TOKEN');
