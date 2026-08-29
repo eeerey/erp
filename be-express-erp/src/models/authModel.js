@@ -152,7 +152,7 @@ export const createKaryawan = async (
       company_id: userData.company_id,
       KARYAWAN_ID: karyawanId,
       EMAIL: karyawanData.EMAIL,
-      NIK: karyawanData.NIK || "-",
+      NIK: karyawanData.NIK || karyawanId,
       NAMA: karyawanData.NAMA,
       GENDER: karyawanData.GENDER,
       TEMPAT_LAHIR: karyawanData.TEMPAT_LAHIR || null,
