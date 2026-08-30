@@ -26,10 +26,10 @@ export default function ForgotPasswordPage() {
     const [forgotNewPassword, setForgotNewPassword] = useState('');
     const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
     const [loadingForgot, setLoadingForgot] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false); // Penanda apakah user sedang login
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // State Timer OTP (600 Detik = 10 Menit)
-    const [timer, setTimer] = useState(600);
+    // State Timer OTP (900 Detik = 15 Menit)
+    const [timer, setTimer] = useState(900);
     const [isTimerActive, setIsTimerActive] = useState(false);
 
     // Effect Auto-fill Email jika user sudah login
@@ -45,10 +45,9 @@ export default function ForgotPasswordPage() {
 
                 if (res.status === 200 && res.data?.user?.email) {
                     setForgotEmail(res.data.user.email);
-                    setIsLoggedIn(true); // Tandai user sedang login
+                    setIsLoggedIn(true);
                 }
             } catch (err) {
-                // Token tidak valid/kadaluwarsa, biarkan isLoggedIn false
                 console.log('User belum login atau token invalid');
             }
         };
@@ -89,9 +88,10 @@ export default function ForgotPasswordPage() {
             if (res.status === 200) {
                 toastRef.current?.showToast('00', 'Kode OTP berhasil dikirim ke email!');
                 setForgotStep(2);
+                setForgotOtp('');
 
-                // Reset dan Aktifkan Timer (10 Menit)
-                setTimer(600);
+                // Reset dan Aktifkan Timer (15 Menit)
+                setTimer(900);
                 setIsTimerActive(true);
             }
         } catch (err: any) {
@@ -101,9 +101,15 @@ export default function ForgotPasswordPage() {
         }
     };
 
-    // STEP 2: Verifikasi Kode OTP
+    // STEP 2: Verifikasi Kode OTP (6 Digit)
     const handleVerifyForgotOtp = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (forgotOtp.length < 6) {
+            toastRef.current?.showToast('01', 'Silakan lengkapi 6 digit kode OTP');
+            return;
+        }
+
         setLoadingForgot(true);
 
         try {
@@ -115,7 +121,7 @@ export default function ForgotPasswordPage() {
             if (res.status === 200) {
                 toastRef.current?.showToast('00', 'Kode OTP Valid! Silakan buat password baru.');
                 setForgotStep(3);
-                setIsTimerActive(false); // Stop timer saat verifikasi berhasil
+                setIsTimerActive(false);
             }
         } catch (err: any) {
             toastRef.current?.showToast('01', err.response?.data?.message || 'Kode OTP salah atau telah kedaluwarsa');
@@ -146,7 +152,6 @@ export default function ForgotPasswordPage() {
                 toastRef.current?.showToast('00', 'Password berhasil di-reset!');
 
                 setTimeout(() => {
-                    // Jika user sudah login kembalikan ke profile, jika belum kembalikan ke login
                     if (isLoggedIn) {
                         router.push('/auth/profile');
                     } else {
@@ -166,7 +171,7 @@ export default function ForgotPasswordPage() {
             <ToastNotifier ref={toastRef} />
 
             <div className="min-h-screen flex align-items-center justify-content-center p-4" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                <Card className="shadow-4 border-round-2xl w-full max-w-26rem">
+                <Card className="shadow-4 border-round-2xl w-full max-w-28rem">
                     <div className="text-center mb-4">
                         <i className="pi pi-lock-open text-4xl text-primary mb-2" />
                         <h2 className="text-2xl font-bold text-900 m-0">Lupa Password</h2>
@@ -176,19 +181,11 @@ export default function ForgotPasswordPage() {
                     {/* STEP 1: Input Email */}
                     {forgotStep === 1 && (
                         <form onSubmit={handleSendForgotOtp} className="flex flex-column gap-3">
-                            <p className="text-sm text-600 m-0">{isLoggedIn ? 'Kami akan mengirimkan 5 digit kode OTP ke email akun Anda.' : 'Masukkan alamat email terdaftar Anda. Kami akan mengirimkan 5 digit kode OTP untuk verifikasi.'}</p>
+                            <p className="text-sm text-600 m-0">{isLoggedIn ? 'Kami akan mengirimkan 6 digit kode OTP ke email akun Anda.' : 'Masukkan alamat email terdaftar Anda. Kami akan mengirimkan 6 digit kode OTP untuk verifikasi.'}</p>
 
                             <div className="flex flex-column gap-2">
                                 <label className="font-semibold text-sm">Email Anda</label>
-                                <InputText
-                                    value={forgotEmail}
-                                    onChange={(e) => setForgotEmail(e.target.value)}
-                                    type="email"
-                                    required
-                                    disabled={isLoggedIn} // Otomatis disabled jika user sudah terautentikasi
-                                    placeholder="contoh@email.com"
-                                    className={`w-full ${isLoggedIn ? 'bg-200' : ''}`}
-                                />
+                                <InputText value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} type="email" required disabled={isLoggedIn} placeholder="contoh@email.com" className={`w-full ${isLoggedIn ? 'bg-200' : ''}`} />
                             </div>
 
                             <div className="flex justify-content-between align-items-center mt-3">
@@ -198,24 +195,26 @@ export default function ForgotPasswordPage() {
                         </form>
                     )}
 
-                    {/* STEP 2: Verifikasi 5 Digit OTP */}
+                    {/* STEP 2: Verifikasi 6 Digit OTP */}
                     {forgotStep === 2 && (
                         <form onSubmit={handleVerifyForgotOtp} className="flex flex-column gap-3">
                             <p className="text-sm text-600 m-0 text-center">
-                                Masukkan 5 digit kode OTP yang dikirim ke email:
+                                Masukkan 6 digit kode OTP yang dikirim ke email:
                                 <br />
                                 <strong className="text-900">{forgotEmail}</strong>
                             </p>
 
+                            {/* 👈 FIX: Hilangkan p-fluid, kunci lebar tiap kotak secara eksplisit */}
                             <div className="flex justify-content-center gap-2 my-2">
-                                {[0, 1, 2, 3, 4].map((index) => (
+                                {[0, 1, 2, 3, 4, 5].map((index) => (
                                     <InputText
                                         key={index}
                                         id={`otp-input-${index}`}
                                         type="text"
                                         maxLength={1}
                                         value={forgotOtp[index] || ''}
-                                        className="w-3rem h-3rem text-center text-xl font-bold p-0 border-round-lg"
+                                        style={{ width: '2.5rem', height: '2.75rem' }} // 👈 Kunci ukuran fisik kotak
+                                        className="text-center text-xl font-bold p-0 border-round-lg shadow-1"
                                         onChange={(e) => {
                                             const val = e.target.value.replace(/[^0-9]/g, '');
                                             const otpArr = forgotOtp.split('');
@@ -223,7 +222,7 @@ export default function ForgotPasswordPage() {
                                             const newOtp = otpArr.join('');
                                             setForgotOtp(newOtp);
 
-                                            if (val && index < 4) {
+                                            if (val && index < 5) {
                                                 document.getElementById(`otp-input-${index + 1}`)?.focus();
                                             }
                                         }}
@@ -255,7 +254,7 @@ export default function ForgotPasswordPage() {
                                     onClick={handleSendForgotOtp}
                                     disabled={loadingForgot || isTimerActive}
                                 />
-                                <Button type="submit" label="Verifikasi" severity="info" loading={loadingForgot} disabled={forgotOtp.length !== 5} />
+                                <Button type="submit" label="Verifikasi" severity="info" loading={loadingForgot} disabled={forgotOtp.length !== 6} />
                             </div>
                         </form>
                     )}

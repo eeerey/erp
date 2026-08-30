@@ -33,7 +33,7 @@ import { sendEmailOtp } from "../utils/reset_password.js";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
- * Helper Hapus Orphan Files
+ * Helper Hapus Orphan Files Fisik
  */
 const removeUploadedFiles = async (...filePaths) => {
   for (const filePath of filePaths) {
@@ -85,7 +85,7 @@ export const register = async (req, res) => {
     }
 
     const otpCode = generateOTP(); // 6 Digit OTP
-    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // Disamakan 15 menit
+    const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 Menit
     const hashedPassword = await hashPassword(password);
     const isSuperAdminRole = role === "SUPERADMIN";
 
@@ -165,7 +165,7 @@ export const register = async (req, res) => {
 };
 
 /**
- * LOGIN
+ * LOGIN (WAJIB VERIFIKASI OTP)
  */
 export const login = async (req, res) => {
   try {
@@ -194,6 +194,7 @@ export const login = async (req, res) => {
       });
     }
 
+    // 1. Cek Akun Google
     const isGoogleAccount =
       !existingUser.password || existingUser.password === "";
 
@@ -206,6 +207,7 @@ export const login = async (req, res) => {
       });
     }
 
+    // 2. Cek Password
     const isPasswordTrue = await comparePassword(
       password,
       existingUser.password,
@@ -219,14 +221,15 @@ export const login = async (req, res) => {
       });
     }
 
+    // 3. TOLAK LOGIN JIKA BELUM VERIFIKASI OTP
     if (!existingUser.is_verified) {
-      await db("users").where({ id: existingUser.id }).update({
-        is_verified: true,
-        verification_token: null,
-        token_expires_at: null,
-        updated_at: new Date(),
+      return res.status(401).json({
+        status: status.GAGAL,
+        message:
+          "Akun Anda belum terverifikasi. Silakan masukkan kode OTP yang dikirim ke email Anda terlebih dahulu.",
+        datetime: datetime(),
+        is_verified: false,
       });
-      existingUser.is_verified = true;
     }
 
     let karyawanId = null;
@@ -282,11 +285,11 @@ export const login = async (req, res) => {
 };
 
 /**
- * GET PROFILE & LOGOUT
+ * GET PROFILE
  */
 export const getProfile = async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || req.user?.id;
     if (!userId) {
       return res.status(401).json({
         status: status.TIDAK_ADA_TOKEN,
@@ -294,6 +297,7 @@ export const getProfile = async (req, res) => {
         datetime: datetime(),
       });
     }
+
     const user = await getUserProfileById(userId);
     if (!user) {
       return res.status(404).json({
@@ -302,6 +306,20 @@ export const getProfile = async (req, res) => {
         datetime: datetime(),
       });
     }
+
+    // 👈 Parsing FOTO_KTP (yang berisi string JSON Foto UMKM) menjadi Array
+    if (user.karyawan && user.karyawan.FOTO_KTP) {
+      try {
+        // Jika format di DB adalah JSON string ["/uploads/foto_umkm/file1.jpg", ...]
+        user.karyawan.FOTO_UMKM = JSON.parse(user.karyawan.FOTO_KTP);
+      } catch (e) {
+        // Jika data lama hanya berupa 1 string path biasa
+        user.karyawan.FOTO_UMKM = [user.karyawan.FOTO_KTP];
+      }
+    } else if (user.karyawan) {
+      user.karyawan.FOTO_UMKM = [];
+    }
+
     return res.status(200).json({
       status: status.SUKSES,
       message: "Berhasil mengambil profil user",
@@ -318,10 +336,13 @@ export const getProfile = async (req, res) => {
   }
 };
 
+/**
+ * LOGOUT
+ */
 export const logout = async (req, res) => {
   try {
     const token = req.headers["authorization"]?.split(" ")[1];
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || req.user?.id;
     const logId = req.user?.log_id;
 
     if (!token || !userId) {
@@ -625,28 +646,38 @@ export const resendVerificationToken = async (req, res) => {
     });
   }
 };
-
 /**
  * REGISTER OWNER
  */
 export const registerOwner = async (req, res) => {
   const files = req.files || {};
   const fotoKaryawanFile = files.foto_karyawan?.[0] || null;
-  const fotoKtpFile = files.foto_ktp?.[0] || null;
+  const fotoUmkmFiles = files.foto_umkm || [];
 
+  // 1. Deklarasikan fotoPath
   const fotoPath = fotoKaryawanFile
     ? `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`
     : null;
-  const fotoKtpPath = fotoKtpFile
-    ? `/uploads/foto_ktp/${fotoKtpFile.filename}`
-    : null;
+
+  // 2. Map path foto UMKM (1 - 3 file)
+  const fotoUmkmPaths = fotoUmkmFiles.map(
+    (file) => `/uploads/foto_umkm/${file.filename}`,
+  );
+
+  // Helper lokal untuk rollback/hapus file yang terlanjur diunggah jika validasi gagal
+  const cleanupFiles = async () => {
+    if (typeof removeUploadedFiles === "function") {
+      // Hapus foto profil dan seluruh foto UMKM
+      await removeUploadedFiles(fotoPath, ...fotoUmkmPaths);
+    }
+  };
 
   try {
-    if (!fotoKtpFile) {
-      await removeUploadedFiles(fotoPath);
+    // Validasi Wajib minimal 1 Foto UMKM
+    if (fotoUmkmFiles.length === 0) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
-        message: "Foto KTP wajib diunggah!",
+        message: "Foto UMKM wajib diunggah minimal 1 foto!",
         datetime: datetime(),
       });
     }
@@ -661,16 +692,16 @@ export const registerOwner = async (req, res) => {
       tgl_lahir,
       alamat,
       no_telp,
+      npwp,
       nama_perusahaan,
       npwp_perusahaan,
       nib,
       alamat_perusahaan,
       no_telp_perusahaan,
-      npwp,
     } = req.body;
 
     if (!email || !password || !nama_perusahaan) {
-      await removeUploadedFiles(fotoPath, fotoKtpPath);
+      await cleanupFiles();
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "Email, Password, dan Nama Perusahaan wajib diisi!",
@@ -679,7 +710,7 @@ export const registerOwner = async (req, res) => {
     }
 
     if (await checkEmailExists(email)) {
-      await removeUploadedFiles(fotoPath, fotoKtpPath);
+      await cleanupFiles();
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "Email sudah terdaftar",
@@ -687,8 +718,8 @@ export const registerOwner = async (req, res) => {
       });
     }
 
-    if (await checkNikExists(nik)) {
-      await removeUploadedFiles(fotoPath, fotoKtpPath);
+    if (nik && (await checkNikExists(nik))) {
+      await cleanupFiles();
       return res.status(400).json({
         status: status.BAD_REQUEST,
         message: "NIK sudah terdaftar",
@@ -709,19 +740,23 @@ export const registerOwner = async (req, res) => {
           npwp: npwp_perusahaan || null,
           nib: nib || null,
           alamat: alamat_perusahaan || null,
-          no_telp: no_telp_perusahaan || null
+          no_telp: no_telp_perusahaan || null,
         });
     }
 
     const otpCode = generateOTP();
     const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
+    // Konversi array foto UMKM ke String JSON untuk disimpan ke DB
+    const fotoUmkmString =
+      fotoUmkmPaths.length > 0 ? JSON.stringify(fotoUmkmPaths) : null;
+
     const { userId, karyawanId, id } = await createKaryawan(
       {
         EMAIL: email,
-        NIK: nik,
+        NIK: nik || null,
         NAMA: nama,
-        GENDER: gender,
+        GENDER: gender || "L",
         TEMPAT_LAHIR: tempat_lahir || null,
         TGL_LAHIR: tgl_lahir || null,
         ALAMAT: alamat || null,
@@ -733,7 +768,7 @@ export const registerOwner = async (req, res) => {
         FOTO: fotoPath,
         NPWP: npwp || null,
         NIB: nib || null,
-        FOTO_KTP: fotoKtpPath,
+        FOTO_KTP: fotoUmkmString, // 👈 Disimpan sebagai JSON String dari foto UMKM
       },
       {
         name: nama,
@@ -764,9 +799,8 @@ export const registerOwner = async (req, res) => {
       otp_dev: otpCode,
     });
   } catch (error) {
-    await removeUploadedFiles(fotoPath, fotoKtpPath);
     console.error("Register Owner Error:", error);
-
+    await cleanupFiles();
     return res.status(500).json({
       status: status.GAGAL,
       message: `Terjadi kesalahan server: ${error.message}`,
@@ -774,7 +808,6 @@ export const registerOwner = async (req, res) => {
     });
   }
 };
-
 /**
  * LOGIN & AUTO-REGISTER VIA GOOGLE
  */
@@ -906,32 +939,85 @@ export const googleLogin = async (req, res) => {
 export const updateProfile = async (req, res) => {
   const files = req.files || {};
   const fotoKaryawanFile = files.foto_karyawan?.[0] || null;
-  const fotoKtpFile = files.foto_ktp?.[0] || null;
+  const fotoUmkmFiles = files.foto_umkm || [];
 
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        status: status.TIDAK_ADA_TOKEN,
+        message: "Token tidak valid atau tidak ditemukan",
+        datetime: datetime(),
+      });
+    }
+
     const user = await db("users").where({ id: userId }).first();
-    const karyawan = await db("master_karyawan")
-      .where({ EMAIL: user.email })
+    if (!user) {
+      return res.status(404).json({
+        status: status.GAGAL,
+        message: "User tidak ditemukan",
+        datetime: datetime(),
+      });
+    }
+
+    const {
+      name,
+      nik,
+      gender,
+      tempat_lahir,
+      tgl_lahir,
+      no_telp,
+      alamat,
+      pendidikan_terakhir,
+    } = req.body;
+
+    // 1. Update nama user di tabel users (jika kolom updated_at ada di users)
+    if (name && name.trim() !== "") {
+      await db("users").where({ id: userId }).update({
+        name: name.trim(),
+      });
+    }
+
+    // 2. Cari data karyawan
+    let karyawan = await db("master_karyawan")
+      .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
       .first();
 
-    const updateDataKaryawan = {};
-
-    if (fotoKaryawanFile) {
-      if (karyawan?.FOTO) {
-        removeFile(karyawan.FOTO);
+    // 3. Format Tanggal Lahir
+    let formattedTglLahir = null;
+    if (tgl_lahir && tgl_lahir !== "null" && tgl_lahir !== "") {
+      const parsedDate = new Date(tgl_lahir);
+      if (!isNaN(parsedDate.getTime())) {
+        formattedTglLahir = parsedDate.toISOString().split("T")[0];
       }
+    }
+
+    // 4. Susun Payload Update Karyawan
+    const updateDataKaryawan = {};
+    if (name) updateDataKaryawan.NAMA = name.trim();
+    if (nik) updateDataKaryawan.NIK = nik.trim();
+    if (gender) updateDataKaryawan.GENDER = gender;
+    if (tempat_lahir !== undefined) updateDataKaryawan.TEMPAT_LAHIR = tempat_lahir || null;
+    if (formattedTglLahir !== null) updateDataKaryawan.TGL_LAHIR = formattedTglLahir;
+    if (no_telp !== undefined) updateDataKaryawan.NO_TELP = no_telp || null;
+    if (alamat !== undefined) updateDataKaryawan.ALAMAT = alamat || null;
+    if (pendidikan_terakhir !== undefined) updateDataKaryawan.PENDIDIKAN_TERAKHIR = pendidikan_terakhir || null;
+
+    // Masukkan Foto Profil baru jika ada
+    if (fotoKaryawanFile) {
       updateDataKaryawan.FOTO = `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`;
     }
 
-    if (fotoKtpFile) {
-      if (karyawan?.FOTO_KTP) {
-        removeFile(karyawan.FOTO_KTP);
-      }
-      updateDataKaryawan.FOTO_KTP = `/uploads/foto_ktp/${fotoKtpFile.filename}`;
+    // Masukkan Foto UMKM baru jika ada (konversi ke JSON string di kolom FOTO_KTP)
+    if (fotoUmkmFiles.length > 0) {
+      const fotoUmkmPaths = fotoUmkmFiles.map(
+        (file) => `/uploads/foto_umkm/${file.filename}`
+      );
+      updateDataKaryawan.FOTO_KTP = JSON.stringify(fotoUmkmPaths);
     }
 
-    if (Object.keys(updateDataKaryawan).length > 0) {
+    // Eksekusi Update ke master_karyawan
+    if (karyawan) {
       await db("master_karyawan")
         .where({ ID: karyawan.ID })
         .update(updateDataKaryawan);
@@ -940,12 +1026,15 @@ export const updateProfile = async (req, res) => {
     return res.status(200).json({
       status: status.SUKSES,
       message: "Profil dan berkas berhasil diperbarui",
+      datetime: datetime(),
     });
   } catch (error) {
-    console.error("Error update profile:", error);
-    return res
-      .status(500)
-      .json({ status: status.GAGAL, message: error.message });
+    console.error("Update profile error:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
+      datetime: datetime(),
+    });
   }
 };
 
@@ -954,7 +1043,7 @@ export const updateProfile = async (req, res) => {
  */
 export const changePassword = async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || req.user?.id;
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -1027,8 +1116,7 @@ export const forgotPasswordSendOtp = async (req, res) => {
       });
     }
 
-    // Gunakan 6 Digit OTP disamakan dengan modul registrasi
-    const otp = generateOTP();
+    const otp = generateOTP(); // 6 Digit OTP
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 Menit
 
     await db("users").where({ id: user.id }).update({

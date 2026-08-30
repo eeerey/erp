@@ -57,13 +57,10 @@ import productPerformanceRoutes from "./routes/productPerformanceRoutes.js";
 // ── PAYMENT
 import paymentRoutes from "./routes/paymentRoutes.js";
 
-//log user
+// log user
 import activityLogRoutes from "./routes/activityLogRoutes.js";
 
 const app = express();
-
-// ── Static Files
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ── CORS
 const allowedOrigins = [
@@ -74,8 +71,9 @@ const allowedOrigins = [
   "http://rintisku.id",
   "https://rintisku.id",
   "http://www.rintisku.id",
-  "https://www.rintisku.id"
+  "https://www.rintisku.id",
 ];
+
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -95,8 +93,13 @@ app.use(
 );
 
 app.use(logger("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// 👈 PERBAIKAN PENTING: Menikakkan limit payload ke 10MB agar tidak melempar ERR_CONNECTION_RESET
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+
+// ── Static Files (Akses langsung berkas upload)
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/", [setResponseHeader], (req, res) => {
   return res
@@ -161,9 +164,6 @@ app.use("/api/productPerformance", productPerformanceRoutes);
 
 // ── PAYMENT
 app.use("/api/payment", paymentRoutes);
-
-// ── Static Files
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ── Log User
 app.use("/api/admin", activityLogRoutes);

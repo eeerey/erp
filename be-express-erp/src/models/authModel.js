@@ -23,37 +23,51 @@ export const getUserProfileById = async (userId) => {
 
   if (!user) return null;
 
-  // 2. Ambil data Perusahaan (NPWP & NIB ada di sini)
-  const company = await db("companies")
-    .where({ id: user.company_id })
-    .select("id", "nama_perusahaan", "alamat", "no_telp", "npwp", "nib")
-    .first();
+  // 2. Ambil data Perusahaan
+  let company = null;
+  if (user.company_id) {
+    company = await db("companies")
+      .where({ id: user.company_id })
+      .select("id", "nama_perusahaan", "alamat", "no_telp", "npwp", "nib")
+      .first();
+  }
 
-  // 3. Ambil data Karyawan (Hapus NPWP & NIB dari select ini)
-  const karyawan = await db("master_karyawan")
-    .where({ EMAIL: user.email })
-    .select(
-      "ID",
-      "KARYAWAN_ID",
-      "NIK",
-      "NAMA",
-      "GENDER",
-      "TEMPAT_LAHIR",
-      "TGL_LAHIR",
-      "ALAMAT",
-      "NO_TELP",
-      "DEPARTEMEN",
-      "JABATAN",
-      "TANGGAL_MASUK",
-      "STATUS_KARYAWAN",
-      "STATUS_AKTIF",
-      "SHIFT",
-      "PENDIDIKAN_TERAKHIR",
-      "FOTO",
-      "FOTO_KTP"
-      // 👈 NPWP & NIB dihapus dari sini karena ada di tabel companies
-    )
-    .first();
+  // 3. Ambil data Karyawan (Cari via Email Case-Insensitive, Fallback via Nama & Company)
+  let karyawan = null;
+
+  if (user.email) {
+    karyawan = await db("master_karyawan")
+      .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
+      .select(
+        "ID",
+        "KARYAWAN_ID",
+        "NIK",
+        "NAMA",
+        "GENDER",
+        "TEMPAT_LAHIR",
+        "TGL_LAHIR",
+        "ALAMAT",
+        "NO_TELP",
+        "DEPARTEMEN",
+        "JABATAN",
+        "TANGGAL_MASUK",
+        "STATUS_KARYAWAN",
+        "STATUS_AKTIF",
+        "SHIFT",
+        "PENDIDIKAN_TERAKHIR",
+        "FOTO",
+        "FOTO_KTP",
+      )
+      .first();
+  }
+
+  // Fallback jika email di master_karyawan kosong/tidak match
+  if (!karyawan && user.company_id && user.name) {
+    karyawan = await db("master_karyawan")
+      .where({ company_id: user.company_id })
+      .andWhereRaw("LOWER(NAMA) = LOWER(?)", [user.name.trim()])
+      .first();
+  }
 
   return {
     ...user,
@@ -115,39 +129,33 @@ export const generateKaryawanId = async (trxInstance = null) => {
  * CREATE KARYAWAN
  */
 /**
- * CREATE KARYAWAN
+ * CREATE KARYAWAN (Model)
  */
 export const createKaryawan = async (
   karyawanData,
   userData,
-  verificationData = null, // 👈 Default null jika tidak dikirim
+  verificationData = null,
 ) => {
   const hashedPassword = await hashPassword(userData.password);
 
   return await db.transaction(async (trx) => {
-    // 1. Generate KARYAWAN_ID di dalam transaksi
     const karyawanId = await generateKaryawanId(trx);
-
-    // Tentukan apakah user langsung terverifikasi atau butuh OTP
-    // Jika verificationData dikirim (misal pas Register Publik/Owner) -> false
-    // Jika verificationData null (misal Tambah Karyawan via Dashboard/Admin) -> true
     const isVerified =
       userData.is_verified ?? (verificationData ? false : true);
 
-    // 2. Insert ke tabel 'users'
     const [userId] = await trx("users").insert({
       name: userData.name,
       email: userData.email,
       password: hashedPassword,
       role: userData.role,
       company_id: userData.company_id,
-      is_verified: isVerified, // 👈 Langsung TRUE jika dari Tambah Karyawan
+      is_verified: isVerified,
       verification_token: verificationData?.token || null,
       token_expires_at: verificationData?.expiresAt || null,
       created_at: new Date(),
     });
 
-    // 3. Insert ke tabel 'master_karyawan'
+    // HANYA sertakan kolom yang ada di tabel master_karyawan phpMyAdmin
     const [id] = await trx("master_karyawan").insert({
       company_id: userData.company_id,
       KARYAWAN_ID: karyawanId,

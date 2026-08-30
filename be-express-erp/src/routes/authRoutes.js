@@ -10,7 +10,7 @@ const router = Router();
 // Konfigurasi field upload file
 const uploadKaryawanFiles = uploadKaryawan.fields([
   { name: "foto_karyawan", maxCount: 1 },
-  { name: "foto_ktp", maxCount: 1 },
+  { name: "foto_umkm", maxCount: 3 },
 ]);
 
 /**

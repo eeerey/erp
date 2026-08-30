@@ -10,8 +10,8 @@ const createUpload = (defaultFolder, filePrefix = "") => {
     destination: (req, file, cb) => {
       let folderName = defaultFolder;
 
-      if (file.fieldname === "foto_ktp") {
-        folderName = "foto_ktp";
+      if (file.fieldname === "foto_umkm") {
+        folderName = "foto_umkm";
       } else if (file.fieldname === "foto_karyawan") {
         folderName = "foto_karyawan";
       }
@@ -102,5 +102,12 @@ export const uploadPresensi = createUpload("presensi", "presensi");
 export const uploadKaryawan = createUpload("foto_karyawan", "karyawan");
 export const uploadLogbook = createUpload("foto_logbook", "logbook");
 export const uploadBatch = createUpload("foto_batch", "batch");
+
+// 👈 FIX UTAMA: Definisikan susunan field yang menerima MULTIPLE foto_umkm (1-3 file)
+export const uploadKaryawanFiles = uploadKaryawan.fields([
+  { name: "foto_karyawan", maxCount: 1 },
+  { name: "foto_umkm", maxCount: 3 }, // Menerima hingga 3 berkas foto UMKM
+  { name: "foto_ktp", maxCount: 1 },
+]);
 
 export default uploadKaryawan;

@@ -50,7 +50,7 @@ const RegisterKaryawanPage = () => {
         kontak_darurat_hub: '',
         kontak_darurat_telp: '',
 
-        // Data Perusahaan (Diperbarui)
+        // Data Perusahaan
         nama_perusahaan: '',
         npwp_perusahaan: '',
         nib: '',
@@ -60,7 +60,7 @@ const RegisterKaryawanPage = () => {
 
     // State File
     const [foto, setFoto] = useState<File | null>(null);
-    const [fotoKtp, setFotoKtp] = useState<File | null>(null);
+    const [fotoUmkm, setFotoUmkm] = useState<File[]>([]); // Array File foto UMKM (1-3)
 
     // Effect Loading
     useEffect(() => {
@@ -71,7 +71,7 @@ const RegisterKaryawanPage = () => {
         return () => clearTimeout(timer);
     }, []);
 
-    // Steps Configuration (Diubah label step 3)
+    // Steps Configuration
     const steps: MenuItem[] = [
         { label: 'Akun Login', icon: 'pi pi-user' },
         { label: 'Data Pribadi', icon: 'pi pi-id-card' },
@@ -112,7 +112,12 @@ const RegisterKaryawanPage = () => {
 
             case 1:
                 if (!formData.nama || !formData.gender) {
-                    toastRef.current?.showToast('01', 'Nama, dan Gender wajib diisi');
+                    toastRef.current?.showToast('01', 'Nama dan Gender wajib diisi');
+                    return false;
+                }
+                // Validasi Wajib Minimal 1 Foto UMKM
+                if (fotoUmkm.length === 0) {
+                    toastRef.current?.showToast('01', 'Foto UMKM wajib diunggah minimal 1 foto!');
                     return false;
                 }
                 return true;
@@ -147,6 +152,7 @@ const RegisterKaryawanPage = () => {
         try {
             const data = new FormData();
 
+            // Append field form biasa
             Object.entries(formData).forEach(([key, value]) => {
                 if (key === 'confirmPassword') return;
 
@@ -158,13 +164,16 @@ const RegisterKaryawanPage = () => {
                 }
             });
 
+            // Append Foto Profil jika ada
             if (foto) data.append('foto_karyawan', foto);
-            if (fotoKtp) data.append('foto_ktp', fotoKtp);
+
+            // Append Multiple Foto UMKM (Array)
+            fotoUmkm.forEach((file) => {
+                data.append('foto_umkm', file);
+            });
 
             const token = localStorage.getItem('TOKEN');
-            const headers: Record<string, string> = {
-                'Content-Type': 'multipart/form-data'
-            };
+            const headers: Record<string, string> = {};
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
@@ -174,12 +183,10 @@ const RegisterKaryawanPage = () => {
             if (res.data.status === '00' || res.status === 201) {
                 toastRef.current?.showToast('00', 'Registrasi berhasil! Mengalihkan ke halaman verifikasi...');
 
-                // simpan email sementara jika dibutuhkan di halaman verifikasi
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('pending_verify_email', formData.email);
                 }
 
-                // langsung redirect ke halaman verifikasi dengan membawa email via query param
                 setTimeout(() => {
                     router.push(`/auth/resend-verification?email=${encodeURIComponent(formData.email)}`);
                 }, 1200);
@@ -293,46 +300,52 @@ const RegisterKaryawanPage = () => {
                                 <InputTextarea id="alamat" value={formData.alamat} onChange={handleInputChange} rows={3} placeholder="Alamat domisili sesuai KTP" />
                             </div>
 
-                            {/* Section Upload Foto KTP */}
+                            {/* Section Upload Foto UMKM */}
                             <div className="col-12 mt-2">
                                 <label className="block text-900 font-medium mb-2">
-                                    <i className="pi pi-id-card mr-2"></i>
-                                    Upload Foto KTP
+                                    <i className="pi pi-images mr-2"></i>
+                                    Upload Foto UMKM <span className="text-red-500">*</span>
                                 </label>
-                                <FileUpload mode="basic" accept="image/*" maxFileSize={2000000} onSelect={(e) => setFotoKtp(e.files[0])} chooseLabel="Pilih Foto KTP" className="w-full" />
-                                {fotoKtp && (
-                                    <div className="mt-2 p-2 surface-100 border-round flex align-items-center">
-                                        <i className="pi pi-check-circle text-green-500 mr-2"></i>
-                                        <span className="text-green-700 font-medium text-sm">{fotoKtp.name}</span>
+
+                                <FileUpload
+                                    mode="basic"
+                                    accept="image/*"
+                                    multiple
+                                    maxFileSize={5000000} // 5MB per file
+                                    chooseLabel={fotoUmkm.length >= 3 ? 'Batas Maksimal Foto Tercapai' : 'Pilih Foto UMKM (Maks. 3)'}
+                                    disabled={fotoUmkm.length >= 3}
+                                    className="w-full"
+                                    onSelect={(e) => {
+                                        const selectedFiles = Array.from(e.files);
+                                        const updatedFiles = [...fotoUmkm, ...selectedFiles].slice(0, 3);
+                                        setFotoUmkm(updatedFiles);
+                                    }}
+                                />
+
+                                {/* List Preview Foto yang Dipilih */}
+                                {fotoUmkm.length > 0 && (
+                                    <div className="flex flex-column gap-2 mt-2">
+                                        {fotoUmkm.map((file, index) => (
+                                            <div key={index} className="p-2 surface-100 border-round flex align-items-center justify-content-between">
+                                                <div className="flex align-items-center">
+                                                    <i className="pi pi-check-circle text-green-500 mr-2"></i>
+                                                    <span className="text-green-700 font-medium text-sm">
+                                                        Foto {index + 1}: {file.name}
+                                                    </span>
+                                                </div>
+                                                <Button
+                                                    icon="pi pi-times"
+                                                    className="p-button-rounded p-button-danger p-button-text p-button-sm"
+                                                    onClick={() => {
+                                                        setFotoUmkm(fotoUmkm.filter((_, i) => i !== index));
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
-                                <small className="text-500 block mt-1">Format gambar JPG, PNG. Maksimal 2MB</small>
-                            </div>
 
-                            {/* Section Kontak Darurat */}
-                            <div className="col-12 mt-3">
-                                <span className="block text-900 font-semibold mb-2">Kontak Darurat</span>
-                            </div>
-
-                            <div className="col-12 md:col-4">
-                                <label htmlFor="kontak_darurat_nama" className="block text-900 font-medium mb-2">
-                                    Nama Kontak
-                                </label>
-                                <InputText id="kontak_darurat_nama" value={formData.kontak_darurat_nama} onChange={handleInputChange} placeholder="Nama kerabat" />
-                            </div>
-
-                            <div className="col-12 md:col-4">
-                                <label htmlFor="kontak_darurat_hub" className="block text-900 font-medium mb-2">
-                                    Hubungan
-                                </label>
-                                <InputText id="kontak_darurat_hub" value={formData.kontak_darurat_hub} onChange={handleInputChange} placeholder="Contoh: Orang Tua / Pasangan" />
-                            </div>
-
-                            <div className="col-12 md:col-4">
-                                <label htmlFor="kontak_darurat_telp" className="block text-900 font-medium mb-2">
-                                    No. Telepon Darurat
-                                </label>
-                                <InputText id="kontak_darurat_telp" value={formData.kontak_darurat_telp} onChange={handleInputChange} placeholder="08xxxxxxxxxx" />
+                                <small className="text-500 block mt-1">Wajib pilih minimal 1 foto (maksimal 3 foto). Format JPG, PNG (Maks 5MB per file).</small>
                             </div>
                         </div>
                     </div>
@@ -410,15 +423,15 @@ const RegisterKaryawanPage = () => {
                                 </div>
                                 <div className="col-6">
                                     <p className="text-600 mb-1 text-sm">Alamat</p>
-                                    <p className="text-900 font-medium">{formData.alamat}</p>
+                                    <p className="text-900 font-medium">{formData.alamat || '-'}</p>
                                 </div>
                                 <div className="col-6">
                                     <p className="text-600 mb-1 text-sm">Nama Lengkap</p>
                                     <p className="text-900 font-medium">{formData.nama}</p>
                                 </div>
                                 <div className="col-6">
-                                    <p className="text-600 mb-1 text-sm">Foto KTP</p>
-                                    <p className="text-900 font-medium">{fotoKtp ? fotoKtp.name : 'Belum diunggah'}</p>
+                                    <p className="text-600 mb-1 text-sm">Foto UMKM</p>
+                                    <p className="text-900 font-medium">{fotoUmkm.length > 0 ? `${fotoUmkm.length} File Terpilih` : 'Belum diunggah'}</p>
                                 </div>
                                 <div className="col-6">
                                     <p className="text-600 mb-1 text-sm">Nama Perusahaan</p>

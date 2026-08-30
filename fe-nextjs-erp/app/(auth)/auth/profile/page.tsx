@@ -49,6 +49,7 @@ interface KaryawanData {
     PENDIDIKAN_TERAKHIR?: string;
     FOTO?: string | null;
     FOTO_KTP?: string | null;
+    FOTO_UMKM?: string[] | null; // Tambahan properti array foto UMKM
 }
 
 interface UserProfile {
@@ -81,15 +82,18 @@ const ProfilePage = () => {
         pendidikan_terakhir: ''
     });
 
-    const handleGoToDashboard = () => {
-        // Ambil role dari state profile, atau fallback ke LocalStorage
-        const userRole = profile?.role || localStorage.getItem('ROLE') || '';
+    const [fotoFile, setFotoFile] = useState<File | null>(null);
+    const [fotoUmkmFiles, setFotoUmkmFiles] = useState<File[]>([]); // 👈 Ubah jadi Array File (1 - 3)
+    const [savingProfile, setSavingProfile] = useState(false);
 
-        // Dapatkan rute sesuai role, default ke '/' jika role tidak ditemukan
-        const targetRoute = roleRoutes[userRole] || '/';
-
-        router.push(targetRoute);
-    };
+    // State Modal Ubah Password Normal
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [savingPassword, setSavingPassword] = useState(false);
 
     const pendidikanOptions = [
         { label: 'SMA / SMK / Sederajat', value: 'SMA/SMK' },
@@ -102,32 +106,16 @@ const ProfilePage = () => {
         { label: 'S3 (Doktor)', value: 'S3' }
     ];
 
-    const [fotoFile, setFotoFile] = useState<File | null>(null);
-    const [fotoKtpFile, setFotoKtpFile] = useState<File | null>(null);
-    const [savingProfile, setSavingProfile] = useState(false);
-
-    // State Modal Ubah Password Normal
-    const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [passwordForm, setPasswordForm] = useState({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-    });
-    const [savingPassword, setSavingPassword] = useState(false);
-
-    // State Modal Lupa Password (OTP 3 Step)
-    const [showForgotModal, setShowForgotModal] = useState(false);
-    const [forgotStep, setForgotStep] = useState<1 | 2 | 3>(1);
-    const [forgotEmail, setForgotEmail] = useState('');
-    const [forgotOtp, setForgotOtp] = useState('');
-    const [forgotNewPassword, setForgotNewPassword] = useState('');
-    const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
-    const [loadingForgot, setLoadingForgot] = useState(false);
-
     const genderOptions = [
         { label: 'Laki-laki', value: 'L' },
         { label: 'Perempuan', value: 'P' }
     ];
+
+    const handleGoToDashboard = () => {
+        const userRole = profile?.role || localStorage.getItem('ROLE') || '';
+        const targetRoute = roleRoutes[userRole] || '/';
+        router.push(targetRoute);
+    };
 
     const fetchProfile = async () => {
         try {
@@ -147,7 +135,6 @@ const ProfilePage = () => {
                 const k = u.karyawan;
 
                 setProfile(u);
-                setForgotEmail(u.email || '');
                 setEditForm({
                     name: u.name || '',
                     nik: k?.NIK || '',
@@ -171,33 +158,48 @@ const ProfilePage = () => {
         fetchProfile();
     }, []);
 
-    // Handler Submit Edit Profil
+    // Handler Submit Edit Profil (SUDAH DISESUAIKAN UNTUK FOTO UMKM)
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024;
+        if (fotoFile && fotoFile.size > MAX_FILE_SIZE) {
+            toastRef.current?.showToast('01', 'Ukuran foto profil terlalu besar (Maksimal 5 MB)');
+            return;
+        }
+
         setSavingProfile(true);
 
         try {
             const token = localStorage.getItem('TOKEN');
             const formData = new FormData();
 
-            formData.append('name', editForm.name);
-            formData.append('nik', editForm.nik);
+            formData.append('name', editForm.name ? editForm.name.trim() : '');
+            formData.append('nik', editForm.nik ? editForm.nik.trim() : '');
             formData.append('gender', editForm.gender);
-            formData.append('tempat_lahir', editForm.tempat_lahir);
+            formData.append('tempat_lahir', editForm.tempat_lahir ? editForm.tempat_lahir.trim() : '');
+
             if (editForm.tgl_lahir) {
-                formData.append('tgl_lahir', editForm.tgl_lahir.toISOString().split('T')[0]);
+                const year = editForm.tgl_lahir.getFullYear();
+                const month = String(editForm.tgl_lahir.getMonth() + 1).padStart(2, '0');
+                const day = String(editForm.tgl_lahir.getDate()).padStart(2, '0');
+                formData.append('tgl_lahir', `${year}-${month}-${day}`);
             }
-            formData.append('no_telp', editForm.no_telp);
-            formData.append('alamat', editForm.alamat);
-            formData.append('pendidikan_terakhir', editForm.pendidikan_terakhir);
+
+            formData.append('no_telp', editForm.no_telp ? editForm.no_telp.trim() : '');
+            formData.append('alamat', editForm.alamat ? editForm.alamat.trim() : '');
+            formData.append('pendidikan_terakhir', editForm.pendidikan_terakhir || '');
 
             if (fotoFile) formData.append('foto_karyawan', fotoFile);
-            if (fotoKtpFile) formData.append('foto_ktp', fotoKtpFile);
+
+            // 👈 Append Multiple Foto UMKM ke field 'foto_umkm'
+            fotoUmkmFiles.forEach((file) => {
+                formData.append('foto_umkm', file);
+            });
 
             const res = await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, formData, {
                 headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
+                    Authorization: `Bearer ${token}`
                 }
             });
 
@@ -205,8 +207,8 @@ const ProfilePage = () => {
                 toastRef.current?.showToast('00', 'Profil berhasil diperbarui!');
                 setShowEditModal(false);
                 setFotoFile(null);
-                setFotoKtpFile(null);
-                fetchProfile();
+                setFotoUmkmFiles([]);
+                await fetchProfile();
             }
         } catch (err: any) {
             console.error('Update profile error:', err);
@@ -216,7 +218,7 @@ const ProfilePage = () => {
         }
     };
 
-    // Handler Ubah Password Normal
+    // Handler Ubah Password
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -248,77 +250,6 @@ const ProfilePage = () => {
         }
     };
 
-    // Step 1: Kirim OTP
-    const handleSendForgotOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoadingForgot(true);
-        try {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password/send-otp`, {
-                email: forgotEmail
-            });
-            if (res.status === 200) {
-                toastRef.current?.showToast('00', 'OTP berhasil dikirim ke email!');
-                setForgotStep(2);
-            }
-        } catch (err: any) {
-            toastRef.current?.showToast('01', err.response?.data?.message || 'Gagal mengirim OTP');
-        } finally {
-            setLoadingForgot(false);
-        }
-    };
-
-    // Step 2: Verifikasi OTP
-    const handleVerifyForgotOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoadingForgot(true);
-        try {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password/verify-otp`, {
-                email: forgotEmail,
-                otp: forgotOtp
-            });
-            if (res.status === 200) {
-                toastRef.current?.showToast('00', 'OTP Valid! Silakan buat password baru');
-                setForgotStep(3);
-            }
-        } catch (err: any) {
-            toastRef.current?.showToast('01', err.response?.data?.message || 'Kode OTP Salah atau Kedaluwarsa');
-        } finally {
-            setLoadingForgot(false);
-        }
-    };
-
-    // Step 3: Reset Password Baru
-    const handleResetPasswordWithOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (forgotNewPassword !== forgotConfirmPassword) {
-            toastRef.current?.showToast('01', 'Konfirmasi password tidak cocok');
-            return;
-        }
-
-        setLoadingForgot(true);
-        try {
-            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password/reset`, {
-                email: forgotEmail,
-                otp: forgotOtp,
-                newPassword: forgotNewPassword
-            });
-
-            if (res.status === 200) {
-                toastRef.current?.showToast('00', 'Password berhasil di-reset!');
-                setShowForgotModal(false);
-                setShowPasswordModal(false);
-                setForgotStep(1);
-                setForgotOtp('');
-                setForgotNewPassword('');
-                setForgotConfirmPassword('');
-            }
-        } catch (err: any) {
-            toastRef.current?.showToast('01', err.response?.data?.message || 'Gagal me-reset password');
-        } finally {
-            setLoadingForgot(false);
-        }
-    };
-
     if (loading) {
         return (
             <div className="flex align-items-center justify-content-center min-h-screen">
@@ -330,6 +261,18 @@ const ProfilePage = () => {
     const karyawan = profile?.karyawan;
     const company = profile?.company;
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || '';
+
+    // Ambil daftar foto UMKM (dari FOTO_UMKM atau parse FOTO_KTP)
+    let fotoUmkmList: string[] = [];
+    if (karyawan?.FOTO_UMKM && Array.isArray(karyawan.FOTO_UMKM)) {
+        fotoUmkmList = karyawan.FOTO_UMKM;
+    } else if (karyawan?.FOTO_KTP) {
+        try {
+            fotoUmkmList = JSON.parse(karyawan.FOTO_KTP);
+        } catch (e) {
+            fotoUmkmList = [karyawan.FOTO_KTP];
+        }
+    }
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '-';
@@ -457,17 +400,22 @@ const ProfilePage = () => {
                         </Card>
                     </div>
 
+                    {/* Rendering Multiple Foto UMKM */}
                     <div className="col-12 lg:col-4">
-                        <Card title="Dokumen KTP" className="shadow-2 border-round-2xl mb-4">
-                            {karyawan?.FOTO_KTP ? (
-                                <div className="text-center">
-                                    <img src={`${baseUrl}${karyawan.FOTO_KTP}`} alt="Foto KTP" className="w-full border-round-xl shadow-2 surface-border border-1 mb-3" style={{ maxHeight: '220px', objectFit: 'cover' }} />
-                                    <Button label="Lihat KTP Utuh" icon="pi pi-external-link" className="p-button-outlined p-button-sm w-full border-round-lg" onClick={() => window.open(`${baseUrl}${karyawan.FOTO_KTP}`, '_blank')} />
+                        <Card title="Foto Dokumen UMKM" className="shadow-2 border-round-2xl mb-4">
+                            {fotoUmkmList.length > 0 ? (
+                                <div className="flex flex-column gap-3">
+                                    {fotoUmkmList.map((path, idx) => (
+                                        <div key={idx} className="text-center surface-50 p-2 border-round-xl border-1 surface-border">
+                                            <img src={`${baseUrl}${path}`} alt={`Foto UMKM ${idx + 1}`} className="w-full border-round-lg shadow-1 mb-2" style={{ maxHeight: '180px', objectFit: 'cover' }} />
+                                            <Button label={`Lihat Foto ${idx + 1}`} icon="pi pi-external-link" className="p-button-outlined p-button-sm w-full border-round-lg" onClick={() => window.open(`${baseUrl}${path}`, '_blank')} />
+                                        </div>
+                                    ))}
                                 </div>
                             ) : (
                                 <div className="surface-100 p-5 border-round-xl text-center text-500">
-                                    <i className="pi pi-id-card text-5xl mb-3 block" />
-                                    Foto KTP belum diunggah
+                                    <i className="pi pi-images text-5xl mb-3 block" />
+                                    Foto UMKM belum diunggah
                                 </div>
                             )}
                         </Card>
@@ -528,14 +476,36 @@ const ProfilePage = () => {
 
                         <div className="col-12 md:col-6 flex flex-column gap-2">
                             <label className="font-semibold text-sm">Ganti Foto Profil</label>
-                            <FileUpload mode="basic" accept="image/*" maxFileSize={2000000} chooseLabel="Pilih Foto Profil" onSelect={(e: FileUploadSelectEvent) => setFotoFile(e.files[0])} className="w-full" />
+                            <FileUpload mode="basic" accept="image/*" maxFileSize={5000000} chooseLabel="Pilih Foto Profil" onSelect={(e: FileUploadSelectEvent) => setFotoFile(e.files[0])} className="w-full" />
                             {fotoFile && <small className="text-primary font-medium">Terpilih: {fotoFile.name}</small>}
                         </div>
 
+                        {/* Input Upload Foto UMKM (Multiple Files) */}
                         <div className="col-12 md:col-6 flex flex-column gap-2">
-                            <label className="font-semibold text-sm">Ganti Berkas KTP</label>
-                            <FileUpload mode="basic" accept="image/*" maxFileSize={2000000} chooseLabel="Pilih Foto KTP" onSelect={(e: FileUploadSelectEvent) => setFotoKtpFile(e.files[0])} className="w-full" />
-                            {fotoKtpFile && <small className="text-primary font-medium">Terpilih: {fotoKtpFile.name}</small>}
+                            <label className="font-semibold text-sm">Ganti Foto UMKM (Maks. 3)</label>
+                            <FileUpload
+                                mode="basic"
+                                accept="image/*"
+                                multiple
+                                maxFileSize={5000000}
+                                chooseLabel={fotoUmkmFiles.length >= 3 ? 'Batas Foto Tercapai' : 'Pilih Foto UMKM'}
+                                disabled={fotoUmkmFiles.length >= 3}
+                                onSelect={(e: FileUploadSelectEvent) => {
+                                    const selected = Array.from(e.files);
+                                    setFotoUmkmFiles([...fotoUmkmFiles, ...selected].slice(0, 3));
+                                }}
+                                className="w-full"
+                            />
+                            {fotoUmkmFiles.length > 0 && (
+                                <div className="flex flex-column gap-1">
+                                    {fotoUmkmFiles.map((file, idx) => (
+                                        <div key={idx} className="flex align-items-center justify-content-between surface-100 p-1 border-round">
+                                            <small className="text-primary font-medium text-xs truncate">{file.name}</small>
+                                            <Button icon="pi pi-times" className="p-button-rounded p-button-danger p-button-text p-button-sm p-0" onClick={() => setFotoUmkmFiles(fotoUmkmFiles.filter((_, i) => i !== idx))} />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -563,12 +533,6 @@ const ProfilePage = () => {
                             className="w-full"
                             inputClassName="w-full"
                         />
-                    </div>
-
-                    <div className="text-right">
-                        <a href="/auth/forgot-password" className="text-primary text-sm cursor-pointer hover:underline font-medium" style={{ pointerEvents: loading ? 'none' : 'auto' }}>
-                            Lupa Password? Reset via OTP Email
-                        </a>
                     </div>
 
                     <div className="flex flex-column gap-2">
