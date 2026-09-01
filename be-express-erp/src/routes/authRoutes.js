@@ -63,4 +63,11 @@ router.post("/forgot-password/send-otp", AuthController.forgotPasswordSendOtp);
 router.post("/forgot-password/verify-otp", AuthController.verifyForgotOtp);
 router.post("/forgot-password/reset", AuthController.resetPasswordWithOtp);
 
+// Gunakan handleUpload pada complete-company
+router.post(
+  "/complete-company",
+  verifyToken,
+  AuthController.completeCompanyProfile,
+);
+
 export default router;

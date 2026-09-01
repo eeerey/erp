@@ -11,6 +11,7 @@ import {
   checkEmailExists,
   checkNikExists,
   createKaryawan,
+  generateKaryawanId,
 } from "../models/authModel.js";
 import { createCompany, getCompanyByName } from "../models/companyModel.js";
 import {
@@ -829,12 +830,15 @@ export const googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    const { email, name } = payload;
+    const { email, name, picture } = payload;
 
     let existingUser = await getUserByEmail(email);
+    let isNewUser = false;
 
     if (!existingUser) {
+      isNewUser = true;
       existingUser = await db.transaction(async (trx) => {
+        // 1. Cek atau Buat Perusahaan Default
         let defaultCompany = await trx("companies")
           .where({ nama_perusahaan: "Umum / Perorangan" })
           .first();
@@ -852,6 +856,7 @@ export const googleLogin = async (req, res) => {
           companyId = defaultCompany.id;
         }
 
+        // 2. Insert ke Tabel Users
         const [insertedUser] = await trx("users")
           .insert({
             name: name || "Google User",
@@ -866,6 +871,23 @@ export const googleLogin = async (req, res) => {
 
         const userId =
           typeof insertedUser === "object" ? insertedUser.id : insertedUser;
+
+        // 3. AUTO-CREATE MASTER KARYAWAN UNTUK GOOGLE USER
+        const karyawanId = await generateKaryawanId(trx);
+        await trx("master_karyawan").insert({
+          company_id: companyId,
+          KARYAWAN_ID: karyawanId,
+          EMAIL: email,
+          NIK: karyawanId, // Fallback NIK sementara
+          NAMA: name || "Google User",
+          GENDER: "L",
+          DEPARTEMEN: "DIRECTOR",
+          JABATAN: "Owner",
+          STATUS_KARYAWAN: "Tetap",
+          STATUS_AKTIF: "Aktif",
+          FOTO: picture || null, // Menggunakan foto profil bawaan Google
+          created_at: new Date(),
+        });
 
         return trx("users").where({ id: userId }).first();
       });
@@ -882,13 +904,26 @@ export const googleLogin = async (req, res) => {
     }
 
     let karyawanId = null;
+    let isProfileComplete = false;
+
     if (!["SUPERADMIN"].includes(existingUser.role)) {
       const karyawan = await db("master_karyawan")
-        .where("EMAIL", existingUser.email)
-        .select("KARYAWAN_ID")
+        .whereRaw("LOWER(EMAIL) = ?", [existingUser.email.trim().toLowerCase()])
         .first();
 
-      if (karyawan) karyawanId = karyawan.KARYAWAN_ID;
+      if (karyawan) {
+        karyawanId = karyawan.KARYAWAN_ID;
+        // Penanda apakah profil sudah dilengkapi (Punya NIK dan No Telp valid)
+        if (
+          karyawan.NIK &&
+          karyawan.NO_TELP &&
+          karyawan.NIK !== karyawan.KARYAWAN_ID
+        ) {
+          isProfileComplete = true;
+        }
+      }
+    } else {
+      isProfileComplete = true;
     }
 
     const logId = await createActivityLog(existingUser.id);
@@ -914,6 +949,8 @@ export const googleLogin = async (req, res) => {
       message: "Login / Register via Google berhasil",
       datetime: datetime(),
       token,
+      isProfileComplete, // 👈 Dikirim ke Frontend untuk penanganan Auto Redirect ke Form Profile
+      isNewUser,
       user: {
         id: existingUser.id,
         name: existingUser.name,
@@ -934,11 +971,15 @@ export const googleLogin = async (req, res) => {
 };
 
 /**
- * UPDATE PROFILE & UPLOAD BERKAS
+ * UPDATE PROFILE & UPLOAD BERKAS (Fixed)
  */
 export const updateProfile = async (req, res) => {
   const files = req.files || {};
-  const fotoKaryawanFile = files.foto_karyawan?.[0] || null;
+
+  // 👈 FIX 1: Cek fallback jika nama field dari FE berupa foto_karyawan / foto / avatar
+  const fotoKaryawanFile =
+    files.foto_karyawan?.[0] || files.foto?.[0] || files.avatar?.[0] || null;
+
   const fotoUmkmFiles = files.foto_umkm || [];
 
   try {
@@ -969,21 +1010,45 @@ export const updateProfile = async (req, res) => {
       no_telp,
       alamat,
       pendidikan_terakhir,
+      nama_perusahaan,
+      no_telp_perusahaan,
+      alamat_perusahaan,
     } = req.body;
 
-    // 1. Update nama user di tabel users (jika kolom updated_at ada di users)
+    // 1. Update nama user di tabel users
     if (name && name.trim() !== "") {
       await db("users").where({ id: userId }).update({
         name: name.trim(),
       });
     }
 
-    // 2. Cari data karyawan
+    // 2. Update Informasi Perusahaan jika dikirim
+    if (
+      user.company_id &&
+      (nama_perusahaan || no_telp_perusahaan || alamat_perusahaan)
+    ) {
+      const updateCompany = {};
+      if (nama_perusahaan) updateCompany.nama_perusahaan = nama_perusahaan;
+      if (no_telp_perusahaan) updateCompany.no_telp = no_telp_perusahaan;
+      if (alamat_perusahaan) updateCompany.alamat = alamat_perusahaan;
+
+      await db("companies")
+        .where({ id: user.company_id })
+        .update(updateCompany);
+    }
+
+    // 3. Cari data karyawan (Pencarian fleksibel via email atau company_id)
     let karyawan = await db("master_karyawan")
       .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
       .first();
 
-    // 3. Format Tanggal Lahir
+    if (!karyawan && user.company_id) {
+      karyawan = await db("master_karyawan")
+        .where({ company_id: user.company_id })
+        .first();
+    }
+
+    // 4. Format Tanggal Lahir
     let formattedTglLahir = null;
     if (tgl_lahir && tgl_lahir !== "null" && tgl_lahir !== "") {
       const parsedDate = new Date(tgl_lahir);
@@ -992,35 +1057,56 @@ export const updateProfile = async (req, res) => {
       }
     }
 
-    // 4. Susun Payload Update Karyawan
+    // 5. Susun Payload Update Karyawan
     const updateDataKaryawan = {};
     if (name) updateDataKaryawan.NAMA = name.trim();
     if (nik) updateDataKaryawan.NIK = nik.trim();
     if (gender) updateDataKaryawan.GENDER = gender;
-    if (tempat_lahir !== undefined) updateDataKaryawan.TEMPAT_LAHIR = tempat_lahir || null;
-    if (formattedTglLahir !== null) updateDataKaryawan.TGL_LAHIR = formattedTglLahir;
-    if (no_telp !== undefined) updateDataKaryawan.NO_TELP = no_telp || null;
-    if (alamat !== undefined) updateDataKaryawan.ALAMAT = alamat || null;
-    if (pendidikan_terakhir !== undefined) updateDataKaryawan.PENDIDIKAN_TERAKHIR = pendidikan_terakhir || null;
+    if (tempat_lahir !== undefined && tempat_lahir !== "")
+      updateDataKaryawan.TEMPAT_LAHIR = tempat_lahir;
+    if (formattedTglLahir !== null)
+      updateDataKaryawan.TGL_LAHIR = formattedTglLahir;
+    if (no_telp !== undefined && no_telp !== "")
+      updateDataKaryawan.NO_TELP = no_telp;
+    if (alamat !== undefined && alamat !== "")
+      updateDataKaryawan.ALAMAT = alamat;
+    if (pendidikan_terakhir !== undefined && pendidikan_terakhir !== "")
+      updateDataKaryawan.PENDIDIKAN_TERAKHIR = pendidikan_terakhir;
 
-    // Masukkan Foto Profil baru jika ada
+    // 👈 FIX 2: Set Foto Karyawan secara eksplisit
     if (fotoKaryawanFile) {
       updateDataKaryawan.FOTO = `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`;
     }
 
-    // Masukkan Foto UMKM baru jika ada (konversi ke JSON string di kolom FOTO_KTP)
+    // Set Foto UMKM baru jika ada
     if (fotoUmkmFiles.length > 0) {
       const fotoUmkmPaths = fotoUmkmFiles.map(
-        (file) => `/uploads/foto_umkm/${file.filename}`
+        (file) => `/uploads/foto_umkm/${file.filename}`,
       );
       updateDataKaryawan.FOTO_KTP = JSON.stringify(fotoUmkmPaths);
     }
 
-    // Eksekusi Update ke master_karyawan
+    // 6. EKSEKUSI UPDATE / INSERT (UPSERT)
     if (karyawan) {
       await db("master_karyawan")
         .where({ ID: karyawan.ID })
         .update(updateDataKaryawan);
+    } else {
+      const newKaryawanId = await generateKaryawanId();
+      await db("master_karyawan").insert({
+        company_id: user.company_id,
+        KARYAWAN_ID: newKaryawanId,
+        EMAIL: user.email,
+        NIK: nik || newKaryawanId,
+        NAMA: name || user.name,
+        GENDER: gender || "L",
+        DEPARTEMEN: "DIRECTOR",
+        JABATAN: "Owner",
+        STATUS_KARYAWAN: "Tetap",
+        STATUS_AKTIF: "Aktif",
+        ...updateDataKaryawan,
+        created_at: new Date(),
+      });
     }
 
     return res.status(200).json({
@@ -1252,6 +1338,83 @@ export const resetPasswordWithOtp = async (req, res) => {
     });
   } catch (error) {
     console.error("Error resetPasswordWithOtp:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: `Terjadi kesalahan server: ${error.message}`,
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * COMPLETE COMPANY PROFILE (Khusus First Time Google User)
+ */
+export const completeCompanyProfile = async (req, res) => {
+  try {
+    const userId = req.user?.userId || req.user?.id;
+    const {
+      nama_perusahaan,
+      npwp_perusahaan,
+      nib,
+      no_telp_perusahaan,
+      alamat_perusahaan,
+    } = req.body;
+
+    if (!nama_perusahaan) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Nama Perusahaan wajib diisi!",
+        datetime: datetime(),
+      });
+    }
+
+    const user = await db("users").where({ id: userId }).first();
+    if (!user) {
+      return res.status(404).json({
+        status: status.GAGAL,
+        message: "User tidak ditemukan",
+        datetime: datetime(),
+      });
+    }
+
+    // 1. Buat atau update perusahaan
+    let company = await getCompanyByName(nama_perusahaan);
+    let companyId;
+
+    if (company) {
+      companyId = company.id;
+      await db("companies")
+        .where({ id: companyId })
+        .update({
+          npwp: npwp_perusahaan || company.npwp,
+          nib: nib || company.nib,
+          no_telp: no_telp_perusahaan || company.no_telp,
+          alamat: alamat_perusahaan || company.alamat,
+        });
+    } else {
+      const [newCompanyId] = await db("companies").insert({
+        nama_perusahaan,
+        npwp: npwp_perusahaan || null,
+        nib: nib || null,
+        no_telp: no_telp_perusahaan || null,
+        alamat: alamat_perusahaan || null,
+      });
+      companyId = newCompanyId;
+    }
+
+    // 2. Update company_id di tabel users & master_karyawan
+    await db("users").where({ id: userId }).update({ company_id: companyId });
+    await db("master_karyawan")
+      .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
+      .update({ company_id: companyId });
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Data perusahaan berhasil dilengkapi!",
+      datetime: datetime(),
+    });
+  } catch (error) {
+    console.error("Error completeCompanyProfile:", error);
     return res.status(500).json({
       status: status.GAGAL,
       message: `Terjadi kesalahan server: ${error.message}`,

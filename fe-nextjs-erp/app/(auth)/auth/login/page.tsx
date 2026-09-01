@@ -52,9 +52,17 @@ const LoginPage = () => {
 
             toastRef.current?.showToast('00', `Selamat datang, ${data.user.name}!`);
 
+            // 👈 PERBAIKAN: Check Status Kelengkapan Profile
             setTimeout(() => {
-                const redirect = roleRoutes[data.user.role] || '/';
-                router.push(redirect);
+                // Di handleGoogleResponse (login.tsx)
+                if (data.isNewUser || !data.isProfileComplete) {
+                    // Jika user Google baru, lempar ke form pengisian perusahaan
+                    router.push('/auth/complete-company');
+                } else {
+                    // Jika user lama, langsung ke Dashboard
+                    const redirect = roleRoutes[data.user.role] || '/';
+                    router.push(redirect);
+                }
             }, 1000);
         } catch (err: any) {
             console.error('Google login error:', err);
