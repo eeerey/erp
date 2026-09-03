@@ -104,30 +104,29 @@ export const checkNikExists = async (nik) => {
 };
 
 /**
- * GENERATE KARYAWAN_ID OTOMATIS (Mendukung instance Trx)
+ * GENERATE KARYAWAN_ID OTOMATIS (Mendukung instance Trx & Aman dari Bentrok)
  */
 export const generateKaryawanId = async (trxInstance = null) => {
   const query = trxInstance || db;
+
+  // 1. Urutkan berdasarkan nilai KARYAWAN_ID terbesar secara alfabetis/string
   const lastKaryawan = await query("master_karyawan")
-    .orderBy("ID", "desc")
+    .where("KARYAWAN_ID", "like", "KRY-%")
+    .orderBy("KARYAWAN_ID", "desc")
     .first();
 
   if (!lastKaryawan || !lastKaryawan.KARYAWAN_ID) {
     return "KRY-0001";
   }
 
-  const lastNumber = parseInt(
-    lastKaryawan.KARYAWAN_ID.split("-")[1] || "0",
-    10,
-  );
-  const newNumber = lastNumber + 1;
+  // 2. Extract angka dari KARYAWAN_ID (misal "KRY-0010" -> 10)
+  const parts = lastKaryawan.KARYAWAN_ID.split("-");
+  const lastNumber = parseInt(parts[1] || "0", 10);
+  const newNumber = isNaN(lastNumber) ? 1 : lastNumber + 1;
 
   return `KRY-${String(newNumber).padStart(4, "0")}`;
 };
 
-/**
- * CREATE KARYAWAN
- */
 /**
  * CREATE KARYAWAN (Model)
  */
@@ -139,6 +138,7 @@ export const createKaryawan = async (
   const hashedPassword = await hashPassword(userData.password);
 
   return await db.transaction(async (trx) => {
+    // Generate KARYAWAN_ID baru secara atomik di dalam transaksi
     const karyawanId = await generateKaryawanId(trx);
     const isVerified =
       userData.is_verified ?? (verificationData ? false : true);
@@ -155,12 +155,18 @@ export const createKaryawan = async (
       created_at: new Date(),
     });
 
-    // HANYA sertakan kolom yang ada di tabel master_karyawan phpMyAdmin
+    // 👈 FIX NIK: Jika NIK kosong/null, buat penanda NIK unik sementara berbasis timestamp.
+    // Ini mencegah NIK menggunakan format "KRY-xxxx" yang bisa bentrok dengan KARYAWAN_ID user lain.
+    const finalNik =
+      karyawanData.NIK && String(karyawanData.NIK).trim() !== ""
+        ? String(karyawanData.NIK).trim()
+        : `NIK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
     const [id] = await trx("master_karyawan").insert({
       company_id: userData.company_id,
       KARYAWAN_ID: karyawanId,
       EMAIL: karyawanData.EMAIL,
-      NIK: karyawanData.NIK || karyawanId,
+      NIK: finalNik,
       NAMA: karyawanData.NAMA,
       GENDER: karyawanData.GENDER,
       TEMPAT_LAHIR: karyawanData.TEMPAT_LAHIR || null,

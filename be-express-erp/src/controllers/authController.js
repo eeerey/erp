@@ -812,6 +812,9 @@ export const registerOwner = async (req, res) => {
 /**
  * LOGIN & AUTO-REGISTER VIA GOOGLE
  */
+/**
+ * LOGIN & AUTO-REGISTER VIA GOOGLE
+ */
 export const googleLogin = async (req, res) => {
   try {
     const { credential } = req.body;
@@ -838,7 +841,6 @@ export const googleLogin = async (req, res) => {
     if (!existingUser) {
       isNewUser = true;
       existingUser = await db.transaction(async (trx) => {
-        // 1. Cek atau Buat Perusahaan Default
         let defaultCompany = await trx("companies")
           .where({ nama_perusahaan: "Umum / Perorangan" })
           .first();
@@ -856,7 +858,6 @@ export const googleLogin = async (req, res) => {
           companyId = defaultCompany.id;
         }
 
-        // 2. Insert ke Tabel Users
         const [insertedUser] = await trx("users")
           .insert({
             name: name || "Google User",
@@ -872,20 +873,23 @@ export const googleLogin = async (req, res) => {
         const userId =
           typeof insertedUser === "object" ? insertedUser.id : insertedUser;
 
-        // 3. AUTO-CREATE MASTER KARYAWAN UNTUK GOOGLE USER
         const karyawanId = await generateKaryawanId(trx);
+
+        // UBAH DI SINI: NIK dibuat unik berbasis timestamp
+        const tempNik = `NIK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
         await trx("master_karyawan").insert({
           company_id: companyId,
           KARYAWAN_ID: karyawanId,
           EMAIL: email,
-          NIK: karyawanId, // Fallback NIK sementara
+          NIK: tempNik, // 👈 UBAH: tidak lagi memakai karyawanId
           NAMA: name || "Google User",
           GENDER: "L",
           DEPARTEMEN: "DIRECTOR",
           JABATAN: "Owner",
           STATUS_KARYAWAN: "Tetap",
           STATUS_AKTIF: "Aktif",
-          FOTO: picture || null, // Menggunakan foto profil bawaan Google
+          FOTO: picture || null,
           created_at: new Date(),
         });
 
@@ -913,10 +917,10 @@ export const googleLogin = async (req, res) => {
 
       if (karyawan) {
         karyawanId = karyawan.KARYAWAN_ID;
-        // Penanda apakah profil sudah dilengkapi (Punya NIK dan No Telp valid)
         if (
           karyawan.NIK &&
           karyawan.NO_TELP &&
+          !karyawan.NIK.startsWith("NIK-") &&
           karyawan.NIK !== karyawan.KARYAWAN_ID
         ) {
           isProfileComplete = true;
@@ -949,7 +953,7 @@ export const googleLogin = async (req, res) => {
       message: "Login / Register via Google berhasil",
       datetime: datetime(),
       token,
-      isProfileComplete, // 👈 Dikirim ke Frontend untuk penanganan Auto Redirect ke Form Profile
+      isProfileComplete,
       isNewUser,
       user: {
         id: existingUser.id,
@@ -971,15 +975,12 @@ export const googleLogin = async (req, res) => {
 };
 
 /**
- * UPDATE PROFILE & UPLOAD BERKAS (Fixed)
+ * UPDATE PROFILE & UPLOAD BERKAS (With NIK Validation & Debug Console Log)
  */
 export const updateProfile = async (req, res) => {
   const files = req.files || {};
-
-  // 👈 FIX 1: Cek fallback jika nama field dari FE berupa foto_karyawan / foto / avatar
   const fotoKaryawanFile =
     files.foto_karyawan?.[0] || files.foto?.[0] || files.avatar?.[0] || null;
-
   const fotoUmkmFiles = files.foto_umkm || [];
 
   try {
@@ -1015,29 +1016,7 @@ export const updateProfile = async (req, res) => {
       alamat_perusahaan,
     } = req.body;
 
-    // 1. Update nama user di tabel users
-    if (name && name.trim() !== "") {
-      await db("users").where({ id: userId }).update({
-        name: name.trim(),
-      });
-    }
-
-    // 2. Update Informasi Perusahaan jika dikirim
-    if (
-      user.company_id &&
-      (nama_perusahaan || no_telp_perusahaan || alamat_perusahaan)
-    ) {
-      const updateCompany = {};
-      if (nama_perusahaan) updateCompany.nama_perusahaan = nama_perusahaan;
-      if (no_telp_perusahaan) updateCompany.no_telp = no_telp_perusahaan;
-      if (alamat_perusahaan) updateCompany.alamat = alamat_perusahaan;
-
-      await db("companies")
-        .where({ id: user.company_id })
-        .update(updateCompany);
-    }
-
-    // 3. Cari data karyawan (Pencarian fleksibel via email atau company_id)
+    // 1. Cari data karyawan terhubung (via EMAIL atau company_id)
     let karyawan = await db("master_karyawan")
       .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
       .first();
@@ -1048,37 +1027,101 @@ export const updateProfile = async (req, res) => {
         .first();
     }
 
-    // 4. Format Tanggal Lahir
+    // 2. CEK DUPLIKASI NIK DENGAN CONSOLE LOG
+    if (nik && String(nik).trim() !== "") {
+      const cleanNik = String(nik).trim();
+      let duplicateNikQuery = db("master_karyawan").where({ NIK: cleanNik });
+
+      // Jika record karyawan sudah ada, abaikan pengecekan terhadap record milik dirinya sendiri
+      if (karyawan) {
+        duplicateNikQuery = duplicateNikQuery.whereNot({ ID: karyawan.ID });
+      }
+
+      const existingNik = await duplicateNikQuery.first();
+
+      if (existingNik) {
+        // 👈 CONSOLE LOG SAAT NIK DUPLIKAT TERDETEKSI
+        console.warn(
+          `[WARN UPDATE PROFILE] Penolakan NIK Duplikat! User ID: ${userId} (${user.email}) mencoba menggunakan NIK: "${cleanNik}", tetapi NIK tersebut sudah dimiliki Karyawan ID: ${existingNik.ID} (${existingNik.NAMA}).`,
+        );
+
+        return res.status(400).json({
+          status: status.BAD_REQUEST,
+          message: `NIK '${cleanNik}' sudah terdaftar pada pengguna lain. Gunakan NIK lain.`,
+          datetime: datetime(),
+        });
+      }
+    }
+
+    // 3. Update nama user di tabel users
+    if (name && String(name).trim() !== "") {
+      await db("users")
+        .where({ id: userId })
+        .update({
+          name: String(name).trim(),
+        });
+    }
+
+    // 4. Update Informasi Perusahaan jika dikirim
+    if (
+      user.company_id &&
+      (nama_perusahaan || no_telp_perusahaan || alamat_perusahaan)
+    ) {
+      const updateCompany = {};
+      if (nama_perusahaan && String(nama_perusahaan).trim() !== "")
+        updateCompany.nama_perusahaan = String(nama_perusahaan).trim();
+      if (no_telp_perusahaan && String(no_telp_perusahaan).trim() !== "")
+        updateCompany.no_telp = String(no_telp_perusahaan).trim();
+      if (alamat_perusahaan && String(alamat_perusahaan).trim() !== "")
+        updateCompany.alamat = String(alamat_perusahaan).trim();
+
+      if (Object.keys(updateCompany).length > 0) {
+        await db("companies")
+          .where({ id: user.company_id })
+          .update(updateCompany);
+      }
+    }
+
+    // 5. Format Tanggal Lahir
     let formattedTglLahir = null;
-    if (tgl_lahir && tgl_lahir !== "null" && tgl_lahir !== "") {
+    if (
+      tgl_lahir &&
+      tgl_lahir !== "null" &&
+      tgl_lahir !== "undefined" &&
+      String(tgl_lahir).trim() !== ""
+    ) {
       const parsedDate = new Date(tgl_lahir);
       if (!isNaN(parsedDate.getTime())) {
         formattedTglLahir = parsedDate.toISOString().split("T")[0];
       }
     }
 
-    // 5. Susun Payload Update Karyawan
+    // 6. Susun Payload Update Karyawan
     const updateDataKaryawan = {};
-    if (name) updateDataKaryawan.NAMA = name.trim();
-    if (nik) updateDataKaryawan.NIK = nik.trim();
-    if (gender) updateDataKaryawan.GENDER = gender;
-    if (tempat_lahir !== undefined && tempat_lahir !== "")
-      updateDataKaryawan.TEMPAT_LAHIR = tempat_lahir;
+    if (name && String(name).trim() !== "")
+      updateDataKaryawan.NAMA = String(name).trim();
+    if (nik && String(nik).trim() !== "")
+      updateDataKaryawan.NIK = String(nik).trim();
+    if (gender && String(gender).trim() !== "")
+      updateDataKaryawan.GENDER = gender;
+    if (tempat_lahir && String(tempat_lahir).trim() !== "")
+      updateDataKaryawan.TEMPAT_LAHIR = String(tempat_lahir).trim();
     if (formattedTglLahir !== null)
       updateDataKaryawan.TGL_LAHIR = formattedTglLahir;
-    if (no_telp !== undefined && no_telp !== "")
-      updateDataKaryawan.NO_TELP = no_telp;
-    if (alamat !== undefined && alamat !== "")
-      updateDataKaryawan.ALAMAT = alamat;
-    if (pendidikan_terakhir !== undefined && pendidikan_terakhir !== "")
-      updateDataKaryawan.PENDIDIKAN_TERAKHIR = pendidikan_terakhir;
+    if (no_telp && String(no_telp).trim() !== "")
+      updateDataKaryawan.NO_TELP = String(no_telp).trim();
+    if (alamat && String(alamat).trim() !== "")
+      updateDataKaryawan.ALAMAT = String(alamat).trim();
+    if (pendidikan_terakhir && String(pendidikan_terakhir).trim() !== "")
+      updateDataKaryawan.PENDIDIKAN_TERAKHIR =
+        String(pendidikan_terakhir).trim();
 
-    // 👈 FIX 2: Set Foto Karyawan secara eksplisit
+    // Set Foto Karyawan jika ada
     if (fotoKaryawanFile) {
       updateDataKaryawan.FOTO = `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`;
     }
 
-    // Set Foto UMKM baru jika ada
+    // Set Foto UMKM jika ada
     if (fotoUmkmFiles.length > 0) {
       const fotoUmkmPaths = fotoUmkmFiles.map(
         (file) => `/uploads/foto_umkm/${file.filename}`,
@@ -1086,19 +1129,25 @@ export const updateProfile = async (req, res) => {
       updateDataKaryawan.FOTO_KTP = JSON.stringify(fotoUmkmPaths);
     }
 
-    // 6. EKSEKUSI UPDATE / INSERT (UPSERT)
+    // 7. EKSEKUSI UPDATE / INSERT
     if (karyawan) {
-      await db("master_karyawan")
-        .where({ ID: karyawan.ID })
-        .update(updateDataKaryawan);
+      updateDataKaryawan.EMAIL = user.email;
+
+      if (Object.keys(updateDataKaryawan).length > 0) {
+        await db("master_karyawan")
+          .where({ ID: karyawan.ID })
+          .update(updateDataKaryawan);
+      }
     } else {
       const newKaryawanId = await generateKaryawanId();
       await db("master_karyawan").insert({
         company_id: user.company_id,
         KARYAWAN_ID: newKaryawanId,
         EMAIL: user.email,
-        NIK: nik || newKaryawanId,
-        NAMA: name || user.name,
+        NIK:
+          nik && String(nik).trim() !== "" ? String(nik).trim() : newKaryawanId,
+        NAMA:
+          name && String(name).trim() !== "" ? String(name).trim() : user.name,
         GENDER: gender || "L",
         DEPARTEMEN: "DIRECTOR",
         JABATAN: "Owner",
