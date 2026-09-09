@@ -21,6 +21,9 @@ router.post("/google-login", AuthController.googleLogin);
 router.post("/verify-email", AuthController.verifyEmail);
 router.post("/resend-verification", AuthController.resendVerificationToken);
 
+// LOGIN KHUSUS SUPERADMIN
+router.post("/admin/login", AuthController.loginSuperAdmin);
+
 /**
  * CONDITIONAL & REGISTRATION ROUTES
  */

@@ -127,15 +127,15 @@ const AppMenu = () => {
                     { label: 'Log User', icon: 'pi pi-fw pi-clock', to: '/user_log' }
                 ]
             },
-            {
-                label: 'PENGATURAN',
-                icon: 'pi pi-fw pi-cog',
-                items: [
-                    { label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
-                    { label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
-                    { label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
-                ]
-            }
+            //{
+                //label: 'PENGATURAN',
+                //icon: 'pi pi-fw pi-cog',
+                //items: [
+                    //{ label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
+                    //{ label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
+                    //{ label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
+                //]
+            //}
         ];
     }
     // =========================

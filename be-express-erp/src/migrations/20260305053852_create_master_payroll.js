@@ -15,15 +15,21 @@ export async function up(knex) {
     // 2. Kode Payroll (PAY-202603-KRY0001)
     table.string("KODE_PAYROLL", 30).notNullable().unique();
 
+    // Penambahan kolom company_id (multi-tenancy)
+    table.integer("company_id").unsigned().notNullable().defaultTo(0);
+
     // 3. Relasi
-    table.string("KARYAWAN_ID", 20)
-      .notNullable()
+    table.string("KARYAWAN_ID", 20).notNullable();
+    table
+      .foreign("KARYAWAN_ID")
       .references("KARYAWAN_ID")
       .inTable("master_karyawan")
       .onDelete("CASCADE")
       .onUpdate("CASCADE");
 
-    table.integer("USER_ID").unsigned().nullable()
+    table.integer("USER_ID").unsigned().nullable();
+    table
+      .foreign("USER_ID")
       .references("id")
       .inTable("users")
       .onDelete("SET NULL")
@@ -35,7 +41,10 @@ export async function up(knex) {
     // 5. Snapshot Jabatan saat payroll dibuat
     table.string("JABATAN_SNAPSHOT", 100).nullable();
     table.string("DEPARTEMEN_SNAPSHOT", 100).nullable();
-    table.enum("SUMBER_GAJI", ["Jabatan", "Override"]).notNullable().defaultTo("Jabatan");
+    table
+      .enum("SUMBER_GAJI", ["Jabatan", "Override"])
+      .notNullable()
+      .defaultTo("Jabatan");
 
     // 6. Data Kehadiran (dari master_presensi)
     table.integer("HARI_KERJA_NORMAL").notNullable().defaultTo(0);
@@ -49,35 +58,39 @@ export async function up(knex) {
     table.integer("TOTAL_KEJADIAN_TERLAMBAT").notNullable().defaultTo(0);
     table.integer("TOTAL_PULANG_AWAL").notNullable().defaultTo(0);
 
-    // 7. Data Kinerja (dari rekapitulasi_kinerja)
+    // 7. Data Kinerja
     table.integer("PERFORMANCE_SCORE").notNullable().defaultTo(0);
-    table.decimal("TOTAL_OUTPUT", 15, 2).notNullable().defaultTo(0);
-    table.decimal("TOTAL_JAM_PRODUKTIF", 10, 2).notNullable().defaultTo(0);
+    table.decimal("TOTAL_OUTPUT", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("TOTAL_JAM_PRODUKTIF", 10, 2).notNullable().defaultTo(0.0);
     table.integer("TOTAL_LOGBOOK_APPROVED").notNullable().defaultTo(0);
 
     // 8. Komponen Pendapatan (snapshot nilai saat dihitung)
-    table.decimal("GAJI_POKOK", 15, 2).notNullable().defaultTo(0);
-    table.decimal("TUNJANGAN_TRANSPORT", 15, 2).notNullable().defaultTo(0);
-    table.decimal("TUNJANGAN_MAKAN", 15, 2).notNullable().defaultTo(0);
-    table.decimal("TUNJANGAN_JABATAN", 15, 2).notNullable().defaultTo(0);
-    table.decimal("TUNJANGAN_LAINNYA", 15, 2).notNullable().defaultTo(0);
-    table.decimal("BONUS_KINERJA", 15, 2).notNullable().defaultTo(0);
-    table.decimal("BONUS_PERSEN_DIPAKAI", 5, 2).notNullable().defaultTo(0); // % bonus yg aktif
-    table.decimal("TOTAL_PENDAPATAN", 15, 2).notNullable().defaultTo(0);
+    table.decimal("GAJI_POKOK", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("TUNJANGAN_TRANSPORT", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("TUNJANGAN_MAKAN", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("TUNJANGAN_JABATAN", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("TUNJANGAN_LAINNYA", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("BONUS_KINERJA", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("BONUS_PERSEN_DIPAKAI", 5, 2).notNullable().defaultTo(0.0);
+    table.decimal("TOTAL_PENDAPATAN", 15, 2).notNullable().defaultTo(0.0);
 
     // 9. Komponen Potongan
-    table.decimal("POTONGAN_TERLAMBAT", 15, 2).notNullable().defaultTo(0);
-    table.decimal("POTONGAN_ALPA", 15, 2).notNullable().defaultTo(0);
-    table.decimal("POTONGAN_BPJS_KESEHATAN", 15, 2).notNullable().defaultTo(0);
-    table.decimal("POTONGAN_BPJS_TK", 15, 2).notNullable().defaultTo(0);
-    table.decimal("POTONGAN_PPH21", 15, 2).notNullable().defaultTo(0);
-    table.decimal("TOTAL_POTONGAN", 15, 2).notNullable().defaultTo(0);
+    table.decimal("POTONGAN_TERLAMBAT", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("POTONGAN_ALPA", 15, 2).notNullable().defaultTo(0.0);
+    table
+      .decimal("POTONGAN_BPJS_KESEHATAN", 15, 2)
+      .notNullable()
+      .defaultTo(0.0);
+    table.decimal("POTONGAN_BPJS_TK", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("POTONGAN_PPH21", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("TOTAL_POTONGAN", 15, 2).notNullable().defaultTo(0.0);
 
     // 10. Take Home Pay
-    table.decimal("TAKE_HOME_PAY", 15, 2).notNullable().defaultTo(0);
+    table.decimal("TAKE_HOME_PAY", 15, 2).notNullable().defaultTo(0.0);
 
     // 11. Status & Approval
-    table.enum("STATUS", ["Draft", "Approved", "Paid"])
+    table
+      .enum("STATUS", ["Draft", "Approved", "Paid"])
       .notNullable()
       .defaultTo("Draft");
     table.string("APPROVED_BY", 20).nullable();
@@ -89,13 +102,10 @@ export async function up(knex) {
     table.text("KETERANGAN").nullable();
 
     // 13. Metadata
-    table.timestamp("created_at").defaultTo(knex.fn.now());
-    table.timestamp("updated_at").defaultTo(
-      knex.raw("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
-    );
+    table.timestamp("created_at").nullable().defaultTo(knex.fn.now());
+    table.timestamp("updated_at").nullable().defaultTo(knex.fn.now());
 
     // 14. Constraint & Index
-    // Satu karyawan hanya boleh punya 1 payroll per periode
     table.unique(["KARYAWAN_ID", "PERIODE"], "uniq_payroll_karyawan_periode");
     table.index("PERIODE");
     table.index("STATUS");

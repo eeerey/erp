@@ -159,7 +159,7 @@ export const register = async (req, res) => {
     }
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -279,7 +279,7 @@ export const login = async (req, res) => {
     console.error("Error login:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -308,13 +308,10 @@ export const getProfile = async (req, res) => {
       });
     }
 
-    // 👈 Parsing FOTO_KTP (yang berisi string JSON Foto UMKM) menjadi Array
     if (user.karyawan && user.karyawan.FOTO_KTP) {
       try {
-        // Jika format di DB adalah JSON string ["/uploads/foto_umkm/file1.jpg", ...]
         user.karyawan.FOTO_UMKM = JSON.parse(user.karyawan.FOTO_KTP);
       } catch (e) {
-        // Jika data lama hanya berupa 1 string path biasa
         user.karyawan.FOTO_UMKM = [user.karyawan.FOTO_KTP];
       }
     } else if (user.karyawan) {
@@ -331,7 +328,7 @@ export const getProfile = async (req, res) => {
     console.error("Error getProfile:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -380,7 +377,7 @@ export const logout = async (req, res) => {
     console.error("Error logout:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -504,7 +501,7 @@ export const registerKaryawan = async (req, res) => {
     console.error("Error registerKaryawan:", err);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${err.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -575,7 +572,7 @@ export const verifyEmail = async (req, res) => {
     console.error("Error verifyEmail:", err);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${err.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -642,11 +639,12 @@ export const resendVerificationToken = async (req, res) => {
     console.error("Error resendVerificationToken:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
 };
+
 /**
  * REGISTER OWNER
  */
@@ -655,26 +653,21 @@ export const registerOwner = async (req, res) => {
   const fotoKaryawanFile = files.foto_karyawan?.[0] || null;
   const fotoUmkmFiles = files.foto_umkm || [];
 
-  // 1. Deklarasikan fotoPath
   const fotoPath = fotoKaryawanFile
     ? `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`
     : null;
 
-  // 2. Map path foto UMKM (1 - 3 file)
   const fotoUmkmPaths = fotoUmkmFiles.map(
     (file) => `/uploads/foto_umkm/${file.filename}`,
   );
 
-  // Helper lokal untuk rollback/hapus file yang terlanjur diunggah jika validasi gagal
   const cleanupFiles = async () => {
     if (typeof removeUploadedFiles === "function") {
-      // Hapus foto profil dan seluruh foto UMKM
       await removeUploadedFiles(fotoPath, ...fotoUmkmPaths);
     }
   };
 
   try {
-    // Validasi Wajib minimal 1 Foto UMKM
     if (fotoUmkmFiles.length === 0) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
@@ -748,7 +741,6 @@ export const registerOwner = async (req, res) => {
     const otpCode = generateOTP();
     const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-    // Konversi array foto UMKM ke String JSON untuk disimpan ke DB
     const fotoUmkmString =
       fotoUmkmPaths.length > 0 ? JSON.stringify(fotoUmkmPaths) : null;
 
@@ -769,7 +761,7 @@ export const registerOwner = async (req, res) => {
         FOTO: fotoPath,
         NPWP: npwp || null,
         NIB: nib || null,
-        FOTO_KTP: fotoUmkmString, // 👈 Disimpan sebagai JSON String dari foto UMKM
+        FOTO_KTP: fotoUmkmString,
       },
       {
         name: nama,
@@ -804,14 +796,12 @@ export const registerOwner = async (req, res) => {
     await cleanupFiles();
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
 };
-/**
- * LOGIN & AUTO-REGISTER VIA GOOGLE
- */
+
 /**
  * LOGIN & AUTO-REGISTER VIA GOOGLE
  */
@@ -874,15 +864,13 @@ export const googleLogin = async (req, res) => {
           typeof insertedUser === "object" ? insertedUser.id : insertedUser;
 
         const karyawanId = await generateKaryawanId(trx);
-
-        // UBAH DI SINI: NIK dibuat unik berbasis timestamp
         const tempNik = `NIK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
         await trx("master_karyawan").insert({
           company_id: companyId,
           KARYAWAN_ID: karyawanId,
           EMAIL: email,
-          NIK: tempNik, // 👈 UBAH: tidak lagi memakai karyawanId
+          NIK: tempNik,
           NAMA: name || "Google User",
           GENDER: "L",
           DEPARTEMEN: "DIRECTOR",
@@ -968,14 +956,14 @@ export const googleLogin = async (req, res) => {
     console.error("Error Google Login/Register:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Autentikasi Google gagal: ${error.message}`,
+      message: "Autentikasi Google gagal",
       datetime: datetime(),
     });
   }
 };
 
 /**
- * UPDATE PROFILE & UPLOAD BERKAS (With NIK Validation & Debug Console Log)
+ * UPDATE PROFILE & UPLOAD BERKAS
  */
 export const updateProfile = async (req, res) => {
   const files = req.files || {};
@@ -1016,7 +1004,6 @@ export const updateProfile = async (req, res) => {
       alamat_perusahaan,
     } = req.body;
 
-    // 1. Cari data karyawan terhubung (via EMAIL atau company_id)
     let karyawan = await db("master_karyawan")
       .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
       .first();
@@ -1027,12 +1014,10 @@ export const updateProfile = async (req, res) => {
         .first();
     }
 
-    // 2. CEK DUPLIKASI NIK DENGAN CONSOLE LOG
     if (nik && String(nik).trim() !== "") {
       const cleanNik = String(nik).trim();
       let duplicateNikQuery = db("master_karyawan").where({ NIK: cleanNik });
 
-      // Jika record karyawan sudah ada, abaikan pengecekan terhadap record milik dirinya sendiri
       if (karyawan) {
         duplicateNikQuery = duplicateNikQuery.whereNot({ ID: karyawan.ID });
       }
@@ -1040,7 +1025,6 @@ export const updateProfile = async (req, res) => {
       const existingNik = await duplicateNikQuery.first();
 
       if (existingNik) {
-        // 👈 CONSOLE LOG SAAT NIK DUPLIKAT TERDETEKSI
         console.warn(
           `[WARN UPDATE PROFILE] Penolakan NIK Duplikat! User ID: ${userId} (${user.email}) mencoba menggunakan NIK: "${cleanNik}", tetapi NIK tersebut sudah dimiliki Karyawan ID: ${existingNik.ID} (${existingNik.NAMA}).`,
         );
@@ -1053,7 +1037,6 @@ export const updateProfile = async (req, res) => {
       }
     }
 
-    // 3. Update nama user di tabel users
     if (name && String(name).trim() !== "") {
       await db("users")
         .where({ id: userId })
@@ -1062,7 +1045,6 @@ export const updateProfile = async (req, res) => {
         });
     }
 
-    // 4. Update Informasi Perusahaan jika dikirim
     if (
       user.company_id &&
       (nama_perusahaan || no_telp_perusahaan || alamat_perusahaan)
@@ -1082,7 +1064,6 @@ export const updateProfile = async (req, res) => {
       }
     }
 
-    // 5. Format Tanggal Lahir
     let formattedTglLahir = null;
     if (
       tgl_lahir &&
@@ -1096,7 +1077,6 @@ export const updateProfile = async (req, res) => {
       }
     }
 
-    // 6. Susun Payload Update Karyawan
     const updateDataKaryawan = {};
     if (name && String(name).trim() !== "")
       updateDataKaryawan.NAMA = String(name).trim();
@@ -1116,12 +1096,10 @@ export const updateProfile = async (req, res) => {
       updateDataKaryawan.PENDIDIKAN_TERAKHIR =
         String(pendidikan_terakhir).trim();
 
-    // Set Foto Karyawan jika ada
     if (fotoKaryawanFile) {
       updateDataKaryawan.FOTO = `/uploads/foto_karyawan/${fotoKaryawanFile.filename}`;
     }
 
-    // Set Foto UMKM jika ada
     if (fotoUmkmFiles.length > 0) {
       const fotoUmkmPaths = fotoUmkmFiles.map(
         (file) => `/uploads/foto_umkm/${file.filename}`,
@@ -1129,7 +1107,6 @@ export const updateProfile = async (req, res) => {
       updateDataKaryawan.FOTO_KTP = JSON.stringify(fotoUmkmPaths);
     }
 
-    // 7. EKSEKUSI UPDATE / INSERT
     if (karyawan) {
       updateDataKaryawan.EMAIL = user.email;
 
@@ -1145,7 +1122,9 @@ export const updateProfile = async (req, res) => {
         KARYAWAN_ID: newKaryawanId,
         EMAIL: user.email,
         NIK:
-          nik && String(nik).trim() !== "" ? String(nik).trim() : newKaryawanId,
+          nik && String(nik).trim() !== ""
+            ? String(nik).trim()
+            : `NIK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         NAMA:
           name && String(name).trim() !== "" ? String(name).trim() : user.name,
         GENDER: gender || "L",
@@ -1167,7 +1146,7 @@ export const updateProfile = async (req, res) => {
     console.error("Update profile error:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -1222,7 +1201,7 @@ export const changePassword = async (req, res) => {
     console.error("Error changePassword:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -1251,8 +1230,8 @@ export const forgotPasswordSendOtp = async (req, res) => {
       });
     }
 
-    const otp = generateOTP(); // 6 Digit OTP
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 Menit
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await db("users").where({ id: user.id }).update({
       verification_token: otp,
@@ -1271,7 +1250,7 @@ export const forgotPasswordSendOtp = async (req, res) => {
     console.error("Error forgotPasswordSendOtp:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -1326,7 +1305,7 @@ export const verifyForgotOtp = async (req, res) => {
     console.error("Error verifyForgotOtp:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -1389,7 +1368,7 @@ export const resetPasswordWithOtp = async (req, res) => {
     console.error("Error resetPasswordWithOtp:", error);
     return res.status(500).json({
       status: status.GAGAL,
-      message: `Terjadi kesalahan server: ${error.message}`,
+      message: "Terjadi kesalahan server",
       datetime: datetime(),
     });
   }
@@ -1426,7 +1405,6 @@ export const completeCompanyProfile = async (req, res) => {
       });
     }
 
-    // 1. Buat atau update perusahaan
     let company = await getCompanyByName(nama_perusahaan);
     let companyId;
 
@@ -1451,7 +1429,6 @@ export const completeCompanyProfile = async (req, res) => {
       companyId = newCompanyId;
     }
 
-    // 2. Update company_id di tabel users & master_karyawan
     await db("users").where({ id: userId }).update({ company_id: companyId });
     await db("master_karyawan")
       .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
@@ -1464,6 +1441,133 @@ export const completeCompanyProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Error completeCompanyProfile:", error);
+    return res.status(500).json({
+      status: status.GAGAL,
+      message: "Terjadi kesalahan server",
+      datetime: datetime(),
+    });
+  }
+};
+
+/**
+ * LOGIN KHUSUS SUPERADMIN
+ */
+export const loginSuperAdmin = async (req, res) => {
+  try {
+    // Validasi input
+    const validation = loginSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Validasi gagal",
+        datetime: datetime(),
+        errors: validation.error.errors.map((err) => ({
+          field: err.path[0],
+          message: err.message,
+        })),
+      });
+    }
+
+    const { email, password } = validation.data;
+
+    // Cari user berdasarkan email
+    const existingUser = await getUserByEmail(email);
+
+    if (!existingUser) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email atau password salah",
+        datetime: datetime(),
+      });
+    }
+
+    // Pastikan hanya SUPERADMIN yang dapat login
+    if (existingUser.role !== "SUPERADMIN") {
+      return res.status(403).json({
+        status: status.GAGAL,
+        message:
+          "Akses ditolak. Halaman login ini hanya untuk akun Superadmin.",
+        datetime: datetime(),
+      });
+    }
+
+    // Cek apakah akun menggunakan Google Login
+    const isGoogleAccount =
+      !existingUser.password || existingUser.password === "";
+
+    if (isGoogleAccount) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Akun Superadmin ini harus menggunakan email dan password.",
+        datetime: datetime(),
+      });
+    }
+
+    // Cek password
+    const isPasswordTrue = await comparePassword(
+      password,
+      existingUser.password,
+    );
+
+    if (!isPasswordTrue) {
+      return res.status(400).json({
+        status: status.BAD_REQUEST,
+        message: "Email atau password salah",
+        datetime: datetime(),
+      });
+    }
+
+    // Cek verifikasi akun
+    if (!existingUser.is_verified) {
+      return res.status(401).json({
+        status: status.GAGAL,
+        message: "Akun Superadmin belum terverifikasi.",
+        datetime: datetime(),
+        is_verified: false,
+      });
+    }
+
+    // Buat activity log
+    const logId = await createActivityLog(existingUser.id);
+
+    // Generate JWT Token
+    const token = await generateToken({
+      userId: existingUser.id,
+      role: existingUser.role,
+      email: existingUser.email,
+      karyawan_id: null,
+      company_id: existingUser.company_id,
+      log_id: logId,
+    });
+
+    // Simpan login history
+    addLoginHistory({
+      userId: existingUser.id,
+      action: "LOGIN_SUPERADMIN",
+      ip: req.ip,
+      userAgent: req.headers["user-agent"] || "unknown",
+    }).catch((err) =>
+      console.error("Gagal menyimpan login history Superadmin:", err),
+    );
+
+    return res.status(200).json({
+      status: status.SUKSES,
+      message: "Login Superadmin berhasil",
+      datetime: datetime(),
+      token,
+      user: {
+        id: existingUser.id,
+        name: existingUser.name,
+        email: existingUser.email,
+        role: existingUser.role,
+        karyawan_id: null,
+        log_id: logId,
+      },
+    });
+  } catch (error) {
+    console.error("Error login Superadmin:", error);
+
     return res.status(500).json({
       status: status.GAGAL,
       message: `Terjadi kesalahan server: ${error.message}`,

@@ -10,10 +10,13 @@ export async function up(knex) {
     // 1. Primary Key
     table.increments("ID").primary();
 
+    // Penambahan kolom company_id (multi-tenancy)
+    table.integer("company_id").notNullable();
+
     // 2. Relasi ke Master Karyawan (1 row per karyawan)
-    table.string("KARYAWAN_ID", 20)
-      .notNullable()
-      .unique()
+    table.string("KARYAWAN_ID", 20).notNullable().unique();
+    table
+      .foreign("KARYAWAN_ID")
       .references("KARYAWAN_ID")
       .inTable("master_karyawan")
       .onDelete("CASCADE")
@@ -44,10 +47,8 @@ export async function up(knex) {
     table.text("CATATAN").nullable();
 
     // 8. Metadata
-    table.timestamp("created_at").defaultTo(knex.fn.now());
-    table.timestamp("updated_at").defaultTo(
-      knex.raw("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
-    );
+    table.timestamp("created_at").nullable().defaultTo(knex.fn.now());
+    table.timestamp("updated_at").nullable().defaultTo(knex.fn.now());
 
     // 9. Index
     table.index("KARYAWAN_ID");
