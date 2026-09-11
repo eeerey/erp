@@ -27,14 +27,14 @@ export async function up(knex) {
       .foreign("company_id")
       .references("id")
       .inTable("companies")
-      .onDelete("SET NULL"); // jika company dihapus, company_id di user jadi NULL
+      .onDelete("SET NULL");
 
     // Fitur verifikasi akun
-    table.boolean("is_verified").nullable().defaultTo(false); // tinyint(1)
+    table.boolean("is_verified").nullable().defaultTo(false);
     table.string("verification_token", 255).nullable();
     table.datetime("token_expires_at").nullable();
 
-    // Timestamps dibuat nullable sesuai spesifikasi phpMyAdmin
+    // Timestamps
     table.timestamp("created_at").nullable().defaultTo(knex.fn.now());
     table.timestamp("updated_at").nullable().defaultTo(knex.fn.now());
   });

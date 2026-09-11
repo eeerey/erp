@@ -1,524 +1,357 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
-import { Save, Search, TrendingUp, PackageSearch, Loader2, AlertTriangle, Sparkles } from "lucide-react";
-import api from "@/lib/api";
-
-/**
- * Signature element: a soft, rounded "cost -> price" gauge per card.
- * Cards float with shadow instead of sitting in a rigid grid/ledger —
- * friendlier, more product-y feel while keeping the data dense and scannable.
- */
-
-const FONT_IMPORT = `
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-`;
+import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { Save, Search, TrendingUp, PackageSearch, Loader2, AlertTriangle, Sparkles, DollarSign } from 'lucide-react';
+import api from '@/lib/api';
 
 export default function HargaJualPage() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState(null);
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [query, setQuery] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [savedAt, setSavedAt] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+    useEffect(() => {
+        fetchData();
+    }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("TOKEN");
-      const res = await api.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/harga-jual`);
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('TOKEN');
+            const res = await api.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/harga-jual`);
 
-      const formatted = res.data.data.map((item) => ({
-        ...item,
-        margin: item.margin || 100,
-        harga_jual:
-          item.hpp_per_pcs + (item.hpp_per_pcs * (item.margin || 100)) / 100,
-      }));
+            const formatted = res.data.data.map((item) => ({
+                ...item,
+                margin: item.margin || 100,
+                harga_jual: item.hpp_per_pcs + (item.hpp_per_pcs * (item.margin || 100)) / 100
+            }));
 
-      setData(formatted);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMarginChange = (produk_id, value) => {
-  const updated = [...data];
-  const index = updated.findIndex(i => i.produk_id === produk_id);
-
-  const margin = parseFloat(value) || 0;
-
-  updated[index].margin = margin;
-  updated[index].harga_jual =
-    updated[index].hpp_per_pcs + (updated[index].hpp_per_pcs * margin) / 100;
-
-  setData(updated);
-};
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await api.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/harga-jual`, data);
-      setSavedAt(new Date());
-    } catch (err) {
-      console.error(err);
-      alert("Gagal menyimpan data");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const filtered = useMemo(
-    () =>
-      data.filter((item) =>
-        `${item.nama_produk_jadi} ${item.produk_id}`
-          .toLowerCase()
-          .includes(query.toLowerCase())
-      ),
-    [data, query]
-  );
-
-  const stats = useMemo(() => {
-    if (!data.length) return { count: 0, avgMargin: 0, totalProfit: 0 };
-    const avgMargin =
-      data.reduce((sum, i) => sum + (i.margin || 0), 0) / data.length;
-    const totalProfit = data.reduce(
-      (sum, i) => sum + (i.harga_jual - i.hpp_per_pcs),
-      0
-    );
-    return { count: data.length, avgMargin, totalProfit };
-  }, [data]);
-
-  const fmt = (n) => Number(n || 0).toLocaleString("id-ID");
-
-  return (
-    <div className="pricing-page">
-      <style>{`
-        ${FONT_IMPORT}
-
-        .pricing-page {
-          --bg: #ffffff;
-          --surface: #ffffff;
-          --surface-soft: #f6f7f5;
-          --border: #ebebe8;
-          --ink: #181c1a;
-          --ink-soft: #6b7670;
-          --muted: #9aa39e;
-          --amber: #d98a32;
-          --amber-deep: #b9762a;
-          --amber-soft: #fdf1e2;
-          --mint: #2f8f6a;
-          --mint-soft: #e8f5ef;
-          --terracotta: #d9614f;
-          --terracotta-soft: #fdeae7;
-
-          min-height: 100vh;
-          background: var(--bg);
-          color: var(--ink);
-          font-family: 'Sora', system-ui, sans-serif;
-          padding: 36px 24px 72px;
+            setData(formatted);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
         }
+    };
 
-        .mono { font-family: 'JetBrains Mono', monospace; }
+    const handleMarginChange = (produk_id, value) => {
+        const updated = [...data];
+        const index = updated.findIndex((i) => i.produk_id === produk_id);
 
-        .header-card {
-          max-width: 1180px;
-          margin: 0 auto 24px;
-          background: linear-gradient(135deg, var(--amber-soft) 0%, #fff 60%);
-          border: 1px solid var(--border);
-          border-radius: 28px;
+        const margin = parseFloat(value) || 0;
+
+        updated[index].margin = margin;
+        updated[index].harga_jual = updated[index].hpp_per_pcs + (updated[index].hpp_per_pcs * margin) / 100;
+
+        setData(updated);
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await api.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/harga-jual`, data);
+            setSavedAt(new Date());
+        } catch (err) {
+            console.error(err);
+            alert('Gagal menyimpan data');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const filtered = useMemo(() => data.filter((item) => `${item.nama_produk_jadi} ${item.produk_id}`.toLowerCase().includes(query.toLowerCase())), [data, query]);
+
+    const stats = useMemo(() => {
+        if (!data.length) return { count: 0, avgMargin: 0, totalProfit: 0 };
+        const avgMargin = data.reduce((sum, i) => sum + (i.margin || 0), 0) / data.length;
+        const totalProfit = data.reduce((sum, i) => sum + (i.harga_jual - i.hpp_per_pcs), 0);
+        return { count: data.length, avgMargin, totalProfit };
+    }, [data]);
+
+    const fmt = (n) => Number(n || 0).toLocaleString('id-ID');
+
+    return (
+        <div className="p-4">
+            <style>{`
+        /* HEADER GRADIENT STYLING (MENGIKUTI HPP) */
+        .hpp-header {
+          position: relative;
+          background: linear-gradient(135deg, #4338ca 0%, #4f46e5 45%, #6366f1 100%);
+          border-radius: 20px;
           padding: 28px 32px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 20px;
+          margin-bottom: 24px;
+          overflow: hidden;
+          box-shadow: 0 16px 40px -16px rgba(67, 56, 202, 0.45);
         }
-
-        .eyebrow {
-          font-family: 'JetBrains Mono', monospace;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          font-size: 11px;
-          color: var(--amber-deep);
-          margin: 0 0 8px;
+        .hpp-header::before {
+          content: "";
+          position: absolute;
+          top: -60px;
+          right: -40px;
+          width: 220px;
+          height: 220px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.08);
+        }
+        .hpp-header::after {
+          content: "";
+          position: absolute;
+          bottom: -80px;
+          right: 120px;
+          width: 160px;
+          height: 160px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.06);
+        }
+        .hpp-header-inner {
+          position: relative;
+          z-index: 1;
           display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 24px;
+        }
+        .hpp-header-left {
+          display: flex;
+          align-items: center;
+          gap: 18px;
+        }
+        .hpp-icon-box {
+          background: rgba(255,255,255,0.16);
+          backdrop-filter: blur(6px);
+          border: 1px solid rgba(255,255,255,0.25);
+          padding: 14px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+        }
+        .hpp-eyebrow {
+          display: inline-flex;
           align-items: center;
           gap: 6px;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.75);
+          margin-bottom: 4px;
         }
-
-        .title {
-          font-size: 32px;
+        .hpp-header-title {
+          font-size: 24px;
           font-weight: 800;
+          color: #fff;
           letter-spacing: -0.02em;
           margin: 0;
         }
+        .hpp-header-sub {
+          color: rgba(255,255,255,0.78);
+          font-size: 13.5px;
+          margin-top: 4px;
+          margin-bottom: 0;
+        }
 
-        .subtitle {
-          color: var(--ink-soft);
-          font-size: 14px;
-          margin-top: 8px;
-          max-width: 420px;
+        /* CARD DAN TABEL STYLING */
+        .hpp-table-card { 
+          background: #fff; 
+          border: 1px solid #edeef1; 
+          border-radius: 20px; 
+          padding: 18px; 
+          margin-bottom: 16px; 
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+        }
+        .hpp-field { 
+          width: 100%; 
+          border: 1.5px solid #e7e9ec; 
+          border-radius: 10px; 
+          padding: 7px 10px; 
+          font-size: 13px; 
+          outline: none; 
+          background: #fff; 
+        }
+        .hpp-field:focus { 
+          border-color: #4f46e5; 
+          box-shadow: 0 0 0 3px #eef0ff; 
+        }
+        
+        .stat-row {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+          .stat-row { grid-template-columns: 1fr; }
         }
 
         .save-btn {
-          background: var(--ink);
+          background: #4f46e5;
           color: #fff;
           border: none;
           font-weight: 700;
-          font-size: 14px;
-          padding: 14px 24px;
+          font-size: 13px;
+          padding: 10px 20px;
           border-radius: 999px;
           display: flex;
           align-items: center;
           gap: 8px;
           cursor: pointer;
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
-          box-shadow: 0 10px 24px -10px rgba(24,28,26,0.5);
+          transition: opacity 0.2s;
         }
-        .save-btn:hover { transform: translateY(-2px) scale(1.02); }
-        .save-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+        .save-btn:hover { opacity: 0.9; }
+        .save-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
         .saved-note {
-          font-size: 12px;
-          color: var(--mint);
-          margin-top: 10px;
+          font-size: 11.5px;
+          color: #0d9f6e;
+          margin-top: 6px;
           text-align: right;
           font-weight: 600;
         }
-
-        .stat-row {
-          max-width: 1180px;
-          margin: 0 auto 24px;
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-        }
-
-        .stat-card {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 20px 22px;
-          box-shadow: 0 4px 14px -8px rgba(0,0,0,0.08);
-          transition: transform 0.18s ease;
-        }
-        .stat-card:hover { transform: translateY(-3px); }
-        .stat-card:nth-child(2) { transform: rotate(-0.4deg); }
-        .stat-card:nth-child(2):hover { transform: rotate(-0.4deg) translateY(-3px); }
-
-        .stat-icon {
-          width: 34px;
-          height: 34px;
-          border-radius: 11px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 14px;
-        }
-        .stat-icon.amber { background: var(--amber-soft); color: var(--amber-deep); }
-        .stat-icon.mint { background: var(--mint-soft); color: var(--mint); }
-
-        .stat-label {
-          font-size: 12px;
-          color: var(--ink-soft);
-          margin-bottom: 4px;
-        }
-
-        .stat-value {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 24px;
-          font-weight: 600;
-        }
-
-        .toolbar {
-          max-width: 1180px;
-          margin: 0 auto 18px;
-        }
-
-        .search-wrap {
-          position: relative;
-          max-width: 320px;
-        }
-
-        .search-wrap svg {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--muted);
-        }
-
-        .search-wrap input {
-          width: 100%;
-          background: var(--surface-soft);
-          border: 1px solid var(--border);
-          border-radius: 999px;
-          padding: 12px 14px 12px 42px;
-          color: var(--ink);
-          font-size: 13px;
-          outline: none;
-          transition: border-color 0.15s ease, background 0.15s ease;
-        }
-        .search-wrap input:focus {
-          border-color: var(--amber);
-          background: #fff;
-        }
-        .search-wrap input::placeholder { color: var(--muted); }
-
-        .cards {
-          max-width: 1180px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .product-card {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 18px 22px;
-          display: grid;
-          grid-template-columns: 1.8fr 1.1fr 1fr 1.6fr;
-          align-items: center;
-          gap: 16px;
-          box-shadow: 0 2px 10px -6px rgba(0,0,0,0.06);
-          transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-        }
-        .product-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 24px -10px rgba(0,0,0,0.14);
-          border-color: var(--amber);
-        }
-        .product-card.warn { border-left: 4px solid var(--terracotta); }
-        .product-card:not(.warn) { border-left: 4px solid var(--mint); }
-
-        .id-pill {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 10.5px;
-          color: var(--ink-soft);
-          background: var(--surface-soft);
-          padding: 3px 9px;
-          border-radius: 999px;
-          display: inline-block;
-        }
-
-        .prod-name {
-          font-weight: 700;
-          font-size: 15px;
-          margin-top: 7px;
-        }
-
-        .col-label {
-          font-size: 10.5px;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          color: var(--muted);
-          margin-bottom: 5px;
-        }
-
-        .hpp-val {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 15px;
-          color: var(--ink-soft);
-        }
-
-        .margin-input-wrap { position: relative; width: fit-content; }
-
-        .margin-input {
-          width: 90px;
-          background: var(--surface-soft);
-          border: 1.5px solid var(--border);
-          color: var(--ink);
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 13px;
-          padding: 9px 26px 9px 12px;
-          border-radius: 12px;
-          outline: none;
-          transition: border-color 0.15s ease;
-        }
-        .margin-input:focus { border-color: var(--amber); background: #fff; }
-        .margin-input.warn { border-color: var(--terracotta); background: var(--terracotta-soft); }
-
-        .pct-suffix {
-          position: absolute;
-          right: 11px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 11px;
-          color: var(--muted);
-          pointer-events: none;
-        }
-
-        .warn-note {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 10.5px;
-          color: var(--terracotta);
-          margin-top: 7px;
-          font-weight: 600;
-        }
-
-        .price-val {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 18px;
-          font-weight: 700;
-          color: var(--amber-deep);
-        }
-
-        .gauge {
-          margin-top: 10px;
-          height: 7px;
-          border-radius: 999px;
-          background: var(--surface-soft);
-          overflow: hidden;
-        }
-
-        .gauge-fill {
-          height: 100%;
-          border-radius: 999px;
-          background: linear-gradient(90deg, var(--mint), #5fb98c);
-          transition: width 0.25s ease;
-        }
-        .gauge-fill.warn { background: linear-gradient(90deg, var(--terracotta), #e08274); }
-
-        .empty-state {
-          padding: 60px 20px;
-          text-align: center;
-          color: var(--muted);
-          background: var(--surface-soft);
-          border-radius: 20px;
-        }
-
-        @media (max-width: 860px) {
-          .product-card { grid-template-columns: 1fr; }
-          .header-card { flex-direction: column; align-items: flex-start; }
-          .stat-row { grid-template-columns: 1fr; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .save-btn, .gauge-fill, .product-card, .stat-card { transition: none; }
-        }
       `}</style>
 
-      <div className="header-card">
-        <div>
-          <p className="eyebrow"><Sparkles size={12} /> Buku Harga · Produksi</p>
-          <h1 className="title">Harga Jual Produk</h1>
-          <p className="subtitle">
-            Atur margin tiap produk — harga jual dihitung otomatis dari HPP.
-          </p>
-        </div>
-        <div>
-          <button className="save-btn" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            {saving ? "Menyimpan..." : "Simpan Semua"}
-          </button>
-          {savedAt && (
-            <p className="saved-note">
-              ✓ Tersimpan {savedAt.toLocaleTimeString("id-ID")}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="stat-row">
-        <div className="stat-card">
-          <div className="stat-icon amber"><PackageSearch size={17} /></div>
-          <p className="stat-label">Total Produk</p>
-          <p className="stat-value">{stats.count}</p>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon mint"><TrendingUp size={17} /></div>
-          <p className="stat-label">Rata-rata Margin</p>
-          <p className="stat-value">{stats.avgMargin.toFixed(0)}%</p>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon amber"><TrendingUp size={17} /></div>
-          <p className="stat-label">Potensi Profit/Pcs</p>
-          <p className="stat-value">Rp {fmt(stats.totalProfit)}</p>
-        </div>
-      </div>
-
-      <div className="toolbar">
-        <div className="search-wrap">
-          <Search size={15} />
-          <input
-            placeholder="Cari produk atau ID..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {loading && <div className="empty-state">Memuat data...</div>}
-
-      {!loading && filtered.length === 0 && (
-        <div className="empty-state">
-          Belum ada produk yang cocok. Coba kata kunci lain.
-        </div>
-      )}
-
-      {!loading && filtered.length > 0 && (
-        <div className="cards">
-          {filtered.map((item) => {
-            const realIndex = data.indexOf(item);
-            const isLow = item.margin <= 100;
-            const fillPct = Math.min(100, Math.max(8, (item.margin / 300) * 100));
-
-            return (
-              <div className={`product-card ${isLow ? "warn" : ""}`} key={item.produk_id}>
-                <div>
-                  <span className="id-pill">{item.produk_id}</span>
-                  <div className="prod-name">{item.nama_produk_jadi}</div>
-                </div>
-
-                <div>
-                  <p className="col-label">HPP / Pcs</p>
-                  <span className="hpp-val">Rp {fmt(item.hpp_per_pcs)}</span>
-                </div>
-
-                <div>
-                  <p className="col-label">Margin</p>
-                  <div className="margin-input-wrap">
-                    <input
-                      type="number"
-                      min="100"
-                      className={`margin-input ${isLow ? "warn" : ""}`}
-                      value={item.margin}
-                      onChange={(e) => handleMarginChange(item.produk_id, e.target.value)}
-                    />
-                    <span className="pct-suffix">%</span>
-                  </div>
-                  {isLow && (
-                    <div className="warn-note">
-                      <AlertTriangle size={11} /> Min 100%
+            {/* HEADER GRADIENT */}
+            <div className="hpp-header">
+                <div className="hpp-header-inner">
+                    <div className="hpp-header-left">
+                        <div className="hpp-icon-box">
+                            <DollarSign size={28} />
+                        </div>
+                        <div>
+                            <span className="hpp-eyebrow">
+                                <Sparkles size={12} /> Buku Harga · Produksi
+                            </span>
+                            <h1 className="hpp-header-title">Harga Jual Produk</h1>
+                            <p className="hpp-header-sub">Atur margin tiap produk — harga jual dihitung otomatis dari HPP.</p>
+                        </div>
                     </div>
-                  )}
+                    <div>
+                        <button className="save-btn" onClick={handleSave} disabled={saving} type="button">
+                            {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                            {saving ? 'Menyimpan...' : 'Simpan Semua'}
+                        </button>
+                        {savedAt && <p className="saved-note">✓ Tersimpan {savedAt.toLocaleTimeString('id-ID')}</p>}
+                    </div>
                 </div>
+            </div>
 
-                <div>
-                  <p className="col-label">Harga Jual</p>
-                  <span className="price-val">Rp {fmt(item.harga_jual)}</span>
-                  <div className="gauge">
-                    <div
-                      className={`gauge-fill ${isLow ? "warn" : ""}`}
-                      style={{ width: `${fillPct}%` }}
-                    />
-                  </div>
+            {/* STATISTIK */}
+            <div className="stat-row">
+                <div className="hpp-table-card" style={{ margin: 0, padding: '16px' }}>
+                    <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Total Produk</div>
+                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#1a1d1f' }}>{stats.count}</div>
                 </div>
-              </div>
-            );
-          })}
+                <div className="hpp-table-card" style={{ margin: 0, padding: '16px' }}>
+                    <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Rata-rata Margin</div>
+                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#4f46e5' }}>{stats.avgMargin.toFixed(0)}%</div>
+                </div>
+                <div className="hpp-table-card" style={{ margin: 0, padding: '16px' }}>
+                    <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Potensi Profit / Pcs</div>
+                    <div style={{ fontSize: '20px', fontWeight: '700', color: '#0d9f6e' }}>Rp {fmt(stats.totalProfit)}</div>
+                </div>
+            </div>
+
+            {/* TOOLBAR PENCARIAN */}
+            <div className="hpp-table-card" style={{ padding: '14px 18px', marginBottom: '20px' }}>
+                <div style={{ position: 'relative', maxWidth: '320px' }}>
+                    <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#98a2ac' }} />
+                    <input placeholder="Cari produk atau ID..." value={query} onChange={(e) => setQuery(e.target.value)} className="hpp-field" style={{ paddingLeft: '36px', borderRadius: '999px' }} />
+                </div>
+            </div>
+
+            {loading && (
+                <div className="hpp-table-card" style={{ textAlign: 'center', padding: '40px', color: '#8b95a1' }}>
+                    Memuat data...
+                </div>
+            )}
+
+            {!loading && filtered.length === 0 && (
+                <div className="hpp-table-card" style={{ textAlign: 'center', padding: '40px', color: '#8b95a1' }}>
+                    Belum ada produk yang cocok. Coba kata kunci lain.
+                </div>
+            )}
+
+            {/* TABEL DAFTAR HARGA JUAL */}
+            {!loading && filtered.length > 0 && (
+                <div className="hpp-table-card">
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                            <thead>
+                                <tr style={{ background: '#fafafb', borderBottom: '1px solid #f0f1f3' }}>
+                                    <th style={{ padding: '11px 12px', textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>Produk & ID</th>
+                                    <th style={{ padding: '11px 12px', textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>HPP / Pcs</th>
+                                    <th style={{ padding: '11px 12px', textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>Margin (%)</th>
+                                    <th style={{ padding: '11px 12px', textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>Harga Jual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.map((item) => {
+                                    const isLow = item.margin <= 100;
+                                    const fillPct = Math.min(100, Math.max(8, (item.margin / 300) * 100));
+
+                                    return (
+                                        <tr key={item.produk_id} style={{ borderBottom: '1px solid #f5f6f7' }}>
+                                            {/* Kolom Nama & ID */}
+                                            <td style={{ padding: '12px', verticalAlign: 'middle' }}>
+                                                <span style={{ fontSize: '10.5px', background: '#f0f1f3', padding: '2px 8px', borderRadius: '999px', fontFamily: 'monospace', color: '#5b6670' }}>{item.produk_id}</span>
+                                                <div style={{ fontWeight: '700', fontSize: '14px', color: '#1a1d1f', marginTop: '4px' }}>{item.nama_produk_jadi}</div>
+                                            </td>
+
+                                            {/* Kolom HPP */}
+                                            <td style={{ padding: '12px', verticalAlign: 'middle', fontFamily: 'monospace', fontWeight: '600', color: '#5b6670' }}>Rp {fmt(item.hpp_per_pcs)}</td>
+
+                                            {/* Kolom Margin */}
+                                            <td style={{ padding: '12px', verticalAlign: 'middle', width: '180px' }}>
+                                                <div style={{ position: 'relative', width: '110px' }}>
+                                                    <input
+                                                        type="number"
+                                                        min="100"
+                                                        className="hpp-field"
+                                                        style={{
+                                                            paddingRight: '26px',
+                                                            fontFamily: 'monospace',
+                                                            borderColor: isLow ? '#d9614f' : '#e7e9ec',
+                                                            background: isLow ? '#fdeae7' : '#fff'
+                                                        }}
+                                                        value={item.margin}
+                                                        onChange={(e) => handleMarginChange(item.produk_id, e.target.value)}
+                                                    />
+                                                    <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: '#8b95a1' }}>%</span>
+                                                </div>
+                                                {isLow && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#d9614f', marginTop: '4px', fontWeight: '700' }}>
+                                                        <AlertTriangle size={10} /> Min 100%
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            {/* Kolom Harga Jual & Gauge */}
+                                            <td style={{ padding: '12px', verticalAlign: 'middle' }}>
+                                                <div style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: '700', color: '#4f46e5' }}>Rp {fmt(item.harga_jual)}</div>
+                                                <div style={{ marginTop: '6px', height: '6px', borderRadius: '999px', background: '#f0f1f3', overflow: 'hidden', width: '140px' }}>
+                                                    <div
+                                                        style={{
+                                                            height: '100%',
+                                                            borderRadius: '999px',
+                                                            width: `${fillPct}%`,
+                                                            background: isLow ? 'linear-gradient(90deg, #d9614f, #e08274)' : 'linear-gradient(90deg, #0d9f6e, #5fb98c)',
+                                                            transition: 'width 0.25s ease'
+                                                        }}
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }

@@ -53,6 +53,7 @@ import invPengirimanRoutes from "./routes/invPengirimanRoutes.js";
 import pembayaranBeliRoutes from "./routes/pembayaranBeliRoutes.js";
 import hppErpRoutes from "./routes/hppErpRoutes.js";
 import productPerformanceRoutes from "./routes/productPerformanceRoutes.js";
+import hppKalkulasiRoutes from "./routes/hppKalkulasiRoutes.js";
 
 // ── PAYMENT
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -161,6 +162,7 @@ app.use("/api/inv-pengiriman", invPengirimanRoutes);
 app.use("/api/pembayaran-beli", pembayaranBeliRoutes);
 app.use("/api/hppErp", hppErpRoutes);
 app.use("/api/productPerformance", productPerformanceRoutes);
+app.use("/api/hppKalkulasi", hppKalkulasiRoutes);
 
 // ── PAYMENT
 app.use("/api/payment", paymentRoutes);

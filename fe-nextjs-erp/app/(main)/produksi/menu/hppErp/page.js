@@ -1,893 +1,946 @@
-"use client";
+'use client';
 
-import axios from "axios";
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState } from 'react';
 
-import { Button } from "primereact/button";
-import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
-import { Dialog } from "primereact/dialog";
-import { InputNumber } from "primereact/inputnumber";
-import { InputText } from "primereact/inputtext";
+import { Button } from 'primereact/button';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { Dialog } from 'primereact/dialog';
+import { Plus, Trash2, Package, Users, Layers, Calculator, Save, Sliders } from 'lucide-react';
 
-import ToastNotifier from "../../../../components/ToastNotifier";
-import CustomDataTable from "../../../../components/DataTable";
-import HeaderBar from "../../../../components/headerbar";
+import api from '@/lib/api';
 
-import HeaderHpp from "./components/HeaderHpp";
-import ProductInput from "./components/ProductInput";
-import HppTable from "./components/HppTable";
-import SummaryCard from "./components/SummaryCard";
-import InfoCard from "./components/InfoCard";
-import Fase1ResultCard from "./components/Fase1ResultCard";
-import api from "@/lib/api";
+const ICONS = { bahan: Package, tenaga: Users, overhead: Layers };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+/* =========================================================
+   HELPER
+========================================================= */
 
-/**
- * Layout notes:
- * - Page is organized into clearly separated "panels" (input panel,
- *   breakdown panel, summary panel, history panel) instead of one long
- *   unbroken scroll — each panel has its own card, icon, and heading.
- * - Edit mode gets a visible amber banner instead of a floating button,
- *   so it's obvious the form is in a different state.
- * - Table columns get pill/badge styling instead of plain colored text.
- */
-
-export default function Page() {
-  const toastRef = useRef(null);
-  const isMounted = useRef(true);
-
-  // ======================
-  // STATE
-  // ======================
-  const [productName, setProductName] = useState("");
-  const [selectedProductId, setSelectedProductId] = useState("");
-  const [productList, setProductList] = useState([]);
-
-  const [editId, setEditId] = useState(null);
-
-  const [materials, setMaterials] = useState([]);
-  const [additionalMaterials, setAdditionalMaterials] = useState([]);
-  const [labor, setLabor] = useState([]);
-  const [overhead, setOverhead] = useState([]);
-  const [totalCone, setTotalCone] = useState(100);
-  const [hasilFase1, setHasilFase1] = useState(null);
-  const [selectedHppId, setSelectedHppId] = useState(null);
-  const [satuanHasil, setSatuanHasil] = useState("Cone");
-  const [satuanList, setSatuanList] = useState([]);
- 
-  const [fase2Materials, setFase2Materials] = useState([]);
-  const [fase2Overhead, setFase2Overhead] = useState([]);
-  const [showFase2Dialog, setShowFase2Dialog] = useState(false);
-  const [selectedFase1, setSelectedFase1] = useState(null);
-  const [qtyDipakai, setQtyDipakai] = useState(0);
-  const [produkFase2, setProdukFase2] = useState("");
-  const [productSatuan, setProductSatuan] = useState("");
-  const [fase2Labor, setFase2Labor] = useState([]);
-  
-
-  const [dataList, setDataList] = useState([]);
-  const [originalData, setOriginalData] = useState([]);
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  // ======================
-  // INIT
-  // ======================
-  useEffect(() => {
-    fetchData();
-    fetchProducts();
-    fetchSatuan();
-
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-
-  // ======================
-  // FETCH LIST HPP
-  // ======================
-  
-  const fetchData = async () => {
-  setIsLoading(true);
-
-
-  
-  try {
-    const token = localStorage.getItem("TOKEN");
-
-    console.log("TOKEN =", token);
-
-    if (!token) {
-      toastRef.current?.showToast("01", "Token tidak ditemukan");
-      return;
+const getToken = () => {
+    if (typeof window === 'undefined') {
+        return null;
     }
 
-    const res = await api.get(`${API_URL}/hppErp`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (res.data.status === "00") {
-      setDataList(res.data.data || []);
-      setOriginalData(res.data.data || []);
-    }
-  } catch (err) {
-    console.error(err);
-    toastRef.current?.showToast("01", "Gagal memuat data");
-  } finally {
-    if (isMounted.current) {
-      setIsLoading(false);
-    }
-  }
-  
-};
-  // ======================
-  // FETCH MASTER PRODUK
-  // ======================
-  const fetchProducts = async () => {
-    try {
-      const res = await api.get(`${API_URL}/hppErp/produk`);
-      setProductList(res.data.data || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // ======================
-  // FETCH satuan fase 1
-  // ======================
-const fetchSatuan = async () => {
-  try {
-    const res = await api.get(`${API_URL}/hppErp/form-data`);
-    setSatuanList(res.data.data.satuan || []);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-  // ======================
-  // FORMAT RUPIAH
-  // ======================
-  const formatRupiah = (number) =>
-    new Intl.NumberFormat("id-ID").format(number || 0);
-
-  // ======================
-  // CALC TOTAL
-  // ======================
-  const sectionTotal = (data, useJam = false) =>
-    data.reduce((acc, item) => {
-      const total = useJam
-        ? Number(item.harga || 0) *
-          Number(item.jumlah || 0) *
-          Number(item.jam || 0)
-        : Number(item.harga || 0) *
-          Number(item.jumlah || 0);
-
-      return acc + total;
-    }, 0);
-
-  const totalHPP =
-    sectionTotal(materials) +
-    sectionTotal(additionalMaterials) +
-    sectionTotal(labor, true) +
-    sectionTotal(overhead, true) +
-    sectionTotal(fase2Materials) +
-    sectionTotal(fase2Overhead, true);;
-
-  const hppPerPcs = totalCone > 0 ? totalHPP / totalCone : 0;
-
-  // ======================
-  // SEARCH
-  // ======================
-  const handleSearch = (keyword) => {
-    if (!keyword) return setDataList(originalData);
-
-    const filtered = originalData.filter((v) =>
-      v.nama_produk_jadi?.toLowerCase().includes(keyword.toLowerCase())
+    return (
+        localStorage.getItem('token') ||
+        localStorage.getItem('accessToken') ||
+        localStorage.getItem('access_token') ||
+        localStorage.getItem('jwt') ||
+        sessionStorage.getItem('token') ||
+        sessionStorage.getItem('accessToken') ||
+        sessionStorage.getItem('access_token') ||
+        sessionStorage.getItem('jwt')
     );
-
-    setDataList(filtered);
-  };
-
-  // ======================
-  // HANDLE EDIT
-  // ======================
-  const handleEdit = async (row) => {
-    try {
-      resetForm();
-      const res = await api.get(`${API_URL}/hppErp/${row.id}`);
-
-      const { header, detail } = res.data.data;
-      console.log("HEADER:", header);
-
-      setEditId(header.id);
-      setSelectedProductId(header.produk_id);
-      setProductName(header.nama_produk_jadi);
-
-      const mapDetail = (items) =>
-        items.map((i) => ({
-          nama: i.nama_item,
-          harga: i.harga,
-          satuan: i.satuan,
-          jumlah: i.jumlah,
-          jam: i.jam || 0,
-          barangKode: i.BARANG_KODE,
-        }));
-
-      setMaterials(mapDetail(detail.filter((d) => d.kategori === "BAHAN_BAKU")));
-      setAdditionalMaterials(mapDetail(detail.filter((d) => d.kategori === "BAHAN_BAKU_TAMBAHAN")));
-      setLabor(mapDetail(detail.filter((d) => d.kategori === "TENAGA_KERJA")));
-      setOverhead(mapDetail(detail.filter((d) => d.kategori === "OVERHEAD")));
-
-      // bring the form into view since edit data just loaded
-      document.getElementById("hpp-input-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } catch (err) {
-      console.error(err);
-      toastRef.current?.showToast("01", "Gagal load data edit");
-    }
-  };
-
-  // ======================
-  // RESET FORM
-  // ======================
-  const resetForm = () => {
-    setEditId(null);
-    setSelectedProductId("");
-    setProductName("");
-    setMaterials([]);
-    setAdditionalMaterials([]);
-    setLabor([]);
-    setOverhead([]);
-    setFase2Materials([]);
-    setFase2Overhead([]);
-  };
-
-  // ======================
-  // SAVE (CREATE / UPDATE)
-  // ======================
- const handleSave = async () => {
-  console.log("1. handleSave dipanggil");
-
-  try {
-    console.log("2. sebelum validasi");
-
-    if (!productName || productName.trim() === "") {
-      toastRef.current?.showToast("01", "Isi nama produk dulu");
-      return;
-    }
-
-    const payload = {
-      nama_produk_jadi: productName,
-      bahanBaku: materials,
-      bahanBakuTambahan: additionalMaterials,
-      tenagaKerja: labor,
-      overhead,
-      fase2BahanBaku: fase2Materials,
-      fase2Overhead: fase2Overhead,
-      totalHPP,
-      hppPerPcs,
-      qty_hasil: totalCone,
-      satuan_hasil: satuanHasil,
-    };
-
-    let res;
-
-    if (editId) {
-      // UPDATE
-      res = await api.put(`${API_URL}/hppErp/${editId}`, payload);
-    } else {
-      // CREATE
-      res = await api.post(`${API_URL}/hppErp`, payload);
-    }
-
-    console.log("CREATE RESPONSE =", res.data);
-    const hppId = res.data?.data?.hppId;
-
-    console.log("HPP ID =", hppId);
-
-    setHasilFase1({
-      id: hppId,
-      namaProduk: productName,
-      satuan: satuanHasil,
-      jumlah: totalCone,
-      totalHPP,
-      hargaSatuan: hppPerPcs,
-    });
-
-    toastRef.current?.showToast("00", "Berhasil disimpan");
-
-    resetForm();
-    fetchData();
-  } catch (err) {
-    console.error(err);
-    console.error(err.response?.data);
-
-    toastRef.current?.showToast("01", "Gagal menyimpan data");
-  }
 };
 
-  // ======================
-  // CREATE FASE 2
-  // ======================
-  const handleCreateFase2 = async () => {
-  try {
-    console.log(selectedFase1);
-    console.log(qtyDipakai);
-    console.log(produkFase2);
+const authConfig = () => {
+    const token = getToken();
 
-    const payload = {
-      hpp_id: selectedFase1.id,
-      qty_dipakai: qtyDipakai,
-      nama_produk_baru: produkFase2,
-    };
-
-   await api.post(`${API_URL}/hppErp/fase2`, {
-    hpp_id: selectedFase1.id,
-    qty_dipakai: qtyDipakai,
-    nama_produk_baru: produkFase2,
-
-    bahanBaku: fase2Materials,
-    overhead: fase2Overhead,
-    tenagaKerja: labor,
-
-    totalHPP,
-    hppPerPcs,
-    });
-    toastRef.current?.showToast("00", "Produksi Fase 2 berhasil");
-
-    setShowFase2Dialog(false);
-
-    fetchData();
-  } catch (err) {
-    console.error(err);
-    console.error(err.response?.data);
-    toastRef.current?.showToast("01", "Gagal membuat Fase 2");
-  }
-};
-
-  // ======================
-  // DELETE
-  // ======================
-  const handleDelete = (rowData) => {
-  
-    confirmDialog({
-      message: `Yakin hapus produk "${rowData.nama_produk_jadi}" ?`,
-      header: "Konfirmasi Hapus",
-      icon: "pi pi-exclamation-triangle",
-
-      accept: async () => {
-        try {
-          const res = await api.delete(`${API_URL}/hppErp/${rowData.id}`);
-
-          if (res.data.status === "00") {
-            toastRef.current?.showToast("00", "Berhasil dihapus");
-            fetchData();
-          }
-        } catch (err) {
-          console.error(err);
-          toastRef.current?.showToast("01", "Gagal hapus data");
+    return {
+        headers: {
+            ...(token
+                ? {
+                      Authorization: `Bearer ${token}`
+                  }
+                : {}),
+            'Content-Type': 'application/json'
         }
-      },
-    });
-  };
+    };
+};
 
-  // ======================
-  // OPEN DIALOG FASE 2
-  // ======================
-  const openFase2 = (row) => {
-    setSelectedFase1(row);
-    setQtyDipakai(0);
-    setProdukFase2("");
-    setShowFase2Dialog(true);
-  };
+const formatRupiah = (value) => {
+    return `Rp ${Math.round(Number(value) || 0).toLocaleString('id-ID')}`;
+};
 
-  // ======================
-  // TABLE
-  // ======================
-  const columns = [
-    {
-      field: "nama_produk_jadi",
-      header: "Nama Produk",
-      sortable: true,
-      body: (row) => (
-        <div className="flex items-center gap-3">
-          <div className="hpp-avatar">
-            {row.nama_produk_jadi?.charAt(0)?.toUpperCase() || "?"}
-          </div>
-          <span className="font-semibold text-slate-800">
-            {row.nama_produk_jadi}
-          </span>
+const createId = () => {
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
+/* =========================================================
+   KOMPONEN HEADER HPP (GRADIENT STYLING)
+========================================================= */
+
+function HeaderHpp() {
+    const cssStyles = `
+    .hpp-header {
+      position: relative;
+      background: linear-gradient(135deg, #4338ca 0%, #4f46e5 45%, #6366f1 100%);
+      border-radius: 20px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px -16px rgba(67, 56, 202, 0.45);
+    }
+    .hpp-header::before {
+      content: "";
+      position: absolute;
+      top: -60px;
+      right: -40px;
+      width: 220px;
+      height: 220px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+    }
+    .hpp-header::after {
+      content: "";
+      position: absolute;
+      bottom: -80px;
+      right: 120px;
+      width: 160px;
+      height: 160px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+    }
+    .hpp-header-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .hpp-header-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .hpp-icon-box {
+      background: rgba(255,255,255,0.16);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 14px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .hpp-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.75);
+      margin-bottom: 4px;
+    }
+    .hpp-header-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .hpp-header-sub {
+      color: rgba(255,255,255,0.78);
+      font-size: 13.5px;
+      margin-top: 4px;
+      margin-bottom: 0;
+    }
+    @media (max-width: 640px) {
+      .hpp-header { padding: 22px 20px; }
+      .hpp-header-title { font-size: 20px; }
+    }
+  `;
+
+    return (
+        <div className="hpp-header">
+            <style dangerouslySetInnerHTML={{ __html: cssStyles }} />
+            <div className="hpp-header-inner">
+                <div className="hpp-header-left">
+                    <div className="hpp-icon-box">
+                        <Calculator size={28} />
+                    </div>
+                    <div>
+                        <span className="hpp-eyebrow">Modul Produksi</span>
+                        <h1 className="hpp-header-title">Kalkulasi Harga Pokok Produksi</h1>
+                        <p className="hpp-header-sub">Kelola dan hitung HPP produk dengan akurat dan efisien.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-      ),
-    },
-    {
-      field: "total_hpp",
-      header: "Total HPP",
-      sortable: true,
-      body: (row) => (
-        <span className="hpp-badge hpp-badge-indigo">
-          Rp {formatRupiah(row.total_hpp)}
-        </span>
-      ),
-    },
-    {
-      field: "hpp_per_pcs",
-      header: "HPP/Pcs",
-      sortable: true,
-      body: (row) => (
-        <span className="hpp-badge hpp-badge-emerald">
-          Rp {formatRupiah(row.hpp_per_pcs)}
-        </span>
-      ),
-    },
-    {
-  header: "Aksi",
-  body: (row) => (
-    <div className="flex gap-2">
-      <Button
-        icon="pi pi-pencil"
-        severity="warning"
-        size="small"
-        rounded
-        text
-        onClick={() => handleEdit(row)}
-      />
-
-     {
- 
+    );
 }
 
-      <Button
-        icon="pi pi-trash"
-        severity="danger"
-        size="small"
-        rounded
-        text
-        onClick={() => handleDelete(row)}
-      />
-      
-    </div>
-  ),
-},
-  ];
+/* =========================================================
+   KOMPONEN HPP TABLE (DESIGN DISAMAKAN)
+========================================================= */
 
-   // ======================
-    // SAVE FASE 2
-    // ======================
-const saveFase2 = async () => {
-  try {
-     console.log("SAVE FASE 2");
-      console.log("hasilFase1 =", hasilFase1);
-      console.log("selectedHppId =", selectedHppId);
-      console.log("hasilFase1.id =", hasilFase1?.id);
-
-    const payload = {
-      hpp_id: selectedHppId,
-      qty_dipakai: totalCone,
-      nama_produk_baru: produkFase2,
-
-      bahanBaku: fase2Materials,
-      overhead: fase2Overhead,
-      tenagaKerja: fase2Labor || [],
-
-      totalHPP,
-      hppPerPcs,
+function HppTable({ title, items = [], setItems, color, type, masterBarang = [] }) {
+    const addRow = () => {
+        setItems([
+            ...items,
+            {
+                id: createId(),
+                barangKode: '',
+                nama: '',
+                hargaSatuan: 0,
+                satuan: '',
+                jumlah: '',
+                jam: type === 'tenaga' || type === 'overhead' ? 1 : undefined
+            }
+        ]);
     };
 
-    console.log("API_URL =", API_URL);
-    console.log("PAYLOAD FASE2 =", payload);
+    const removeRow = (id) => {
+        const updated = items.filter((item) => item.id !== id);
+        setItems(updated);
+    };
 
-    const res = await api.post(
-      `${API_URL}/hppErp/fase2`,
-      payload
-    );
+    const updateRow = (id, field, value) => {
+        const updated = items.map((item) => {
+            if (item.id === id) {
+                return {
+                    ...item,
+                    [field]: field === 'hargaSatuan' || field === 'jumlah' || field === 'jam' ? (value === '' ? '' : Number(value)) : value
+                };
+            }
+            return item;
+        });
+        setItems(updated);
+    };
 
-    console.log("RESPONSE =", res.data);
+    const total = (item) => {
+        const jumlah = Number(item.jumlah || 0);
+        const harga = Number(item.hargaSatuan || 0);
+        const jam = Number(item.jam || 1);
 
-    toastRef.current?.showToast(
-      "00",
-      "Produksi Fase 2 berhasil disimpan"
-    );
+        if (type === 'tenaga' || type === 'overhead') {
+            return jumlah * harga * jam;
+        }
+        return jumlah * harga;
+    };
 
-    fetchData();
-  } catch (err) {
-    console.error("ERROR =", err);
-    console.error("RESPONSE =", err.response);
-    console.error("DATA =", err.response?.data);
+    const sectionTotal = useMemo(() => (items || []).reduce((acc, item) => acc + total(item), 0), [items, type]);
 
-    toastRef.current?.showToast(
-      "01",
-      "Gagal menyimpan Fase 2"
-    );
-  }
-};
-
-  // ======================
-  // RENDER
-  // ======================
-  console.log("hasilFase1 =", hasilFase1);
-  return (
-    <div className="hpp-page">
-      <style>{`
-        .hpp-page {
-          --ink: #14181a;
-          --ink-soft: #5b6670;
-          --muted: #98a2ac;
-          --border: #e8eaed;
-          --surface: #ffffff;
-          --surface-soft: #f7f8fa;
-          --indigo: #4f46e5;
-          --indigo-soft: #eef0ff;
-          --emerald: #0d9f6e;
-          --emerald-soft: #e7f8f1;
-          --amber: #d98a32;
-          --amber-soft: #fdf1e2;
-
-          max-width: 1180px;
-          margin: 0 auto;
-          padding: 28px 20px 60px;
-          font-family: 'Sora', system-ui, sans-serif;
-          color: var(--ink);
+    const renderNama = (item) => {
+        if (type === 'tenaga' || type === 'overhead') {
+            return <input type="text" placeholder={type === 'tenaga' ? 'Contoh: Koki' : 'Contoh: Gas LPG'} value={item.nama || ''} onChange={(e) => updateRow(item.id, 'nama', e.target.value)} className="hpp-field" />;
         }
 
-        .hpp-panel {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 24px;
-          margin-bottom: 20px;
-          box-shadow: 0 2px 10px -6px rgba(0,0,0,0.06);
-        }
+        return (
+            <select
+                value={item.barangKode || ''}
+                onChange={(e) => {
+                    const selectedCode = e.target.value;
+                    if (!selectedCode) {
+                        const updated = items.map((i) => (i.id === item.id ? { ...i, barangKode: '', nama: '', hargaSatuan: 0, satuan: '' } : i));
+                        setItems(updated);
+                        return;
+                    }
 
-        .hpp-panel-head {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 18px;
-        }
+                    const barang = masterBarang.find((b) => String(b.BARANG_KODE) === String(selectedCode));
+                    if (!barang) return;
 
-        .hpp-panel-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
-          background: var(--indigo);
-        }
+                    const namaSatuan = barang.NAMA_SATUAN || barang.nama_satuan || barang.SATUAN_ID || '';
 
-        .hpp-panel-title {
-          font-size: 16px;
-          font-weight: 700;
-          margin: 0;
-        }
-
-        .hpp-edit-banner {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          background: var(--amber-soft);
-          border: 1px solid #f0d4ab;
-          color: #8a5a14;
-          border-radius: 14px;
-          padding: 12px 18px;
-          margin-bottom: 18px;
-          font-size: 13px;
-          font-weight: 600;
-        }
-
-        .hpp-summary-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-
-        @media (max-width: 860px) {
-          .hpp-summary-grid { grid-template-columns: 1fr; }
-        }
-
-        .hpp-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 10px;
-          background: var(--indigo-soft);
-          color: var(--indigo);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 13px;
-          flex-shrink: 0;
-        }
-
-        .hpp-badge {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 12.5px;
-          font-weight: 600;
-          padding: 5px 11px;
-          border-radius: 999px;
-          display: inline-block;
-        }
-        .hpp-badge-indigo { background: var(--indigo-soft); color: var(--indigo); }
-        .hpp-badge-emerald { background: var(--emerald-soft); color: var(--emerald); }
-      `}</style>
-
-      <ToastNotifier ref={toastRef} />
-      <ConfirmDialog />
-
-      <HeaderHpp />
-
-      {/* EDIT MODE INDICATOR */}
-      {editId && (
-        <div className="hpp-edit-banner">
-          <span>✏️ Sedang mengedit produk — perubahan belum tersimpan.</span>
-          <Button label="Batal Edit" severity="secondary" size="small" onClick={resetForm} />
-        </div>
-      )}
-
-      <div id="hpp-input-panel" className="hpp-panel">
-        <div className="hpp-panel-head">
-          <span className="hpp-panel-dot" />
-          <h2 className="hpp-panel-title">Data Produk</h2>
-        </div>
-       <ProductInput
-          productName={productName}
-          setProductName={setProductName}
-          productId={selectedProductId}
-          setProductId={setSelectedProductId}
-          productSatuan={productSatuan}
-          setProductSatuan={setProductSatuan}
-          products={productList}
-        />
-      </div>
-
-      <div className="hpp-panel">
-        <div className="hpp-panel-head">
-          <span className="hpp-panel-dot" style={{ background: "#4f46e5" }} />
-          <h2 className="hpp-panel-title">Rincian Biaya</h2>
-        </div>
-
-        <HppTable
-          title="Bahan Baku Utama"
-          data={materials}
-          setData={setMaterials}
-          type="bahan"
-          color="text-indigo-600"
-        />
-
-        <HppTable
-          title="Bahan Baku Tambahan"
-          data={additionalMaterials}
-          setData={setAdditionalMaterials}
-          type="bahan_tambahan"
-          color="text-cyan-600"
-        />
-
-        <HppTable
-          title="Tenaga Kerja"
-          data={labor}
-          setData={setLabor}
-          type="tenaga"
-          color="text-emerald-600"
-        />
-
-        <HppTable
-          title="Overhead"
-          data={overhead}
-          setData={setOverhead}
-          type="overhead"
-          color="text-orange-600"
-        />
-      </div>
-
-      <div className="hpp-summary-grid">
-       <SummaryCard
-        materials={materials}
-        labor={labor}
-        overhead={overhead}
-        totalHPP={totalHPP}
-        formatRupiah={formatRupiah}
-        sectionTotal={sectionTotal}
-        totalCone={totalCone}
-      />
-
-       <InfoCard
-  totalHPP={totalHPP}
-  totalCone={totalCone}
-  setTotalCone={setTotalCone}
-  onSave={handleSave}
-/>
-
-       
-      </div>
-
-   {hasilFase1 && (
-  <div className="hpp-panel">
-    <div className="hpp-panel-head">
-      <span
-        className="hpp-panel-dot"
-        style={{ background: "#16a34a" }}
-      />
-      <h2 className="hpp-panel-title">
-        Hasil Produksi Fase 1
-      </h2>
-    </div>
-
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-slate-100">
-            <th className="border p-3">Nama Produk</th>
-            <th className="border p-3 text-center">Qty</th>
-            <th className="border p-3 text-center">Satuan</th>
-            <th className="border p-3 text-right">Total HPP</th>
-            <th className="border p-3 text-right">HPP / Satuan</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr>
-            <td className="border p-3">
-              {hasilFase1.namaProduk}
-            </td>
-
-            <td className="border p-3 text-center">
-              {hasilFase1.jumlah}
-            </td>
-
-            <td className="border p-3 text-center">
-              <select
-                value={satuanHasil}
-                onChange={(e) => setSatuanHasil(e.target.value)}
-                className="border rounded px-2 py-1"
-              >
-                {satuanList.map((item) => (
-                  <option
-                    key={item.ID}
-                    value={item.NAMA_SATUAN}
-                  >
-                    {item.NAMA_SATUAN}
-                  </option>
+                    const updated = items.map((i) => {
+                        if (i.id === item.id) {
+                            return {
+                                ...i,
+                                barangKode: barang.BARANG_KODE,
+                                nama: barang.NAMA_BARANG,
+                                hargaSatuan: Number(barang.HARGA_BELI_TERAKHIR) || 0,
+                                satuan: namaSatuan
+                            };
+                        }
+                        return i;
+                    });
+                    setItems(updated);
+                }}
+                className="hpp-field"
+            >
+                <option value="">Pilih Barang</option>
+                {masterBarang.map((barang) => (
+                    <option key={barang.ID || barang.BARANG_KODE} value={barang.BARANG_KODE}>
+                        {barang.NAMA_BARANG}
+                    </option>
                 ))}
-              </select>
-            </td>
+            </select>
+        );
+    };
 
-            <td className="border p-3 text-right">
-              Rp {formatRupiah(hasilFase1.totalHPP)}
-            </td>
+    const isTenagaOrOverhead = type === 'tenaga' || type === 'overhead';
 
-            <td className="border p-3 text-right">
-              Rp {formatRupiah(hasilFase1.hargaSatuan)}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    const theme = {
+        indigo: { accent: '#4f46e5', soft: '#eef0ff' },
+        emerald: { accent: '#0d9f6e', soft: '#e7f8f1' },
+        orange: { accent: '#d97706', soft: '#fef3e2' }
+    };
+    const colorKey = color?.includes('indigo') ? 'indigo' : color?.includes('emerald') ? 'emerald' : 'orange';
+    const t = theme[colorKey] || theme.indigo;
+    const Icon = ICONS[type] || Package;
 
-    <div
-      style={{
-        marginTop: 20,
-        padding: 15,
-        background: "#f8fafc",
-        borderRadius: 10,
-      }}
-    >
-      <b>Rumus Perhitungan</b>
+    return (
+        <div className="hpp-table-card" style={{ '--accent': t.accent, '--accent-soft': t.soft }}>
+            <style>{`
+                .hpp-table-card { background: #fff; border: 1px solid #edeef1; border-radius: 20px; padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+                .hpp-table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+                .hpp-table-title-row { display: flex; align-items: center; gap: 10px; }
+                .hpp-table-icon { width: 32px; height: 32px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+                .hpp-table-title { font-size: 15px; font-weight: 700; color: #1a1d1f; margin: 0; }
+                .hpp-table-count { font-size: 11.5px; color: #8b95a1; font-weight: 500; }
+                .hpp-add-btn { background: var(--accent); color: #fff; border: none; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: opacity 0.2s; }
+                .hpp-add-btn:hover { opacity: 0.9; }
+                .hpp-table-wrap { overflow: auto; border: 1px solid #f0f1f3; border-radius: 14px; }
+                .hpp-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+                .hpp-table thead tr { background: #fafafb; }
+                .hpp-table th { padding: 11px 12px; text-align: left; font-size: 10.5px; text-transform: uppercase; color: #98a2ac; font-weight: 700; border-bottom: 1px solid #f0f1f3; }
+                .hpp-table td { padding: 9px 12px; border-bottom: 1px solid #f5f6f7; vertical-align: middle; }
+                .hpp-field { width: 100%; border: 1.5px solid #e7e9ec; border-radius: 10px; padding: 7px 10px; font-size: 13px; outline: none; background: #fff; }
+                .hpp-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+                .hpp-total-val { font-weight: 700; color: var(--accent); white-space: nowrap; }
+                .hpp-del-btn { color: #d9614f; background: #fdeae7; border: none; width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
+                .hpp-del-btn:hover { background: #fbdad4; }
+                .hpp-empty-row { text-align: center; padding: 26px 12px; color: #aab1ba; font-size: 12.5px; }
+                .hpp-footer-row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 12px 4px 2px; font-size: 13px; }
+                .hpp-footer-label { color: #8b95a1; font-weight: 600; }
+                .hpp-footer-val { font-weight: 700; font-size: 15px; color: var(--accent); }
+            `}</style>
 
-      <p style={{ marginTop: 10 }}>
-        Total HPP ÷ Qty Produksi = HPP / Satuan
-      </p>
+            <div className="hpp-table-head">
+                <div className="hpp-table-title-row">
+                    <div className="hpp-table-icon">
+                        <Icon size={16} />
+                    </div>
+                    <div>
+                        <h2 className="hpp-table-title">{title}</h2>
+                        <span className="hpp-table-count">{(items || []).length} item</span>
+                    </div>
+                </div>
 
-      <p
-        style={{
-          marginTop: 10,
-          color: "#2563eb",
-          fontWeight: "bold",
-        }}
-      >
-        Rp {formatRupiah(hasilFase1.totalHPP)}
-        {" ÷ "}
-        {hasilFase1.jumlah}
-        {" = "}
-        Rp {formatRupiah(hasilFase1.hargaSatuan)}
-      </p>
-    </div>
+                <button onClick={addRow} className="hpp-add-btn" type="button">
+                    <Plus size={13} />
+                    Tambah
+                </button>
+            </div>
 
-    <div className="flex justify-end mt-4">
-      <Button
-        label="Gunakan Sebagai Bahan Baku Fase 2"
-        icon="pi pi-arrow-right"
-        severity="success"
-        onClick={() => {
-          setSelectedHppId(hasilFase1.id);
+            <div className="hpp-table-wrap">
+                <table className="hpp-table">
+                    <thead>
+                        <tr>
+                            <th>{isTenagaOrOverhead ? 'Nama' : 'Nama Barang'}</th>
+                            {isTenagaOrOverhead ? (
+                                <>
+                                    <th>Harga Satuan</th>
+                                    <th>Jumlah</th>
+                                    <th>Satuan / Jam</th>
+                                </>
+                            ) : (
+                                <>
+                                    <th>Satuan</th>
+                                    <th>Jumlah</th>
+                                    <th>Harga Satuan</th>
+                                </>
+                            )}
+                            <th>Total</th>
+                            <th style={{ textAlign: 'center' }}>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {(!items || items.length === 0) && (
+                            <tr>
+                                <td colSpan={6} className="hpp-empty-row">
+                                    Belum ada item. Klik "Tambah" untuk mulai mengisi.
+                                </td>
+                            </tr>
+                        )}
 
-          setFase2Materials((prev) => [
-            {
-              nama: hasilFase1.namaProduk,
-              harga: hasilFase1.hargaSatuan,
-              satuan: hasilFase1.satuan,
-              jumlah: hasilFase1.jumlah,
+                        {(items || []).map((item) => (
+                            <tr key={item.id}>
+                                <td>{renderNama(item)}</td>
 
-              fromFase1: true,
-              hppId: hasilFase1.id,
-            },
-            ...prev,
-          ]);
-        }}
-      />
-    </div>
-  </div>
-)}
+                                {isTenagaOrOverhead ? (
+                                    <>
+                                        <td>
+                                            <input type="number" min="0" value={item.hargaSatuan} onChange={(e) => updateRow(item.id, 'hargaSatuan', e.target.value)} className="hpp-field" />
+                                        </td>
+                                        <td>
+                                            <input type="number" min="0" value={item.jumlah} onChange={(e) => updateRow(item.id, 'jumlah', e.target.value)} className="hpp-field" placeholder="Jumlah" />
+                                        </td>
+                                        <td>
+                                            <input type="text" value={item.satuan || ''} onChange={(e) => updateRow(item.id, 'satuan', e.target.value)} className="hpp-field" placeholder="Jam/Hari/Orang" />
+                                        </td>
+                                    </>
+                                ) : (
+                                    <>
+                                        <td>
+                                            <input type="text" value={item.satuan || ''} readOnly className="hpp-field" style={{ background: '#f8fafc' }} placeholder="Satuan" />
+                                        </td>
+                                        <td>
+                                            <input type="number" min="0" value={item.jumlah} onChange={(e) => updateRow(item.id, 'jumlah', e.target.value)} className="hpp-field" />
+                                        </td>
+                                        <td>
+                                            <input type="number" min="0" value={item.hargaSatuan} onChange={(e) => updateRow(item.id, 'hargaSatuan', e.target.value)} className="hpp-field" />
+                                        </td>
+                                    </>
+                                )}
 
-      <div className="hpp-panel">
-  <div className="hpp-panel-head">
-    <span
-      className="hpp-panel-dot"
-      style={{ background: "#9333ea" }}
-    />
-    <h2 className="hpp-panel-title">
-      Fase 2 Produksi
-    </h2>
-  </div>
+                                <td>
+                                    <span className="hpp-total-val">{formatRupiah(total(item))}</span>
+                                </td>
 
-  <HppTable
-    title="Bahan Baku Fase 2"
-    data={fase2Materials}
-    setData={setFase2Materials}
-    type="bahan"
-    color="text-purple-600"
-  />
+                                <td style={{ textAlign: 'center' }}>
+                                    <button onClick={() => removeRow(item.id)} className="hpp-del-btn" type="button">
+                                        <Trash2 size={14} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
 
-  <HppTable
-    title="Overhead Fase 2"
-    data={fase2Overhead}
-    setData={setFase2Overhead}
-    type="overhead"
-    color="text-orange-600"
-  />
-  <InputText
-    value={produkFase2}
-    onChange={(e)=>setProdukFase2(e.target.value)}
-    placeholder="Nama Produk Baru"
-/>
-  <div className="flex justify-end gap-2 mt-4">
-  <Button
-    label="Batal"
-    severity="secondary"
-    outlined
-    onClick={() => setShowFase2Dialog(false)}
-  />
-
-  <Button
-    label="Simpan Produksi Fase 2"
-    icon="pi pi-save"
-    severity="success"
-    onClick={saveFase2}
-  />
-</div>
-</div>
-
-      <div className="hpp-panel">
-        <div className="hpp-panel-head">
-          <span className="hpp-panel-dot" style={{ background: "#0d9f6e" }} />
-          <h2 className="hpp-panel-title">Riwayat HPP</h2>
+            {items && items.length > 0 && (
+                <div className="hpp-footer-row">
+                    <span className="hpp-footer-label">Subtotal {title}</span>
+                    <span className="hpp-footer-val">{formatRupiah(sectionTotal)}</span>
+                </div>
+            )}
         </div>
+    );
+}
 
-        <HeaderBar
-          onSearch={handleSearch}
-          showAddButton={false}
-          placeholder="Cari nama produk..."
-        />
+/* =========================================================
+   KOMPONEN INFO CARD (PARAMETER TAMBAHAN & RINGKASAN)
+   Didesain seragam menggunakan kelas .hpp-table-card
+========================================================= */
 
-        <CustomDataTable
-          data={dataList}
-          loading={isLoading}
-          columns={columns}
-          emptyMessage="Data HPP tidak ditemukan."
-        />
-      </div>
-     
-    </div>
-  );
+function InfoCard({
+    totalBBL = 0,
+    totalBBTL = 0,
+    totalTK = 0,
+    totalOH = 0,
+    totalBiayaProduksi = 0,
+    hppPerPorsi = 0,
+    targetMargin = 50,
+    setTargetMargin,
+    rekomendasiHargaJual = 0,
+    hargaJualFinal = '',
+    setHargaJualFinal,
+    hargaJualDipakai = 0,
+    profitPerPorsi = 0,
+    totalProfit = 0,
+    onSave
+}) {
+    const [gajiPegawai, setGajiPegawai] = useState(2500000);
+    const [jamKerjaHarian, setJamKerjaHarian] = useState(8);
+    const [hariKerja, setHariKerja] = useState(22);
+    const [totalLiterProduksi, setTotalLiterProduksi] = useState(5);
+    const [gajiPerJam, setGajiPerJam] = useState(0);
+
+    const formatNum = (number) => new Intl.NumberFormat('id-ID').format(Math.round(number || 0));
+
+    useEffect(() => {
+        const resultGajiPerJam = gajiPegawai / (jamKerjaHarian * hariKerja);
+        setGajiPerJam(resultGajiPerJam || 0);
+    }, [gajiPegawai, jamKerjaHarian, hariKerja]);
+
+    const results = [
+        {
+            label: 'Gaji Pegawai / Jam',
+            value: gajiPerJam
+        }
+    ];
+
+    const fields = [
+        {
+            label: 'Gaji Pegawai',
+            value: gajiPegawai,
+            set: setGajiPegawai,
+            suffix: '/ bulan'
+        },
+        {
+            label: 'Jam Kerja Harian',
+            value: jamKerjaHarian,
+            set: setJamKerjaHarian,
+            suffix: 'jam'
+        },
+        {
+            label: 'Hari Kerja / Bulan',
+            value: hariKerja,
+            set: setHariKerja,
+            suffix: 'hari'
+        },
+        {
+            label: 'Total (Liter, kg)',
+            value: totalLiterProduksi,
+            set: setTotalLiterProduksi,
+            suffix: ''
+        }
+    ];
+
+    return (
+        <>
+            {/* KARTU 2: RINGKASAN HPP */}
+            <div className="hpp-table-card" style={{ '--accent': '#4f46e5', '--accent-soft': '#eef0ff' }}>
+                <div className="hpp-table-head">
+                    <div className="hpp-table-title-row">
+                        <div className="hpp-table-icon">
+                            <Calculator size={16} />
+                        </div>
+                        <div>
+                            <h2 className="hpp-table-title">Ringkasan HPP</h2>
+                            <span className="hpp-table-count">Akumulasi seluruh komponen biaya produksi</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Bahan Langsung</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(totalBBL)}</div>
+                    </div>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Bahan Tidak Langsung</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(totalBBTL)}</div>
+                    </div>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Tenaga Kerja</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(totalTK)}</div>
+                    </div>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Overhead</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(totalOH)}</div>
+                    </div>
+                </div>
+
+                <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '4px 16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#5b6670' }}>Total Biaya Produksi</span>
+                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(totalBiayaProduksi)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderTop: '1px solid #f0f1f3' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#4f46e5' }}>HPP per Porsi</span>
+                        <span style={{ fontSize: '16px', fontWeight: '700', color: '#4f46e5' }}>Rp {formatNum(hppPerPorsi)}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* KARTU 3: HARGA JUAL & PROFIT */}
+            <div className="hpp-table-card" style={{ '--accent': '#4f46e5', '--accent-soft': '#eef0ff' }}>
+                <div className="hpp-table-head">
+                    <div className="hpp-table-title-row">
+                        <div className="hpp-table-icon">
+                            <Sliders size={16} />
+                        </div>
+                        <div>
+                            <h2 className="hpp-table-title">Harga Jual & Profit</h2>
+                            <span className="hpp-table-count">Pengaturan margin dan simulasi keuntungan</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '14px', marginBottom: '16px' }} className="info-field-grid">
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>Target Margin (%)</label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="number"
+                                min="0"
+                                value={targetMargin ?? ''}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setTargetMargin(val === '' ? '' : Number(val));
+                                }}
+                                className="hpp-field"
+                            />
+                            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#8b95a1' }}>%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>Harga Jual Final</label>
+                        <input
+                            type="number"
+                            min="0"
+                            value={hargaJualFinal ?? ''}
+                            placeholder="Kosongkan untuk menggunakan rekomendasi"
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setHargaJualFinal(val === '' ? '' : Number(val));
+                            }}
+                            className="hpp-field"
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Rekomendasi Harga Jual</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(rekomendasiHargaJual)}</div>
+                    </div>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Harga Jual Digunakan</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(hargaJualDipakai)}</div>
+                    </div>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Profit per Porsi</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(profitPerPorsi)}</div>
+                    </div>
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '12px 14px' }}>
+                        <div style={{ color: '#8b95a1', fontSize: '10.5px', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '700' }}>Total Profit</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f' }}>Rp {formatNum(totalProfit)}</div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
+/* =========================================================
+   PAGE UTAMA
+========================================================= */
+
+export default function KalkulasiBaruPage() {
+    const [namaProduk, setNamaProduk] = useState('');
+    const [jumlahPorsi, setJumlahPorsi] = useState('');
+    const [targetMargin, setTargetMargin] = useState(50);
+    const [hargaJualFinal, setHargaJualFinal] = useState('');
+
+    const [masterBarang, setMasterBarang] = useState([]);
+    const [loadingBarang, setLoadingBarang] = useState(false);
+
+    const [bahanBakuLangsung, setBahanBakuLangsung] = useState([]);
+    const [bahanBakuTidakLangsung, setBahanBakuTidakLangsung] = useState([]);
+    const [tenagaKerja, setTenagaKerja] = useState([]);
+    const [overhead, setOverhead] = useState([]);
+
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+    const [showDialog, setShowDialog] = useState(false);
+
+    useEffect(() => {
+        fetchMasterBarang();
+    }, []);
+
+    const fetchMasterBarang = async () => {
+        try {
+            setLoadingBarang(true);
+            setErrorMessage('');
+
+            const response = await api.get('/hppKalkulasi/master-barang', authConfig());
+            const data = response?.data?.data ?? response?.data ?? [];
+            setMasterBarang(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('FETCH MASTER BARANG ERROR:', error);
+            const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Gagal mengambil data master barang';
+            setErrorMessage(errorMsg);
+        } finally {
+            setLoadingBarang(false);
+        }
+    };
+
+    const calculateTotalList = (items, isManual = false) => {
+        if (!Array.isArray(items)) return 0;
+        return items.reduce((total, item) => {
+            const jumlah = Number(item.jumlah) || 0;
+            const harga = Number(item.hargaSatuan) || 0;
+            const jam = Number(item.jam || 1);
+            if (isManual) {
+                return total + jumlah * harga * jam;
+            }
+            return total + jumlah * harga;
+        }, 0);
+    };
+
+    const totalBBL = useMemo(() => calculateTotalList(bahanBakuLangsung, false), [bahanBakuLangsung]);
+    const totalBBTL = useMemo(() => calculateTotalList(bahanBakuTidakLangsung, false), [bahanBakuTidakLangsung]);
+    const totalTK = useMemo(() => calculateTotalList(tenagaKerja, true), [tenagaKerja]);
+    const totalOH = useMemo(() => calculateTotalList(overhead, true), [overhead]);
+
+    const totalBiayaProduksi = useMemo(() => {
+        return totalBBL + totalBBTL + totalTK + totalOH;
+    }, [totalBBL, totalBBTL, totalTK, totalOH]);
+
+    const hppPerPorsi = useMemo(() => {
+        const qty = Number(jumlahPorsi) || 0;
+        if (qty <= 0) return 0;
+        return Math.round(totalBiayaProduksi / qty);
+    }, [totalBiayaProduksi, jumlahPorsi]);
+
+    const rekomendasiHargaJual = useMemo(() => {
+        const margin = Number(targetMargin) || 0;
+        return Math.round(hppPerPorsi + (hppPerPorsi * margin) / 100);
+    }, [hppPerPorsi, targetMargin]);
+
+    const hargaJualDipakai = useMemo(() => {
+        const harga = Number(hargaJualFinal) || 0;
+        if (harga > 0) return harga;
+        return rekomendasiHargaJual;
+    }, [hargaJualFinal, rekomendasiHargaJual]);
+
+    const profitPerPorsi = useMemo(() => {
+        return hargaJualDipakai - hppPerPorsi;
+    }, [hargaJualDipakai, hppPerPorsi]);
+
+    const totalProfit = useMemo(() => {
+        const qty = Number(jumlahPorsi) || 0;
+        return profitPerPorsi * qty;
+    }, [profitPerPorsi, jumlahPorsi]);
+
+    const validateBahanBaku = (items, label) => {
+        if (!Array.isArray(items)) return null;
+        for (const item of items) {
+            if (!item.barangKode) return `${label}: silakan pilih barang`;
+            if (Number(item.jumlah) <= 0) return `${label}: jumlah harus lebih dari 0`;
+            if (Number(item.hargaSatuan) < 0) return `${label}: harga satuan tidak boleh negatif`;
+        }
+        return null;
+    };
+
+    const validateManualItems = (items, label) => {
+        if (!Array.isArray(items)) return null;
+        for (const item of items) {
+            if (!item.nama?.trim()) return `${label}: nama wajib diisi`;
+            if (Number(item.jumlah) <= 0) return `${label}: jumlah harus lebih dari 0`;
+            if (!item.satuan?.trim()) return `${label}: satuan wajib diisi`;
+            if (Number(item.hargaSatuan) < 0) return `${label}: harga satuan tidak boleh negatif`;
+        }
+        return null;
+    };
+
+    const prepareBahanBaku = (items) => {
+        return items.map((item) => ({
+            barangKode: item.barangKode,
+            jumlah: Number(item.jumlah) || 0
+        }));
+    };
+
+    const prepareManualItemsPayload = (items) => {
+        return items.map((item) => ({
+            nama: item.nama?.trim() || '',
+            jumlah: Number(item.jumlah) || 0,
+            satuan: item.satuan?.trim() || '',
+            hargaSatuan: Number(item.hargaSatuan) || 0
+        }));
+    };
+
+    const validateForm = () => {
+        if (!namaProduk.trim()) return 'Nama menu / produk wajib diisi';
+        if (!jumlahPorsi || Number(jumlahPorsi) <= 0) return 'Jumlah porsi harus lebih dari 0';
+
+        const errBBL = validateBahanBaku(bahanBakuLangsung, 'Bahan Baku Langsung');
+        if (errBBL) return errBBL;
+
+        const errBBTL = validateBahanBaku(bahanBakuTidakLangsung, 'Bahan Baku Tidak Langsung');
+        if (errBBTL) return errBBTL;
+
+        const errTK = validateManualItems(tenagaKerja, 'Tenaga Kerja');
+        if (errTK) return errTK;
+
+        const errOH = validateManualItems(overhead, 'Biaya Overhead');
+        if (errOH) return errOH;
+
+        return null;
+    };
+
+    const simpanHPP = async () => {
+        try {
+            setLoading(true);
+            setMessage('');
+            setErrorMessage('');
+
+            const validation = validateForm();
+            if (validation) throw new Error(validation);
+
+            const payload = {
+                nama_produk_jadi: namaProduk.trim(),
+                jumlahPorsi: Number(jumlahPorsi),
+                bahanBakuLangsung: prepareBahanBaku(bahanBakuLangsung),
+                bahanBakuTidakLangsung: prepareBahanBaku(bahanBakuTidakLangsung),
+                tenagaKerja: prepareManualItemsPayload(tenagaKerja),
+                overhead: prepareManualItemsPayload(overhead),
+                targetMargin: Number(targetMargin) || 0,
+                hargaJualFinal: Number(hargaJualFinal) || 0
+            };
+
+            await api.post('/hppKalkulasi', payload, authConfig());
+            setMessage('HPP kalkulasi berhasil disimpan');
+            resetForm();
+        } catch (error) {
+            console.error('SIMPAN HPP ERROR:', error);
+            const errorMsg = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Gagal menyimpan HPP';
+            setErrorMessage(errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmSimpan = () => {
+        const validation = validateForm();
+        if (validation) {
+            setErrorMessage(validation);
+            return;
+        }
+
+        confirmDialog({
+            message: 'Apakah Anda yakin ingin menyimpan kalkulasi HPP ini?',
+            header: 'Konfirmasi Simpan HPP',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Ya, Simpan',
+            rejectLabel: 'Batal',
+            acceptClassName: 'p-button-success',
+            accept: simpanHPP
+        });
+    };
+
+    const resetForm = () => {
+        setNamaProduk('');
+        setJumlahPorsi('');
+        setTargetMargin(50);
+        setHargaJualFinal('');
+        setBahanBakuLangsung([]);
+        setBahanBakuTidakLangsung([]);
+        setTenagaKerja([]);
+        setOverhead([]);
+        setMessage('');
+        setErrorMessage('');
+    };
+
+    return (
+        <div className="p-4">
+            <ConfirmDialog />
+
+            {/* HEADER GRADIENT */}
+            <HeaderHpp />
+
+            {/* MESSAGE SUCCESS */}
+            {message && (
+                <div className="p-3 mb-3 border-round" style={{ background: '#DEE6D6', color: '#2E4A2C', border: '1px solid #5C7A5A' }}>
+                    {message}
+                </div>
+            )}
+
+            {/* MESSAGE ERROR */}
+            {errorMessage && (
+                <div className="p-3 mb-3 border-round" style={{ background: '#F1DED3', color: '#8B321F', border: '1px solid #B5502E' }}>
+                    {errorMessage}
+                </div>
+            )}
+
+            {/* INFORMASI PRODUK (DIUBAH MENYESUAIKAN DESAIN HPP TABLE CARD & FIELD) */}
+            <div className="hpp-table-card" style={{ '--accent': '#4f46e5', '--accent-soft': '#eef0ff' }}>
+                <div className="hpp-table-head" style={{ marginBottom: '12px' }}>
+                    <div className="hpp-table-title-row">
+                        <div className="hpp-table-icon" style={{ background: '#eef0ff', color: '#4f46e5' }}>
+                            <Package size={16} />
+                        </div>
+                        <div>
+                            <h2 className="hpp-table-title" style={{ fontSize: '15px' }}>
+                                Informasi Produk
+                            </h2>
+                            <span className="hpp-table-count">Detail menu dan jumlah porsi</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="info-field-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
+                    <div className="info-field">
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>Nama Menu / Produk</label>
+                        <div className="info-field-wrap">
+                            <input type="text" value={namaProduk} onChange={(e) => setNamaProduk(e.target.value)} placeholder="Masukkan nama menu / produk" className="hpp-field" />
+                        </div>
+                    </div>
+                    <div className="info-field">
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '10.5px', textTransform: 'uppercase', color: '#98a2ac', fontWeight: '700' }}>Jumlah Porsi</label>
+                        <div className="info-field-wrap" style={{ position: 'relative' }}>
+                            <input type="number" min="1" step="any" value={jumlahPorsi} onChange={(e) => setJumlahPorsi(e.target.value)} placeholder="Jumlah porsi" className="hpp-field" />
+                            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#8b95a1' }}>pcs</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* TABEL-TABEL SECTION */}
+            <HppTable title="Bahan Baku Langsung" items={bahanBakuLangsung} setItems={setBahanBakuLangsung} color="indigo" type="bahan" masterBarang={masterBarang} />
+
+            <HppTable title="Bahan Baku Tidak Langsung" items={bahanBakuTidakLangsung} setItems={setBahanBakuTidakLangsung} color="emerald" type="bahan" masterBarang={masterBarang} />
+
+            <HppTable title="Tenaga Kerja" items={tenagaKerja} setItems={setTenagaKerja} color="orange" type="tenaga" />
+
+            <HppTable title="Biaya Overhead" items={overhead} setItems={setOverhead} color="indigo" type="overhead" />
+
+            {/* INFO CARD UNTUK PARAMETER & RINGKASAN */}
+            <div className="mb-4">
+                <InfoCard
+                    totalBBL={totalBBL}
+                    totalBBTL={totalBBTL}
+                    totalTK={totalTK}
+                    totalOH={totalOH}
+                    totalBiayaProduksi={totalBiayaProduksi}
+                    hppPerPorsi={hppPerPorsi}
+                    targetMargin={targetMargin}
+                    setTargetMargin={setTargetMargin}
+                    rekomendasiHargaJual={rekomendasiHargaJual}
+                    hargaJualFinal={hargaJualFinal}
+                    setHargaJualFinal={setHargaJualFinal}
+                    hargaJualDipakai={hargaJualDipakai}
+                    profitPerPorsi={profitPerPorsi}
+                    totalProfit={totalProfit}
+                    onSave={confirmSimpan}
+                />
+            </div>
+
+            {/* ACTION TOMBOL BAWAH */}
+            <div className="flex justify-content-end gap-2 mt-4">
+                <Button label="Reset" icon="pi pi-refresh" severity="secondary" outlined type="button" onClick={resetForm} disabled={loading} />
+                <Button label={loading ? 'Menyimpan...' : 'Simpan HPP'} icon="pi pi-save" type="button" onClick={confirmSimpan} loading={loading} disabled={loading || loadingBarang} />
+                <Button label="Lihat Ringkasan" icon="pi pi-eye" severity="info" outlined type="button" onClick={() => setShowDialog(true)} />
+            </div>
+
+            {/* DIALOG */}
+            <Dialog
+                header={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#eef0ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Calculator size={16} />
+                        </div>
+                        <div>
+                            <span style={{ fontSize: '15px', fontWeight: '700', color: '#1a1d1f', display: 'block' }}>Ringkasan Kalkulasi HPP</span>
+                            <span style={{ fontSize: '11.5px', color: '#8b95a1', fontWeight: '500' }}>Pratinjau hasil perhitungan produk</span>
+                        </div>
+                    </div>
+                }
+                visible={showDialog}
+                style={{ width: '480px', borderRadius: '20px', overflow: 'hidden' }}
+                onHide={() => setShowDialog(false)}
+                breakpoints={{ '960px': '75vw', '641px': '90vw' }}
+            >
+                <div style={{ padding: '4px 0' }}>
+                    {/* Nama Produk Banner */}
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '14px 16px', marginBottom: '16px' }}>
+                        <span style={{ fontSize: '10.5px', textTransform: 'uppercase', color: '#8b95a1', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Nama Menu / Produk</span>
+                        <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#1a1d1f', margin: 0 }}>{namaProduk || 'Belum diisi'}</h3>
+                    </div>
+
+                    {/* Detail Baris Kalkulasi */}
+                    <div style={{ background: '#fafafb', border: '1px solid #f0f1f3', borderRadius: '14px', padding: '4px 16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f1f3' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#5b6670' }}>Jumlah Porsi</span>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f', fontFamily: 'inherit' }}>{jumlahPorsi || 0} pcs</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f1f3' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#5b6670' }}>Total Biaya Produksi</span>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f', fontFamily: 'inherit' }}>{formatRupiah(totalBiayaProduksi)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f1f3' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#4f46e5' }}>HPP / Porsi</span>
+                            <span style={{ fontSize: '15px', fontWeight: '700', color: '#4f46e5', fontFamily: 'inherit' }}>{formatRupiah(hppPerPorsi)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f0f1f3' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#5b6670' }}>Harga Jual / Porsi</span>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#1a1d1f', fontFamily: 'inherit' }}>{formatRupiah(hargaJualDipakai)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#0d9f6e' }}>Profit / Porsi</span>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#0d9f6e', fontFamily: 'inherit' }}>{formatRupiah(profitPerPorsi)}</span>
+                        </div>
+                    </div>
+                </div>
+            </Dialog>
+        </div>
+    );
 }

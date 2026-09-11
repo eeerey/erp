@@ -16,6 +16,9 @@ export async function up(knex) {
     table.integer("JENIS_ID").unsigned().nullable().defaultTo(null);
     table.integer("SATUAN_ID").unsigned().nullable().defaultTo(null);
 
+    // ✅ Bagian yang sebelumnya kurang ditambahkan di sini:
+    table.string("NAMA_SATUAN", 100).nullable().defaultTo(null);
+
     table.decimal("STOK_MINIMAL", 15, 2).defaultTo(0.0);
     table.decimal("STOK_SAAT_INI", 15, 2).defaultTo(0.0);
     table.decimal("HARGA_BELI_TERAKHIR", 15, 2).defaultTo(0.0);
