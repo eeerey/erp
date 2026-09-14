@@ -16,6 +16,12 @@ router.get(
   HppKalkulasiController.getMasterBarang,
 );
 
+router.get(
+  "/master-satuan",
+  verifyToken,
+  HppKalkulasiController.getMasterSatuan,
+);
+
 // ======================================================
 // HPP KALKULASI
 // ======================================================
@@ -31,3 +37,4 @@ router.put("/:id", verifyToken, HppKalkulasiController.update);
 router.delete("/:id", verifyToken, HppKalkulasiController.remove);
 
 export default router;
+  

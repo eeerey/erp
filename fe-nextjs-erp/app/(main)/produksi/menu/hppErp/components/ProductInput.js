@@ -1,18 +1,20 @@
-import { useState } from "react";
-import { Tag } from "lucide-react";
+import { useState } from 'react';
+import { Tag } from 'lucide-react';
 
 function ProductInput({ productName, setProductName }) {
-  const [focused, setFocused] = useState(false);
+    const [focused, setFocused] = useState(false);
 
-  const handleChange = (e) => {
-    setProductName(e.target.value);
-  };
+    const handleChange = (e) => {
+        setProductName(e.target.value);
+    };
 
-  const filled = !!productName;
+    const filled = !!productName;
 
-  return (
-    <div className="prod-input-card">
-      <style>{`
+    return (
+        <div className="prod-input-card">
+            <style
+                dangerouslySetInnerHTML={{
+                    __html: `
         .prod-input-card {
           background: #fff;
           border: 1px solid #ece9f7;
@@ -97,32 +99,25 @@ function ProductInput({ productName, setProductName }) {
           color: #98a2ac;
           margin-top: 8px;
         }
-      `}</style>
+      `
+                }}
+            />
 
-      <div className="prod-input-label-row">
-        <div className="prod-input-icon">
-          <Tag size={14} />
+            <div className="prod-input-label-row">
+                <div className="prod-input-icon">
+                    <Tag size={14} />
+                </div>
+                <label className="prod-input-label">Nama Produk</label>
+            </div>
+
+            <div className={`prod-input-wrap ${filled ? 'filled' : ''}`}>
+                <input type="text" value={productName || ''} onChange={handleChange} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} placeholder="Masukkan nama produk baru" />
+                <div className={`prod-input-bar ${focused ? 'active' : ''}`} />
+            </div>
+
+            <p className="prod-input-hint">Nama ini akan dipakai sebagai identitas produk di seluruh perhitungan HPP.</p>
         </div>
-        <label className="prod-input-label">Nama Produk</label>
-      </div>
-
-      <div className={`prod-input-wrap ${filled ? "filled" : ""}`}>
-        <input
-          type="text"
-          value={productName || ""}
-          onChange={handleChange}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder="Masukkan nama produk baru"
-        />
-        <div className={`prod-input-bar ${focused ? "active" : ""}`} />
-      </div>
-
-      <p className="prod-input-hint">
-        Nama ini akan dipakai sebagai identitas produk di seluruh perhitungan HPP.
-      </p>
-    </div>
-  );
+    );
 }
 
 export default ProductInput;

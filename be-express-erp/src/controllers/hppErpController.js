@@ -6,9 +6,7 @@ import * as HppErpModel from "../models/hppErpModel.js";
 // ======================
 export const getAllHppErp = async (req, res) => {
   try {
-   const data = await HppErpModel.getAllHppErp(
-   req.user.company_id
-    );
+    const data = await HppErpModel.getAllHppErp(req.user.company_id);
 
     res.json({ status: "00", data });
   } catch (err) {
@@ -21,9 +19,11 @@ export const getAllHppErp = async (req, res) => {
 // ======================
 export const getMasterBarang = async (req, res) => {
   try {
-    const data = await HppErpModel.getMasterBarang();
+    const companyId = req.user.company_id;
+    const data = await HppErpModel.getMasterBarang(companyId);
     res.json({ status: "00", data });
   } catch (err) {
+    console.error("GET MASTER BARANG ERROR:", err);
     res.status(500).json({ status: "99", error: err.message });
   }
 };
@@ -57,69 +57,64 @@ export const createHppErp = async (req, res) => {
       ])
       .first();
 
-   if (!produk) {
+    if (!produk) {
       console.log("CREATE PRODUK BARU:", nama_produk_jadi);
 
       const [id] = await trx("master_nama_produk").insert({
         nama_produk_jadi,
       });
 
-  console.log("ID PRODUK BARU:", id);
+      console.log("ID PRODUK BARU:", id);
 
-  produk = { id };
-}
+      produk = { id };
+    }
 
     // ======================
     // INSERT HPP HEADER
     // ======================
-  const insertResult = await trx("hpp").insert({
-  produk_id: produk.id,
-  total_hpp: totalHPP,
-  hpp_per_pcs: hppPerPcs,
-  qty_hasil: Number(req.body.qty_hasil || 0),
-  qty_sisa: Number(req.body.qty_hasil || 0),
-  satuan_hasil: req.body.satuan_hasil || "Kg",
-  status: "FASE1",
-  parent_hpp_id: null,
-  company_id: req.user.company_id,
-  created_at: new Date(),
-});
-
-console.log("INSERT RESULT =", insertResult);
-
-const hppId = Array.isArray(insertResult)
-  ? insertResult[0]
-  : insertResult;
-
-console.log("HPP ID =", hppId);
-
-const insertDetail = async (data = [], kategori) => {
-  if (!Array.isArray(data)) return;
-
-  for (const item of data) {
-    await trx("hpp_detail").insert({
-      hpp_id: hppId,
-      BARANG_KODE: item.barangKode ?? null,
-      kategori,
-      nama_item: item.nama ?? "",
-      harga: Number(item.harga ?? 0),
-      satuan: item.satuan ?? "-",
-      jumlah: Number(item.jumlah ?? 0),
-      total:
-        Number(item.harga ?? 0) *
-        Number(item.jumlah ?? 0),
+    const insertResult = await trx("hpp").insert({
+      produk_id: produk.id,
+      total_hpp: totalHPP,
+      hpp_per_pcs: hppPerPcs,
+      qty_hasil: Number(req.body.qty_hasil || 0),
+      qty_sisa: Number(req.body.qty_hasil || 0),
+      satuan_hasil: req.body.satuan_hasil || "Kg",
+      status: "FASE1",
+      parent_hpp_id: null,
+      company_id: req.user.company_id,
+      created_at: new Date(),
     });
-  }
-};
 
-await insertDetail(bahanBaku, "BAHAN_BAKU");
-await insertDetail(bahanBakuTambahan, "BAHAN_BAKU_TAMBAHAN");
-await insertDetail(tenagaKerja, "TENAGA_KERJA");
-await insertDetail(overhead, "OVERHEAD");
-console.log("BODY CREATE:", req.body);
+    console.log("INSERT RESULT =", insertResult);
 
-await trx.commit();
+    const hppId = Array.isArray(insertResult) ? insertResult[0] : insertResult;
 
+    console.log("HPP ID =", hppId);
+
+    const insertDetail = async (data = [], kategori) => {
+      if (!Array.isArray(data)) return;
+
+      for (const item of data) {
+        await trx("hpp_detail").insert({
+          hpp_id: hppId,
+          BARANG_KODE: item.barangKode ?? null,
+          kategori,
+          nama_item: item.nama ?? "",
+          harga: Number(item.harga ?? 0),
+          satuan: item.satuan ?? "-",
+          jumlah: Number(item.jumlah ?? 0),
+          total: Number(item.harga ?? 0) * Number(item.jumlah ?? 0),
+        });
+      }
+    };
+
+    await insertDetail(bahanBaku, "BAHAN_BAKU");
+    await insertDetail(bahanBakuTambahan, "BAHAN_BAKU_TAMBAHAN");
+    await insertDetail(tenagaKerja, "TENAGA_KERJA");
+    await insertDetail(overhead, "OVERHEAD");
+    console.log("BODY CREATE:", req.body);
+
+    await trx.commit();
 
     res.json({
       status: "00",
@@ -140,7 +135,7 @@ await trx.commit();
 // ======================
 export const deleteHppErp = async (req, res) => {
   try {
-    await HppErpModel.deleteHppErp(req.params.id,  req.user.company_id);
+    await HppErpModel.deleteHppErp(req.params.id, req.user.company_id);
 
     res.json({ status: "00", message: "Berhasil hapus HPP" });
   } catch (err) {
@@ -181,7 +176,7 @@ export const getHppDetail = async (req, res) => {
 
     const header = await db("hpp as h")
       .leftJoin("master_nama_produk as p", "h.produk_id", "p.id")
-       .select(
+      .select(
         "h.id",
         "h.company_id",
         "h.produk_id",
@@ -193,14 +188,13 @@ export const getHppDetail = async (req, res) => {
         "h.satuan_hasil",
         "h.status",
         "h.fase",
-        "h.created_at"
-    )
+        "h.created_at",
+      )
       .where("h.id", id)
       .where("h.company_id", req.user.company_id)
       .first();
 
-    const detail = await db("hpp_detail")
-      .where("hpp_id", id);
+    const detail = await db("hpp_detail").where("hpp_id", id);
 
     if (!header) {
       return res.status(404).json({
@@ -272,48 +266,42 @@ export const updateHppErp = async (req, res) => {
       .first();
 
     if (!existing) {
-      throw new Error(
-        "Data tidak ditemukan atau bukan milik user"
-      );
+      throw new Error("Data tidak ditemukan atau bukan milik user");
     }
 
-   await trx("hpp")
-      .where({ id, company_id: req.user.company_id,})
-      .update({
-        produk_id: produk.id,
-        total_hpp: totalHPP,
-        hpp_per_pcs: hppPerPcs,
-        updated_at: new Date(),
-      });
+    await trx("hpp").where({ id, company_id: req.user.company_id }).update({
+      produk_id: produk.id,
+      total_hpp: totalHPP,
+      hpp_per_pcs: hppPerPcs,
+      updated_at: new Date(),
+    });
 
     await trx("hpp_detail").where({ hpp_id: id }).del();
 
     // ======================
     // INSERT DETAIL (TETAP PUNYA KAMU)
     // ======================
-   const insertDetail = async (data = [], kategori) => {
-  if (!Array.isArray(data)) return;
+    const insertDetail = async (data = [], kategori) => {
+      if (!Array.isArray(data)) return;
 
-  for (const item of data) {
-    await trx("hpp_detail").insert({
-      hpp_id: id,
-      BARANG_KODE: item.barangKode ?? null,
-      kategori,
-      nama_item: item.nama ?? "",
-      harga: Number(item.harga ?? 0),
-      satuan: item.satuan ?? "-",
-      jumlah: Number(item.jumlah ?? 0),
-      total:
-        Number(item.harga ?? 0) *
-        Number(item.jumlah ?? 0),
-    });
-  }
-};
+      for (const item of data) {
+        await trx("hpp_detail").insert({
+          hpp_id: id,
+          BARANG_KODE: item.barangKode ?? null,
+          kategori,
+          nama_item: item.nama ?? "",
+          harga: Number(item.harga ?? 0),
+          satuan: item.satuan ?? "-",
+          jumlah: Number(item.jumlah ?? 0),
+          total: Number(item.harga ?? 0) * Number(item.jumlah ?? 0),
+        });
+      }
+    };
 
-await insertDetail(bahanBaku, "BAHAN_BAKU");
-await insertDetail(bahanBakuTambahan, "BAHAN_BAKU_TAMBAHAN");
-await insertDetail(tenagaKerja, "TENAGA_KERJA");
-await insertDetail(overhead, "OVERHEAD");
+    await insertDetail(bahanBaku, "BAHAN_BAKU");
+    await insertDetail(bahanBakuTambahan, "BAHAN_BAKU_TAMBAHAN");
+    await insertDetail(tenagaKerja, "TENAGA_KERJA");
+    await insertDetail(overhead, "OVERHEAD");
 
     await trx.commit();
 
@@ -337,7 +325,7 @@ await insertDetail(overhead, "OVERHEAD");
 // ======================
 export const createFase2 = async (req, res) => {
   try {
-     console.log("BODY FASE2 =", req.body);
+    console.log("BODY FASE2 =", req.body);
 
     const result = await HppErpModel.createFase2({
       ...req.body,
@@ -356,6 +344,103 @@ export const createFase2 = async (req, res) => {
       status: "99",
       error: err.message,
       stack: err.stack,
+    });
+  }
+};
+
+// ======================
+// log user create HPP
+// ======================
+export const createHpp = async (req, res) => {
+  try {
+    // 1. Simpan HPP
+    const result = await HppErpModel.createHpp(req.body);
+
+    // 2. Catat aktivitas user
+    await logUserActivity({
+      req,
+      aktivitas: "CREATE",
+      modul: "HPP",
+      deskripsi: `Membuat HPP produk ${req.body.nama_produk}`,
+    });
+
+    // 3. Kirim response
+    return res.status(201).json({
+      success: true,
+      message: "HPP berhasil dibuat",
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal membuat HPP",
+      error: error.message,
+    });
+  }
+};
+
+// ======================
+// log user update HPP
+// ======================
+export const updateHpp = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await HppErpModel.updateHpp(id, req.body);
+
+    await logUserActivity({
+      req,
+      aktivitas: "UPDATE",
+      modul: "HPP",
+      deskripsi: `Mengubah HPP produk ${req.body.nama_produk}`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "HPP berhasil diperbarui",
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal memperbarui HPP",
+      error: error.message,
+    });
+  }
+};
+
+// ======================
+// log user delete HPP
+// ======================
+export const deleteHpp = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await HppErpModel.deleteHpp(id);
+
+    await logUserActivity({
+      req,
+      aktivitas: "DELETE",
+      modul: "HPP",
+      deskripsi: `Menghapus HPP dengan ID ${id}`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "HPP berhasil dihapus",
+      data: result,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Gagal menghapus HPP",
+      error: error.message,
     });
   }
 };

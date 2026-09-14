@@ -29,13 +29,29 @@ export const createBarang = async (data) => {
 };
 
 export const updateBarang = async (ID, companyId, data) => {
-  await db("master_barang").where({ ID, company_id: companyId, }).update({
-    ...data,
-    updated_at: db.fn.now(),
-  });
+  await db("master_barang")
+    .where({ ID, company_id: companyId })
+    .update({
+      ...data,
+      updated_at: db.fn.now(),
+    });
   return getBarangById(ID, companyId);
 };
 
 export const deleteBarang = async (ID, companyId) => {
-  return db("master_barang").where({ ID, company_id: companyId }).del();
+  return await db.transaction(async (trx) => {
+    const barang = await trx("master_barang")
+      .where({ ID, company_id: companyId })
+      .first();
+
+    if (!barang) {
+      throw new Error("Barang tidak ditemukan");
+    }
+
+    await trx("stok_lokasi").where("BARANG_KODE", barang.BARANG_KODE).del();
+
+    await trx("tr_barang_masuk").where("BARANG_KODE", barang.BARANG_KODE).del();
+
+    await trx("master_barang").where({ ID, company_id: companyId }).del();
+  });
 };

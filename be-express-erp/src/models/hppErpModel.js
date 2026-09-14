@@ -18,10 +18,10 @@ export const getAllHppErp = (companyId) => {
       "h.satuan_hasil",
       "h.status",
       "h.fase",
-      "h.created_at"
+      "h.created_at",
     )
-  .where("h.company_id", companyId)
-  .orderBy("h.id", "desc");
+    .where("h.company_id", companyId)
+    .orderBy("h.id", "desc");
 };
 
 // ======================
@@ -39,19 +39,16 @@ export const createMasterProduk = async (nama_produk_jadi) => {
 // ======================
 // MASTER BARANG
 // ======================
-export const getMasterBarang = () => {
+export const getMasterBarang = (companyId) => {
   return db("master_barang as mb")
-    .leftJoin(
-      "master_satuan_barang as msb",
-      "mb.SATUAN_ID",
-      "msb.ID"
-    )
+    .leftJoin("master_satuan_barang as msb", "mb.SATUAN_ID", "msb.ID")
+    .where("mb.company_id", companyId)
     .select(
       "mb.ID",
       "mb.BARANG_KODE",
       "mb.NAMA_BARANG",
       "mb.HARGA_JUAL",
-      "msb.NAMA_SATUAN"
+      "msb.NAMA_SATUAN",
     )
     .orderBy("mb.NAMA_BARANG", "asc");
 };
@@ -94,9 +91,7 @@ export const createHppErp = async (payload) => {
           harga: Number(item.harga || 0),
           satuan: item.satuan || "",
           jumlah: Number(item.jumlah || 0),
-          total:
-            Number(item.harga || 0) *
-            Number(item.jumlah || 0),
+          total: Number(item.harga || 0) * Number(item.jumlah || 0),
         });
       }
     };
@@ -118,14 +113,12 @@ export const createHppErp = async (payload) => {
       const currentStock = Number(stok.total || 0);
 
       if (currentStock < qty) {
-        throw new Error(
-          `Stok ${barangKode} tidak cukup`
-        );
+        throw new Error(`Stok ${barangKode} tidak cukup`);
       }
 
       const rows = await trx("stok_lokasi")
         .where({ BARANG_KODE: barangKode })
-        .orderBy("ID_STOK_LOKASI", "asc");
+        .orderBy("ID_stok_lokasi", "asc");
 
       let sisa = qty;
 
@@ -136,8 +129,7 @@ export const createHppErp = async (payload) => {
 
         await trx("stok_lokasi")
           .where({
-            ID_STOK_LOKASI:
-              row.ID_STOK_LOKASI,
+            ID_stok_lokasi: row.ID_stok_lokasi,
           })
           .update({
             QTY: row.QTY - ambil,
@@ -159,10 +151,7 @@ export const createHppErp = async (payload) => {
     // ======================
     for (const item of bahanBaku) {
       if (item.barangKode) {
-        await reduceStock(
-          item.barangKode,
-          item.jumlah
-        );
+        await reduceStock(item.barangKode, item.jumlah);
       }
     }
 
@@ -192,10 +181,7 @@ export const deleteHppErp = (id, companyId) => {
 // FORM DATA
 // ======================
 export const getSatuan = () => {
-  return db("master_satuan_barang").select(
-    "ID",
-    "NAMA_SATUAN"
-  );
+  return db("master_satuan_barang").select("ID", "NAMA_SATUAN");
 };
 
 // ======================
@@ -211,25 +197,25 @@ export const createFase2 = async (payload) => {
   const trx = await db.transaction();
 
   try {
-   console.log(payload);
+    console.log(payload);
 
-const {
-    hpp_id,
-    qty_dipakai,
-    nama_produk_baru,
+    const {
+      hpp_id,
+      qty_dipakai,
+      nama_produk_baru,
 
-    bahanBaku = [],
-    overhead = [],
-    tenagaKerja = [],
+      bahanBaku = [],
+      overhead = [],
+      tenagaKerja = [],
 
-    totalHPP,
-    hppPerPcs,
+      totalHPP,
+      hppPerPcs,
 
-    companyId,
-} = payload;
+      companyId,
+    } = payload;
 
-console.log("hpp_id =", hpp_id);
-console.log("companyId =", companyId);
+    console.log("hpp_id =", hpp_id);
+    console.log("companyId =", companyId);
     // =====================
     // Ambil HPP Fase 1
     // =====================
@@ -240,28 +226,21 @@ console.log("companyId =", companyId);
       })
       .first();
 
-    if (!fase1)
-      throw new Error("Produk Fase 1 tidak ditemukan");
+    if (!fase1) throw new Error("Produk Fase 1 tidak ditemukan");
 
-    const qtySisa =
-      Number(fase1.qty_sisa ?? fase1.qty_hasil);
+    const qtySisa = Number(fase1.qty_sisa ?? fase1.qty_hasil);
 
     const qtyDipakai = Number(qty_dipakai);
 
-      if (qtyDipakai <= 0)
-          throw new Error("Qty harus lebih dari 0");
+    if (qtyDipakai <= 0) throw new Error("Qty harus lebih dari 0");
 
-      if (qtyDipakai > qtySisa)
-          throw new Error("Qty melebihi stok");
+    if (qtyDipakai > qtySisa) throw new Error("Qty melebihi stok");
 
     // =====================
     // Cari / Buat Produk Baru
     // =====================
     let produk = await trx("master_nama_produk")
-      .whereRaw(
-        "LOWER(nama_produk_jadi)=?",
-        [nama_produk_baru.toLowerCase()]
-      )
+      .whereRaw("LOWER(nama_produk_jadi)=?", [nama_produk_baru.toLowerCase()])
       .first();
 
     if (!produk) {
@@ -275,82 +254,77 @@ console.log("companyId =", companyId);
     // =====================
     // Hitung HPP yg dipakai
     // =====================
-    const totalHppDipakai =
-      Number(fase1.hpp_per_pcs) *
-      Number(qty_dipakai);
+    const totalHppDipakai = Number(fase1.hpp_per_pcs) * Number(qty_dipakai);
 
     // =====================
     // Insert Header Baru
     // =====================
-   const [newId] = await trx("hpp").insert({
-    company_id: fase1.company_id,
-    produk_id: produk.id,
+    const [newId] = await trx("hpp").insert({
+      company_id: fase1.company_id,
+      produk_id: produk.id,
 
-    fase: 2,
-    status: "FASE2",
+      fase: 2,
+      status: "FASE2",
 
-    parent_hpp_id: hpp_id,
+      parent_hpp_id: hpp_id,
 
-    qty_hasil: qty_dipakai,
-    qty_sisa: qty_dipakai,
+      qty_hasil: qty_dipakai,
+      qty_sisa: qty_dipakai,
 
-    satuan_hasil: fase1.satuan_hasil,
-    total_hpp: totalHPP,
-    hpp_per_pcs: hppPerPcs,
+      satuan_hasil: fase1.satuan_hasil,
+      total_hpp: totalHPP,
+      hpp_per_pcs: hppPerPcs,
 
-    created_at: new Date(),
-});
-
-// =====================
-// INSERT DETAIL
-// =====================
-const insertDetail = async (items = [], kategori) => {
-    if (!Array.isArray(items)) return;
-
-    for (const item of items) {
-        await trx("hpp_detail").insert({
-    hpp_id: newId,
-    fase: 2,
-    parent_hpp_id: item.fromFase1 ? hpp_id : null,
-    is_fase1: item.fromFase1 ? 1 : 0,
-    BARANG_KODE: item.barangKode ?? null,
-    kategori,
-    nama_item: item.nama ?? "",
-    harga: Number(item.harga ?? 0),
-    satuan: item.satuan ?? "-",
-    jumlah: Number(item.jumlah ?? 0),
-    jam: Number(item.jam ?? 0),
-    total:
-        Number(item.harga ?? 0) *
-        Number(item.jumlah ?? 0),
-});
-    }
-};
-
-await insertDetail(bahanBaku, "BAHAN_BAKU");
-await insertDetail(overhead, "OVERHEAD");
-await insertDetail(tenagaKerja, "TENAGA_KERJA");
-
-// =====================
-// Kurangi stok hasil Fase 1
-// =====================
-await trx("hpp")
-    .where({
-        id: hpp_id,
-        company_id: companyId,
-    })
-    .update({
-        qty_sisa: qtySisa - qtyDipakai,
+      created_at: new Date(),
     });
 
-await trx.commit();
+    // =====================
+    // INSERT DETAIL
+    // =====================
+    const insertDetail = async (items = [], kategori) => {
+      if (!Array.isArray(items)) return;
 
-return {
-    id: newId,
+      for (const item of items) {
+        await trx("hpp_detail").insert({
+          hpp_id: newId,
+          fase: 2,
+          parent_hpp_id: item.fromFase1 ? hpp_id : null,
+          is_fase1: item.fromFase1 ? 1 : 0,
+          BARANG_KODE: item.barangKode ?? null,
+          kategori,
+          nama_item: item.nama ?? "",
+          harga: Number(item.harga ?? 0),
+          satuan: item.satuan ?? "-",
+          jumlah: Number(item.jumlah ?? 0),
+          jam: Number(item.jam ?? 0),
+          total: Number(item.harga ?? 0) * Number(item.jumlah ?? 0),
+        });
+      }
+    };
 
-  };
+    await insertDetail(bahanBaku, "BAHAN_BAKU");
+    await insertDetail(overhead, "OVERHEAD");
+    await insertDetail(tenagaKerja, "TENAGA_KERJA");
+
+    // =====================
+    // Kurangi stok hasil Fase 1
+    // =====================
+    await trx("hpp")
+      .where({
+        id: hpp_id,
+        company_id: companyId,
+      })
+      .update({
+        qty_sisa: qtySisa - qtyDipakai,
+      });
+
+    await trx.commit();
+
+    return {
+      id: newId,
+    };
   } catch (err) {
     await trx.rollback();
     throw err;
-}
+  }
 };

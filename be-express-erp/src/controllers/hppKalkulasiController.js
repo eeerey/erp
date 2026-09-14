@@ -86,6 +86,14 @@ export const create = async (req, res) => {
   try {
     const companyId = req.user.company_id;
 
+    // >>> DIHAPUS: `const masterSatuan = await getMasterSatuan();`
+    // Baris ini sebelumnya memanggil route handler `getMasterSatuan`
+    // seolah-olah fungsi helper biasa (tanpa req/res), padahal
+    // `getMasterSatuan` butuh `res` untuk memanggil `res.json(...)`.
+    // Karena dipanggil tanpa argumen, `res` di dalamnya jadi undefined
+    // dan menyebabkan crash. Variabel `masterSatuan` juga tidak pernah
+    // dipakai di bawah, jadi baris ini memang tidak diperlukan di sini.
+
     const result = await HppKalkulasiModel.create({
       ...req.body,
       companyId,
@@ -112,6 +120,10 @@ export const create = async (req, res) => {
 export const update = async (req, res) => {
   try {
     const companyId = req.user.company_id;
+
+    // >>> DIHAPUS: sama seperti di `create`, baris
+    // `const masterSatuan = await getMasterSatuan();` dihapus
+    // karena penyebab error dan tidak pernah dipakai.
 
     const { id } = req.params;
 
@@ -165,6 +177,29 @@ export const remove = async (req, res) => {
 
     return res.status(500).json({
       status: "99",
+      error: error.message,
+    });
+  }
+};
+
+// ======================================================
+// GET master satuan
+// ======================================================
+
+export const getMasterSatuan = async (req, res) => {
+  try {
+    const data = await HppKalkulasiModel.getMasterSatuan();
+
+    return res.json({
+      status: "00",
+      data,
+    });
+  } catch (error) {
+    console.error("GET MASTER SATUAN HPP ERROR:", error);
+
+    return res.status(500).json({
+      status: "99",
+      message: "Gagal mengambil master satuan",
       error: error.message,
     });
   }

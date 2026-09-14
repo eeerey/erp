@@ -126,15 +126,15 @@ const AppMenu = () => {
                     { label: 'Konfigurasi Hari', icon: 'pi pi-fw pi-calendar', to: '/master/hari' },
                     { label: 'Log User', icon: 'pi pi-fw pi-clock', to: '/user_log' }
                 ]
-            },
+            }
             //{
-                //label: 'PENGATURAN',
-                //icon: 'pi pi-fw pi-cog',
-                //items: [
-                    //{ label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
-                    //{ label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
-                    //{ label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
-                //]
+            //label: 'PENGATURAN',
+            //icon: 'pi pi-fw pi-cog',
+            //items: [
+            //{ label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
+            //{ label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
+            //{ label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
+            //]
             //}
         ];
     }
@@ -354,6 +354,7 @@ const AppMenu = () => {
                     //{ label: "Produksi", icon: "pi pi-fw pi-box", to: "/produksi/menu/jenis_produksi" },
                     //{ label: "Produksi Gudang", icon: "pi pi-fw pi-box", to: "/produksi/menu/produksiGudang" },
                     { label: 'HPP Erp', icon: 'pi pi-fw pi-chart-line', to: '/produksi/menu/hppErp' },
+                    { label: 'HPP Kalkulasi', icon: 'pi pi-fw pi-chart-line', to: '/produksi/menu/hppKalkulasi' },
                     { label: 'Harga Jual', icon: 'pi pi-fw pi-box', to: '/produksi/menu/hargaJual' }
                 ]
             }

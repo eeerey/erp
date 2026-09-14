@@ -4,8 +4,8 @@ import { db } from "../core/config/knex.js";
  * Get all rak - DENGAN JOIN GUDANG
  **/
 export const getAllRak = async (companyId) => {
-  return db("MASTER_RAK as r")
-    .leftJoin("MASTER_GUDANG as g", function () {
+  return db("master_rak as r")
+    .leftJoin("master_gudang as g", function () {
       this.on("r.KODE_GUDANG", "=", "g.KODE_GUDANG").andOn(
         "r.id_company",
         "=",
@@ -21,16 +21,16 @@ export const getAllRak = async (companyId) => {
  * Get rak by ID - DENGAN JOIN GUDANG
  **/
 export const getRakById = async (ID_RAK, companyId) => {
-  return db("MASTER_RAK")
+  return db("master_rak")
     .leftJoin(
-      "MASTER_GUDANG",
-      "MASTER_RAK.KODE_GUDANG",
-      "MASTER_GUDANG.KODE_GUDANG",
+      "master_gudang",
+      "master_rak.KODE_GUDANG",
+      "master_gudang.KODE_GUDANG",
     )
-    .select("MASTER_RAK.*", "MASTER_GUDANG.NAMA_GUDANG")
+    .select("master_rak.*", "master_gudang.NAMA_GUDANG")
     .where({
-      "MASTER_RAK.ID_RAK": ID_RAK,
-      "MASTER_RAK.id_company": companyId,
+      "master_rak.ID_RAK": ID_RAK,
+      "master_rak.id_company": companyId,
     })
     .first();
 };
@@ -39,7 +39,7 @@ export const getRakById = async (ID_RAK, companyId) => {
  * Get rak by KODE_RAK
  **/
 export const getRakByKode = async (kode, companyId) => {
-  return db("MASTER_RAK")
+  return db("master_rak")
     .where({
       KODE_RAK: kode,
       id_company: companyId,
@@ -51,18 +51,18 @@ export const getRakByKode = async (kode, companyId) => {
  * Get all rak based on a specific gudang
  **/
 export const getRakByGudang = async (kodeGudang, companyId) => {
-  return db("MASTER_RAK")
+  return db("master_rak")
     .leftJoin(
-      "MASTER_GUDANG",
-      "MASTER_RAK.KODE_GUDANG",
-      "MASTER_GUDANG.KODE_GUDANG",
+      "master_gudang",
+      "master_rak.KODE_GUDANG",
+      "master_gudang.KODE_GUDANG",
     )
-    .select("MASTER_RAK.*", "MASTER_GUDANG.NAMA_GUDANG")
+    .select("master_rak.*", "master_gudang.NAMA_GUDANG")
     .where({
-      "MASTER_RAK.KODE_GUDANG": kodeGudang,
-      "MASTER_RAK.id_company": companyId,
+      "master_rak.KODE_GUDANG": kodeGudang,
+      "master_rak.id_company": companyId,
     })
-    .orderBy("MASTER_RAK.KODE_RAK", "asc");
+    .orderBy("master_rak.KODE_RAK", "asc");
 };
 
 /**
@@ -78,7 +78,7 @@ export const createRak = async ({
     throw new Error("KODE_GUDANG dan KODE_RAK wajib diisi");
   }
 
-  const gudangExist = await db("MASTER_GUDANG")
+  const gudangExist = await db("master_gudang")
     .where({
       KODE_GUDANG,
       id_company: company_id,
@@ -89,7 +89,7 @@ export const createRak = async ({
     throw new Error("KODE_GUDANG tidak terdaftar");
   }
 
-  const [insertedId] = await db("MASTER_RAK").insert({
+  const [insertedId] = await db("master_rak").insert({
     id_company: company_id,
     KODE_GUDANG,
     KODE_RAK,
@@ -118,7 +118,7 @@ export const updateRak = async (
   if (KODE_RAK) dataToUpdate.KODE_RAK = KODE_RAK;
   if (NAMA_RAK !== undefined) dataToUpdate.NAMA_RAK = NAMA_RAK;
 
-  await db("MASTER_RAK")
+  await db("master_rak")
     .where({
       ID_RAK,
       id_company: companyId,
@@ -132,7 +132,7 @@ export const updateRak = async (
  * Delete rak
  **/
 export const deleteRak = async (ID_RAK, companyId) => {
-  return db("MASTER_RAK")
+  return db("master_rak")
     .where({
       ID_RAK,
       id_company: companyId,

@@ -9,14 +9,13 @@ export async function up(knex) {
     // company_id bertipe INT (signed)
     table.integer("company_id").nullable().defaultTo(null);
 
-    // BARANG_KODE tidak diset .unique() agar cocok dengan DDL SQL
-    table.string("BARANG_KODE", 50).notNullable();
+    // BARANG_KODE diset .unique() agar sesuai dengan DDL SQL produksi
+    table.string("BARANG_KODE", 50).notNullable().unique();
     table.string("NAMA_BARANG", 200).notNullable();
 
     table.integer("JENIS_ID").unsigned().nullable().defaultTo(null);
     table.integer("SATUAN_ID").unsigned().nullable().defaultTo(null);
 
-    // ✅ Bagian yang sebelumnya kurang ditambahkan di sini:
     table.string("NAMA_SATUAN", 100).nullable().defaultTo(null);
 
     table.decimal("STOK_MINIMAL", 15, 2).defaultTo(0.0);
@@ -29,7 +28,7 @@ export async function up(knex) {
     table.timestamp("created_at").nullable().defaultTo(knex.fn.now());
     table.timestamp("updated_at").nullable().defaultTo(knex.fn.now());
 
-    // Index biasa untuk mempercepat query pencarian berdasarkan BARANG_KODE atau company_id
+    // Index biasa dan unique index berdampingan sesuai skema produksi
     table.index(["BARANG_KODE"]);
     table.index(["company_id"]);
   });

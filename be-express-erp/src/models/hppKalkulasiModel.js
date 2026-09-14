@@ -1,5 +1,79 @@
 import { db } from "../core/config/knex.js";
 
+const normalizeUnit = (value) => {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+};
+
+// ======================================================
+// HITUNG HARGA BERDASARKAN SATUAN PEMAKAIAN
+// ======================================================
+
+const hitungHargaSatuanPemakaian = ({
+  hargaMaster,
+  satuanMaster,
+  satuanPemakaian,
+  masterSatuan = [],
+}) => {
+  const harga = Number(hargaMaster) || 0;
+
+  if (harga <= 0 || !satuanMaster || !satuanPemakaian) {
+    return 0;
+  }
+
+  // Jika satuan master dan satuan pemakaian sama,
+  // harga tidak perlu dikonversi.
+  if (normalizeUnit(satuanMaster) === normalizeUnit(satuanPemakaian)) {
+    return harga;
+  }
+
+  const master = masterSatuan.find(
+    (item) => normalizeUnit(item.NAMA_SATUAN) === normalizeUnit(satuanMaster),
+  );
+
+  const pemakaian = masterSatuan.find(
+    (item) =>
+      normalizeUnit(item.NAMA_SATUAN) === normalizeUnit(satuanPemakaian),
+  );
+
+  if (!master || !pemakaian) {
+    return 0;
+  }
+
+  const kelompokMaster = String(master.KELOMPOK ?? "")
+    .trim()
+    .toUpperCase();
+
+  const kelompokPemakaian = String(pemakaian.KELOMPOK ?? "")
+    .trim()
+    .toUpperCase();
+
+  const faktorMaster = Number(master.FAKTOR_DASAR);
+
+  const faktorPemakaian = Number(pemakaian.FAKTOR_DASAR);
+
+  if (
+    !kelompokMaster ||
+    !kelompokPemakaian ||
+    kelompokMaster !== kelompokPemakaian
+  ) {
+    return 0;
+  }
+
+  if (
+    !Number.isFinite(faktorMaster) ||
+    !Number.isFinite(faktorPemakaian) ||
+    faktorMaster <= 0 ||
+    faktorPemakaian <= 0
+  ) {
+    return 0;
+  }
+
+  return harga * (faktorPemakaian / faktorMaster);
+};
+
 // ======================================================
 // AMBIL MASTER BARANG BERDASARKAN KODE
 // ======================================================
@@ -26,7 +100,7 @@ const getBarangByKode = async (trx, barangKode, companyId) => {
 // PROSES BAHAN BAKU
 // Harga diambil dari master_barang
 // ======================================================
-const prosesItems = async (trx, items = [], companyId) => {
+const prosesItems = async (trx, items = [], companyId, masterSatuan = []) => {
   if (!Array.isArray(items)) {
     return [];
   }
@@ -66,32 +140,32 @@ const prosesItems = async (trx, items = [], companyId) => {
     // ----------------------------------------------
     // Harga beli terakhir dari database
     // ----------------------------------------------
-    const hargaSatuan = Number(barang.HARGA_BELI_TERAKHIR) || 0;
+    const hargaMaster = Number(barang.HARGA_BELI_TERAKHIR) || 0;
 
-    // ----------------------------------------------
-    // Nama barang dari database
-    // ----------------------------------------------
-    const namaItem = barang.NAMA_BARANG;
+    const satuanMaster = barang.NAMA_SATUAN ?? "-";
 
-    // ----------------------------------------------
-    // Satuan dari database
-    // ----------------------------------------------
-    const satuan = barang.NAMA_SATUAN ?? "-";
+    const satuanPemakaian = String(
+      item.satuan ?? item.satuan_pemakaian ?? "",
+    ).trim();
 
-    // ----------------------------------------------
-    // Hitung subtotal
-    // ----------------------------------------------
+    const hargaSatuan = hitungHargaSatuanPemakaian({
+      hargaMaster,
+      satuanMaster,
+      satuanPemakaian,
+      masterSatuan,
+    });
+
     const subtotal = jumlah * hargaSatuan;
 
     hasil.push({
       barang_kode: barang.BARANG_KODE,
-
-      nama_item: namaItem,
-
+      nama_item: barang.NAMA_BARANG,
       jumlah,
 
-      satuan,
+      // SATUAN YANG DIPILIH USER
+      satuan: satuanPemakaian,
 
+      // HARGA SETELAH DISESUAIKAN DENGAN SATUAN USER
       harga_satuan: hargaSatuan,
 
       subtotal,
@@ -110,8 +184,14 @@ const prosesItems = async (trx, items = [], companyId) => {
 //   nama,
 //   jumlah,
 //   satuan,
-//   hargaSatuan
+//   hargaSatuan,
+//   jam       <-- >>> BARU: pengali (jam/hari/orang, dsb)
 // }
+//
+// >>> DIPERBAIKI: sebelumnya subtotal hanya jumlah * hargaSatuan,
+// tidak memperhitungkan "jam" sama sekali. Sekarang subtotal =
+// jumlah * hargaSatuan * jam, konsisten dengan perhitungan di
+// frontend (total() di HppTable & calculateManualTotal di page.js).
 // ======================================================
 const prosesBiaya = (items = []) => {
   if (!Array.isArray(items)) {
@@ -142,6 +222,13 @@ const prosesBiaya = (items = []) => {
     const hargaSatuan = Number(item.hargaSatuan ?? item.harga_satuan) || 0;
 
     // ----------------------------------------------
+    // >>> BARU: Pengali jam/hari/orang, dsb.
+    // Default 1 kalau tidak dikirim (mis. data lama sebelum
+    // fitur ini ada, atau field tidak diisi).
+    // ----------------------------------------------
+    const jam = Number(item.jam ?? item.JAM) || 1;
+
+    // ----------------------------------------------
     // Validasi nama
     // ----------------------------------------------
     if (typeof namaItem !== "string" || !namaItem.trim()) {
@@ -163,9 +250,17 @@ const prosesBiaya = (items = []) => {
     }
 
     // ----------------------------------------------
-    // Hitung subtotal
+    // Validasi jam
     // ----------------------------------------------
-    const subtotal = jumlah * hargaSatuan;
+    if (jam <= 0) {
+      throw new Error(`Jml Jam/Hari/dst untuk ${namaItem} harus lebih dari 0`);
+    }
+
+    // ----------------------------------------------
+    // Hitung subtotal
+    // >>> DIPERBAIKI: sekarang ikut mengalikan "jam"
+    // ----------------------------------------------
+    const subtotal = jumlah * hargaSatuan * jam;
 
     hasil.push({
       // Tenaga kerja dan overhead
@@ -180,11 +275,34 @@ const prosesBiaya = (items = []) => {
 
       harga_satuan: hargaSatuan,
 
+      // >>> BARU: simpan juga nilai jam supaya bisa
+      // direkonstruksi dengan benar saat data diedit lagi
+      jam,
+
       subtotal,
     });
   }
 
   return hasil;
+};
+
+// ======================================================
+
+// ambil dari database satuan barangnya
+// ======================================================
+
+export const getMasterSatuan = async () => {
+  return db("master_satuan_barang")
+    .select(
+      "ID",
+      "KODE_SATUAN",
+      "NAMA_SATUAN",
+      "KELOMPOK",
+      "FAKTOR_DASAR",
+      "STATUS",
+    )
+    .where("STATUS", "Aktif")
+    .orderBy("NAMA_SATUAN", "asc");
 };
 
 // ======================================================
@@ -315,6 +433,8 @@ export const create = async ({
 
   const trx = await db.transaction();
 
+  const masterSatuan = await getMasterSatuan();
+
   try {
     // ==================================================
     // VALIDASI PRODUK
@@ -335,7 +455,12 @@ export const create = async ({
     // ==================================================
     // PROSES BAHAN BAKU LANGSUNG
     // ==================================================
-    const detailBBL = await prosesItems(trx, bahanBakuLangsung, companyId);
+    const detailBBL = await prosesItems(
+      trx,
+      bahanBakuLangsung,
+      companyId,
+      masterSatuan,
+    );
 
     // ==================================================
     // PROSES BAHAN BAKU TIDAK LANGSUNG
@@ -344,6 +469,7 @@ export const create = async ({
       trx,
       bahanBakuTidakLangsung,
       companyId,
+      masterSatuan,
     );
 
     // ==================================================
@@ -448,6 +574,7 @@ export const create = async ({
 
     // ==================================================
     // INSERT DETAIL
+    // >>> DIPERBAIKI: sekarang ikut menyimpan kolom "jam"
     // ==================================================
     const insertDetail = async (items, kategori) => {
       for (const item of items) {
@@ -467,6 +594,10 @@ export const create = async ({
           satuan: item.satuan,
 
           harga_satuan: item.harga_satuan,
+
+          // >>> BARU: kolom jam (default 1 untuk bahan baku
+          // yang memang tidak punya field ini)
+          jam: item.jam ?? 1,
 
           subtotal: item.subtotal,
         });
@@ -560,6 +691,8 @@ export const update = async ({
 }) => {
   const trx = await db.transaction();
 
+  const masterSatuan = await getMasterSatuan();
+
   try {
     // ==================================================
     // CEK DATA HPP
@@ -595,7 +728,12 @@ export const update = async ({
     // ==================================================
     // PROSES BAHAN BAKU LANGSUNG
     // ==================================================
-    const detailBBL = await prosesItems(trx, bahanBakuLangsung, companyId);
+    const detailBBL = await prosesItems(
+      trx,
+      bahanBakuLangsung,
+      companyId,
+      masterSatuan,
+    );
 
     // ==================================================
     // PROSES BAHAN BAKU TIDAK LANGSUNG
@@ -604,6 +742,7 @@ export const update = async ({
       trx,
       bahanBakuTidakLangsung,
       companyId,
+      masterSatuan,
     );
 
     // ==================================================
@@ -712,6 +851,7 @@ export const update = async ({
 
     // ==================================================
     // INSERT DETAIL BARU
+    // >>> DIPERBAIKI: sekarang ikut menyimpan kolom "jam"
     // ==================================================
     const insertDetail = async (items, kategori) => {
       for (const item of items) {
@@ -731,6 +871,10 @@ export const update = async ({
           satuan: item.satuan,
 
           harga_satuan: item.harga_satuan,
+
+          // >>> BARU: kolom jam (default 1 untuk bahan baku
+          // yang memang tidak punya field ini)
+          jam: item.jam ?? 1,
 
           subtotal: item.subtotal,
         });

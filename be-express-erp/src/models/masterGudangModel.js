@@ -4,7 +4,7 @@ import { db } from "../core/config/knex.js";
  * Get all gudang
  **/
 export const getAllGudang = async (companyId) => {
-  return db("MASTER_GUDANG")
+  return db("master_gudang")
     .where("id_company", companyId)
     .select("*")
     .orderBy("KODE_GUDANG", "asc");
@@ -13,7 +13,7 @@ export const getAllGudang = async (companyId) => {
  * Get gudang by ID (Primary Key)
  **/
 export const getGudangById = async (ID_GUDANG, companyId) => {
-  return db("MASTER_GUDANG")
+  return db("master_gudang")
     .where({
       ID_GUDANG,
       id_company: companyId,
@@ -25,7 +25,7 @@ export const getGudangById = async (ID_GUDANG, companyId) => {
  * Get gudang by KODE_GUDANG (kode unik)
  **/
 export const getGudangByKode = async (kode, companyId) => {
-  return db("MASTER_GUDANG")
+  return db("master_gudang")
     .where({
       KODE_GUDANG: kode,
       id_company: companyId,
@@ -47,7 +47,7 @@ export const createGudang = async ({
     throw new Error("KODE_GUDANG dan NAMA_GUDANG wajib diisi");
   }
 
-  const [ID_GUDANG] = await db("MASTER_GUDANG").insert({
+  const [ID_GUDANG] = await db("master_gudang").insert({
     KODE_GUDANG,
     NAMA_GUDANG,
     ALAMAT: ALAMAT ?? null,
@@ -57,7 +57,7 @@ export const createGudang = async ({
     UPDATED_AT: db.fn.now(),
   });
 
-  return db("MASTER_GUDANG").where({ ID_GUDANG }).first();
+  return db("master_gudang").where({ ID_GUDANG }).first();
 };
 
 /**
@@ -77,21 +77,21 @@ export const updateGudang = async (
   if (ALAMAT !== undefined) dataToUpdate.ALAMAT = ALAMAT;
   if (STATUS !== undefined) dataToUpdate.STATUS = STATUS;
 
-  await db("MASTER_GUDANG")
+  await db("master_gudang")
     .where({
       ID_GUDANG,
       id_company: companyId,
     })
     .update(dataToUpdate);
 
-  return db("MASTER_GUDANG").where({ ID_GUDANG }).first();
+  return db("master_gudang").where({ ID_GUDANG }).first();
 };
 
 /**
  * Delete gudang
  **/
 export const deleteGudang = async (ID_GUDANG, companyId) => {
-  return db("MASTER_GUDANG")
+  return db("master_gudang")
     .where({
       ID_GUDANG,
       id_company: companyId,
