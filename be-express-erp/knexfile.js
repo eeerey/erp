@@ -10,7 +10,7 @@ const knexConfig = {
       port: Number(process.env.DB_PORT) || 3307,
       user: String(process.env.DB_USERNAME) || "root",
       password: String(process.env.DB_PASSWORD) || "",
-      database: String(process.env.DB_NAME) || "",
+      database: String(process.env.DB_NAME) || "kmm_project",
     },
     migrations: {
       directory: "./src/migrations",
