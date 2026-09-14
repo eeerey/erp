@@ -90,7 +90,7 @@ const SuperAdminLoginPage = () => {
                                 <div className="mb-4">
                                     <div className="flex align-items-center gap-2 mb-2">
                                         <i className="pi pi-building text-white text-2xl"></i>
-                                        <span className="text-white text-sm font-medium uppercase tracking-wider">{process.env.NEXT_PUBLIC_COMPANY_NAME || 'PT. Garapan Indonesia Sukses'}</span>
+                                        <span className="text-white text-sm font-medium uppercase tracking-wider">{process.env.NEXT_PUBLIC_COMPANY_NAME || 'PT. Rintis Digital Inovasi'}</span>
                                     </div>
                                 </div>
 

@@ -23,10 +23,12 @@ export async function up(knex) {
       .onUpdate("CASCADE")
       .onDelete("CASCADE");
 
-    // ✅ PERBAIKAN: Tambahkan .unique() di sini
-    table.string("KODE_RAK", 50).notNullable().unique();
-
+    // ✅ TAMBAHKAN .index() DI SINI AGAR BISA DIREFERENSIKAN FOREIGN KEY
+    table.string("KODE_RAK", 50).notNullable().index();
     table.string("NAMA_RAK", 100).nullable();
+
+    // Kombinasi id_company & KODE_RAK tetap unik per perusahaan
+    table.unique(["id_company", "KODE_RAK"]);
 
     // timestamps NOT NULL + DEFAULT CURRENT_TIMESTAMP
     table.timestamps(true, true);

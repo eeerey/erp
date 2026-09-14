@@ -223,20 +223,19 @@ const AppMenu = () => {
                 label: 'SISTEM & ADMIN',
                 icon: 'pi pi-fw pi-th-large',
                 items: [
-                    { label: 'User Management', icon: 'pi pi-fw pi-user-edit', to: '/master/users' },
                     { label: 'Logbook Pekerjaan', icon: 'pi pi-fw pi-book', to: '/master/logbook-pekerjaan' },
                     { label: 'Konfigurasi Hari', icon: 'pi pi-fw pi-calendar', to: '/master/hari' }
                 ]
             },
-            {
-                label: 'PENGATURAN',
-                icon: 'pi pi-fw pi-cog',
-                items: [
-                    { label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
-                    { label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
-                    { label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
-                ]
-            }
+            //{
+                //label: 'PENGATURAN',
+                //icon: 'pi pi-fw pi-cog',
+                //items: [
+                    //{ label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
+                    //{ label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
+                    //{ label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
+                //]
+            //}
         ];
     }
 

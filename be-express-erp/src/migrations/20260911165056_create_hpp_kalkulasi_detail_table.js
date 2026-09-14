@@ -29,10 +29,11 @@ export async function up(knex) {
     table.string("barang_kode", 100).nullable();
     table.string("nama_item", 255).notNullable();
 
-    // Kuantitas & Harga
+    // Kuantitas, Satuan, Harga, Jam, & Subtotal
     table.decimal("jumlah", 15, 4).notNullable().defaultTo(0.0);
     table.string("satuan", 50).nullable().defaultTo("-");
     table.decimal("harga_satuan", 15, 2).notNullable().defaultTo(0.0);
+    table.decimal("jam", 10, 2).notNullable().defaultTo(1.0); // Ditambahkan sesuai struktur SQL
     table.decimal("subtotal", 15, 2).notNullable().defaultTo(0.0);
 
     // Timestamp

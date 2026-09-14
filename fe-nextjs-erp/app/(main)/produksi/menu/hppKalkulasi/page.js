@@ -12,6 +12,8 @@ import { Plus, Trash2, Package, Users, Layers, Calculator, Save, Sliders, Histor
 
 import api from '@/lib/api';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 const ICONS = { bahan: Package, tenaga: Users, overhead: Layers };
 
 /* =========================================================
@@ -159,7 +161,7 @@ export default function KalkulasiBaruPage() {
             setLoadingBarang(true);
             setErrorMessage('');
 
-            const response = await api.get('/hppKalkulasi/master-barang', authConfig());
+            const response = await api.get(`${API_URL}/hppKalkulasi/master-barang`, authConfig());
             const data = response?.data?.data ?? response?.data ?? [];
             setMasterBarang(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -173,7 +175,7 @@ export default function KalkulasiBaruPage() {
 
     const fetchMasterSatuan = async () => {
         try {
-            const response = await api.get('/hppKalkulasi/master-satuan', authConfig());
+            const response = await api.get(`${API_URL}/hppKalkulasi/master-satuan`, authConfig());
 
             const data = response?.data?.data ?? response?.data ?? [];
 
@@ -203,7 +205,7 @@ export default function KalkulasiBaruPage() {
             setLoadingRiwayat(true);
             setErrorMessage('');
 
-            const response = await api.get('/hppKalkulasi', authConfig());
+            const response = await api.get(`${API_URL}/hppKalkulasi`, authConfig());
             const data = response?.data?.data ?? response?.data ?? [];
 
             setRiwayat(Array.isArray(data) ? data : []);
@@ -222,7 +224,7 @@ export default function KalkulasiBaruPage() {
             setShowDetailRiwayat(true);
             setDetailRiwayat(null);
 
-            const response = await api.get(`/hppKalkulasi/${row.id}`, authConfig());
+            const response = await api.get(`${API_URL}/hppKalkulasi/${row.id}`, authConfig());
             // >>> getById mengembalikan { header, detail } - disimpan apa adanya,
             // lalu dibaca sesuai bentuk itu di bagian render Dialog Detail di bawah.
             const data = response?.data?.data ?? response?.data ?? null;
@@ -260,7 +262,7 @@ export default function KalkulasiBaruPage() {
             setLoadingRiwayat(true);
             setErrorMessage('');
 
-            await api.delete(`/hppKalkulasi/${row.id}`, authConfig());
+            await api.delete(`${API_URL}/hppKalkulasi/${row.id}`, authConfig());
 
             setMessage('Riwayat HPP berhasil dihapus');
 
@@ -292,7 +294,7 @@ export default function KalkulasiBaruPage() {
             setLoadingRiwayat(true);
             setErrorMessage('');
 
-            const response = await api.get(`/hppKalkulasi/${row.id}`, authConfig());
+            const response = await api.get(`${API_URL}/hppKalkulasi/${row.id}`, authConfig());
             const result = response?.data?.data ?? response?.data ?? null;
 
             // >>> PENTING: getById mengembalikan { header, detail }
@@ -566,11 +568,11 @@ export default function KalkulasiBaruPage() {
 
             if (editingId) {
                 // Mode edit: update data yang sudah ada
-                await api.put(`/hppKalkulasi/${editingId}`, payload, authConfig());
+                await api.put(`${API_URL}/hppKalkulasi/${editingId}`, payload, authConfig());
                 setMessage('HPP kalkulasi berhasil diupdate');
             } else {
                 // Mode baru: simpan data baru
-                await api.post('/hppKalkulasi', payload, authConfig());
+                await api.post(`${API_URL}/hppKalkulasi`, payload, authConfig());
                 setMessage('HPP kalkulasi berhasil disimpan');
             }
 
