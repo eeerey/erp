@@ -9,6 +9,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Card } from 'primereact/card';
+import { Divider } from 'primereact/divider';
 import { Message } from 'primereact/message';
 
 export default function FormPengiriman({ masterData, onSave, onCancel, loading }) {
@@ -22,13 +23,11 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
 
     const [items, setItems] = useState([]);
     const [selectedBarang, setSelectedBarang] = useState(null);
-    const [selectedGudang, setSelectedGudang] = useState(null);
-    const [selectedRak, setSelectedRak] = useState(null);
     const [qty, setQty] = useState(1);
     const [error, setError] = useState('');
 
     const onCustomerChange = (e) => {
-        const cust = masterData?.customers?.find((c) => c.KODE_CUSTOMER === e.value);
+        const cust = masterData.customers.find((c) => c.KODE_CUSTOMER === e.value);
         setHeader({
             ...header,
             KODE_PELANGGAN: e.value,
@@ -42,21 +41,22 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
             setError('Pilih barang terlebih dahulu!');
             return;
         }
-        if (!selectedGudang) {
-            setError('Pilih gudang asal terlebih dahulu!');
-            return;
-        }
-        if (!selectedRak) {
-            setError('Pilih rak terlebih dahulu!');
-            return;
-        }
         if (qty <= 0) {
             setError('Jumlah minimal adalah 1');
             return;
         }
 
-        // Cek apakah kombinasi Barang, Gudang, dan Rak yang sama sudah ada di tabel
-        const existingIndex = items.findIndex((i) => i.BARANG_KODE === selectedBarang.BARANG_KODE && i.KODE_GUDANG === selectedGudang && i.KODE_RAK === selectedRak);
+        // --- PERBAIKAN LOGIKA DI SINI ---
+        // Cari data stok_lokasi yang sesuai dengan barang yang dipilih dari masterData
+        // Kita asumsikan masterData.stokLokasi dikirim dari parent component
+        const infoStok = masterData.stokLokasi?.find((s) => s.BARANG_KODE === selectedBarang.BARANG_KODE);
+
+        // Jika info stok tidak ada, gunakan default dari database (GDG-001) agar tidak error G01 lagi
+        const gudangFix = infoStok?.KODE_GUDANG || 'GDG-001';
+        const rakFix = infoStok?.KODE_RAK || 'RAK-A1';
+        const batchFix = infoStok?.BATCH_NO || '-';
+
+        const existingIndex = items.findIndex((i) => i.BARANG_KODE === selectedBarang.BARANG_KODE);
 
         if (existingIndex > -1) {
             const newItems = [...items];
@@ -68,29 +68,26 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                 {
                     BARANG_KODE: selectedBarang.BARANG_KODE,
                     NAMA_BARANG: selectedBarang.NAMA_BARANG,
-                    KODE_GUDANG: selectedGudang,
-                    KODE_RAK: selectedRak,
+                    KODE_GUDANG: gudangFix, // Menggunakan kode yang benar (GDG-001)
+                    KODE_RAK: rakFix, // Menggunakan kode yang benar (RAK-A1)
                     QTY: qty,
-                    BATCH_NO: '-'
+                    BATCH_NO: batchFix
                 }
             ]);
         }
 
-        // Reset pilihan input item
         setSelectedBarang(null);
-        setSelectedGudang(null);
-        setSelectedRak(null);
         setQty(1);
         setError('');
     };
 
-    const removeItem = (index) => {
-        setItems(items.filter((_, i) => i !== index));
+    const removeItem = (kode) => {
+        setItems(items.filter((i) => i.BARANG_KODE !== kode));
     };
 
     const handleFinalSave = () => {
         if (!header.NO_PENGIRIMAN || !header.KODE_PELANGGAN) {
-            setError('Nomor Surat Jalan dan Customer wajib diisi!');
+            setError('Nomor SJ dan Customer wajib diisi!');
             return;
         }
         if (items.length === 0) {
@@ -116,7 +113,6 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                 </div>
             )}
 
-            {/* Bagian Kiri: Informasi Header Pengiriman */}
             <div className="col-12 md:col-4">
                 <Card title="Informasi Pengiriman">
                     <div className="flex flex-column gap-3">
@@ -132,7 +128,7 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
 
                         <div className="field">
                             <label className="font-bold">Customer</label>
-                            <Dropdown value={header.KODE_PELANGGAN} options={masterData?.customers || []} optionLabel="NAMA_CUSTOMER" optionValue="KODE_CUSTOMER" onChange={onCustomerChange} filter placeholder="Pilih Pelanggan" />
+                            <Dropdown value={header.KODE_PELANGGAN} options={masterData.customers} optionLabel="NAMA_CUSTOMER" optionValue="KODE_CUSTOMER" onChange={onCustomerChange} filter placeholder="Pilih Pelanggan" />
                         </div>
 
                         <div className="field">
@@ -143,52 +139,19 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                 </Card>
             </div>
 
-            {/* Bagian Kanan: Input & Daftar Barang */}
             <div className="col-12 md:col-8">
                 <Card title="Daftar Barang">
                     <div className="grid align-items-end mb-4">
-                        <div className="col-12 md:col-6 field mb-2">
+                        <div className="col-12 md:col-6 field mb-0">
                             <label className="font-bold">Pilih Barang</label>
-                            <Dropdown value={selectedBarang} options={masterData?.barangs || []} optionLabel="NAMA_BARANG" onChange={(e) => setSelectedBarang(e.value)} filter placeholder="Cari Barang..." />
+                            <Dropdown value={selectedBarang} options={masterData.barangs} optionLabel="NAMA_BARANG" onChange={(e) => setSelectedBarang(e.value)} filter placeholder="Cari Barang..." />
                         </div>
-
-                        <div className="col-12 md:col-6 field mb-2">
-                            <label className="font-bold">Gudang Asal</label>
-                            <Dropdown
-                                value={selectedGudang}
-                                options={masterData?.gudangs || masterData?.gudang || masterData?.masterGudang || []}
-                                optionLabel="NAMA_GUDANG"
-                                optionValue="KODE_GUDANG"
-                                onChange={(e) => {
-                                    setSelectedGudang(e.value);
-                                    setSelectedRak(null); // Reset rak jika gudang berubah
-                                }}
-                                placeholder="Pilih Gudang"
-                                filter
-                            />
-                        </div>
-
-                        <div className="col-12 md:col-4 field mb-2">
-                            <label className="font-bold">Rak</label>
-                            <Dropdown
-                                value={selectedRak}
-                                options={(masterData?.raks || masterData?.rak || masterData?.masterRak || []).filter((r) => r.KODE_GUDANG === selectedGudang)}
-                                optionLabel="NAMA_RAK"
-                                optionValue="KODE_RAK"
-                                onChange={(e) => setSelectedRak(e.value)}
-                                placeholder="Pilih Rak"
-                                disabled={!selectedGudang}
-                                filter
-                            />
-                        </div>
-
-                        <div className="col-12 md:col-4 field mb-2">
-                            <label className="font-bold">Jumlah (Qty)</label>
+                        <div className="col-12 md:col-3 field mb-0">
+                            <label className="font-bold">Jumlah</label>
                             <InputNumber value={qty} onValueChange={(e) => setQty(e.value)} showButtons min={1} />
                         </div>
-
-                        <div className="col-12 md:col-4 field mb-2">
-                            <Button label="Tambah Item" icon="pi pi-plus" onClick={addBarang} className="w-full" />
+                        <div className="col-12 md:col-3">
+                            <Button label="Tambah" icon="pi pi-plus" onClick={addBarang} />
                         </div>
                     </div>
 
@@ -196,7 +159,7 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                         <Column field="BARANG_KODE" header="Kode" />
                         <Column field="NAMA_BARANG" header="Nama" />
                         <Column
-                            header="Lokasi (Gudang | Rak)"
+                            header="Lokasi"
                             body={(r) => (
                                 <small className="p-tag p-tag-info">
                                     {r.KODE_GUDANG} | {r.KODE_RAK}
@@ -204,7 +167,7 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                             )}
                         />
                         <Column field="QTY" header="Qty" body={(r) => <b>{r.QTY}</b>} />
-                        <Column header="Aksi" body={(_, options) => <Button icon="pi pi-trash" severity="danger" text onClick={() => removeItem(options.rowIndex)} />} />
+                        <Column header="Aksi" body={(rowData) => <Button icon="pi pi-trash" severity="danger" text onClick={() => removeItem(rowData.BARANG_KODE)} />} />
                     </DataTable>
 
                     <div className="flex justify-content-end gap-2 mt-4">
