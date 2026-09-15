@@ -19,14 +19,14 @@ export const getInvPembelianByNo = async (noInvoice) => {
 
 /**
  * SUPER CREATE: Simpan Header + Detail + Stok + Pembayaran (Transaction)
- * Menjamin data masuk ke: inv_pembelian, inv_pembelian_detail, STOK_LOKASI, master_barang, dan pembayaran_beli
+ * Menjamin data masuk ke: inv_pembelian, inv_pembelian_detail, stok_lokasi, master_barang, dan pembayaran_beli
  */
 export const saveFullPurchase = async (header, items) => {
   return db.transaction(async (trx) => {
     // 1. Insert Header ke inv_pembelian
     await trx("inv_pembelian").insert({
       ...header,
-      created_at: db.fn.now()
+      created_at: db.fn.now(),
     });
 
     // 2. Loop Items untuk rincian, stok, dan master barang
@@ -44,29 +44,31 @@ export const saveFullPurchase = async (header, items) => {
         SUBTOTAL: subtotal,
         BATCH_NO: item.BATCH_NO,
         TGL_KADALUARSA: item.TGL_KADALUARSA,
-        created_at: db.fn.now()
+        created_at: db.fn.now(),
       });
 
-      // B. Update/Insert ke STOK_LOKASI (Stok per Gudang/Rak/Batch)
-      const exist = await trx("STOK_LOKASI").where({
-        BARANG_KODE: item.BARANG_KODE,
-        KODE_GUDANG: item.KODE_GUDANG,
-        KODE_RAK: item.KODE_RAK,
-        BATCH_NO: item.BATCH_NO
-      }).first();
+      // B. Update/Insert ke stok_lokasi (Stok per Gudang/Rak/Batch)
+      const exist = await trx("stok_lokasi")
+        .where({
+          BARANG_KODE: item.BARANG_KODE,
+          KODE_GUDANG: item.KODE_GUDANG,
+          KODE_RAK: item.KODE_RAK,
+          BATCH_NO: item.BATCH_NO,
+        })
+        .first();
 
       if (exist) {
-        await trx("STOK_LOKASI")
-          .where({ ID_STOK_LOKASI: exist.ID_STOK_LOKASI })
+        await trx("stok_lokasi")
+          .where({ ID_STOK_LOKASI: exist.ID_STOK_LOKASI }) // Diubah menjadi huruf besar
           .increment("QTY", item.QTY_BELI);
       } else {
-        await trx("STOK_LOKASI").insert({
+        await trx("stok_lokasi").insert({
           BARANG_KODE: item.BARANG_KODE,
           KODE_GUDANG: item.KODE_GUDANG,
           KODE_RAK: item.KODE_RAK,
           QTY: item.QTY_BELI,
           BATCH_NO: item.BATCH_NO,
-          TGL_KADALUARSA: item.TGL_KADALUARSA
+          TGL_KADALUARSA: item.TGL_KADALUARSA,
         });
       }
 
@@ -84,7 +86,7 @@ export const saveFullPurchase = async (header, items) => {
         NOMINAL_BAYAR: header.JUMLAH_BAYAR,
         TGL_BAYAR: header.TGL_INVOICE, // Default pakai tanggal invoice
         created_at: db.fn.now(),
-        updated_at: db.fn.now()
+        updated_at: db.fn.now(),
       });
     }
   });
@@ -96,16 +98,18 @@ export const saveFullPurchase = async (header, items) => {
 export const deleteFullPurchase = async (noInvoice) => {
   return db.transaction(async (trx) => {
     // 1. Ambil semua detail item untuk mengembalikan stok
-    const items = await trx("inv_pembelian_detail").where({ NO_INVOICE_BELI: noInvoice });
+    const items = await trx("inv_pembelian_detail").where({
+      NO_INVOICE_BELI: noInvoice,
+    });
 
     for (const item of items) {
       // A. Kurangi stok di lokasi berdasarkan batch
-      await trx("STOK_LOKASI")
+      await trx("stok_lokasi")
         .where({
           BARANG_KODE: item.BARANG_KODE,
           KODE_GUDANG: item.KODE_GUDANG,
           KODE_RAK: item.KODE_RAK,
-          BATCH_NO: item.BATCH_NO
+          BATCH_NO: item.BATCH_NO,
         })
         .decrement("QTY", item.QTY_BELI);
 
@@ -117,9 +121,11 @@ export const deleteFullPurchase = async (noInvoice) => {
 
     // 2. Hapus Riwayat Pembayaran
     await trx("pembayaran_beli").where({ NO_INVOICE_BELI: noInvoice }).del();
-    
+
     // 3. Hapus Detail Item
-    await trx("inv_pembelian_detail").where({ NO_INVOICE_BELI: noInvoice }).del();
+    await trx("inv_pembelian_detail")
+      .where({ NO_INVOICE_BELI: noInvoice })
+      .del();
 
     // 4. Hapus Header Invoice
     await trx("inv_pembelian").where({ NO_INVOICE_BELI: noInvoice }).del();

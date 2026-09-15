@@ -6,21 +6,16 @@ import { db } from "../core/config/knex.js";
  */
 export const getDetailByInvoice = async (noInvoice) => {
   return db("inv_pembelian_detail as d")
-    .select(
-      "d.*", 
-      "b.NAMA_BARANG", 
-      "g.NAMA_GUDANG", 
-      "r.NAMA_RAK"
-    )
+    .select("d.*", "b.NAMA_BARANG", "g.NAMA_GUDANG", "r.NAMA_RAK")
     .leftJoin("master_barang as b", "d.BARANG_KODE", "b.BARANG_KODE")
-    .leftJoin("MASTER_GUDANG as g", "d.KODE_GUDANG", "g.KODE_GUDANG")
-    .leftJoin("MASTER_RAK as r", "d.KODE_RAK", "r.KODE_RAK")
+    .leftJoin("master_gudang as g", "d.KODE_GUDANG", "g.KODE_GUDANG") // Diubah ke huruf kecil (sesuaikan jika di db huruf besar)
+    .leftJoin("master_rak as r", "d.KODE_RAK", "r.KODE_RAK") // Diubah ke huruf kecil (sesuaikan jika di db huruf besar)
     .where({ "d.NO_INVOICE_BELI": noInvoice });
 };
 
 /**
  * CREATE: Simpan Item Detail & Update Stok Fisik (Transaction)
- * Menambah stok di STOK_LOKASI dan STOK_SAAT_INI di master_barang
+ * Menambah stok di stok_lokasi dan STOK_SAAT_INI di master_barang
  */
 export const createInvPembelianD = async (items) => {
   return db.transaction(async (trx) => {
@@ -43,32 +38,32 @@ export const createInvPembelianD = async (items) => {
         SUBTOTAL: subtotal,
         BATCH_NO: item.BATCH_NO,
         TGL_KADALUARSA: item.TGL_KADALUARSA,
-        created_at: db.fn.now()
+        created_at: db.fn.now(),
       });
 
-      // 2. Update STOK_LOKASI (Tambah stok di rak tertentu)
-      const existingStok = await trx("STOK_LOKASI")
+      // 2. Update stok_lokasi (Tambah stok di rak tertentu)
+      const existingStok = await trx("stok_lokasi")
         .where({
           BARANG_KODE: item.BARANG_KODE,
           KODE_GUDANG: item.KODE_GUDANG,
           KODE_RAK: item.KODE_RAK,
-          BATCH_NO: item.BATCH_NO
+          BATCH_NO: item.BATCH_NO,
         })
         .first();
 
       if (existingStok) {
-        await trx("STOK_LOKASI")
-          .where({ ID_STOK_LOKASI: existingStok.ID_STOK_LOKASI })
+        await trx("stok_lokasi")
+          .where({ ID_STOK_LOKASI: existingStok.ID_STOK_LOKASI }) // DIPERBAIKI MENJADI HURUF BESAR
           .increment("QTY", item.QTY_BELI);
       } else {
-        await trx("STOK_LOKASI").insert({
+        await trx("stok_lokasi").insert({
           BARANG_KODE: item.BARANG_KODE,
           KODE_GUDANG: item.KODE_GUDANG,
           KODE_RAK: item.KODE_RAK,
           QTY: item.QTY_BELI,
           BATCH_NO: item.BATCH_NO,
           TGL_KADALUARSA: item.TGL_KADALUARSA,
-          UPDATED_AT: db.fn.now()
+          UPDATED_AT: db.fn.now(),
         });
       }
 
@@ -77,7 +72,7 @@ export const createInvPembelianD = async (items) => {
         .where({ BARANG_KODE: item.BARANG_KODE })
         .update({
           HARGA_BELI_TERAKHIR: item.HARGA_SATUAN,
-          updated_at: db.fn.now()
+          updated_at: db.fn.now(),
         })
         .increment("STOK_SAAT_INI", item.QTY_BELI);
 
@@ -96,18 +91,18 @@ export const deleteInvPembelianD = async (idDetail) => {
   return db.transaction(async (trx) => {
     // Cari data detailnya dulu buat ambil info QTY dan Kode Barang
     const item = await trx("inv_pembelian_detail")
-      .where({ ID_BELI_DETAIL: idDetail }) // Sesuaikan nama kolom ID di tabelmu
+      .where({ ID_BELI_DETAIL: idDetail })
       .first();
-    
+
     if (!item) throw new Error("Item detail tidak ditemukan");
 
-    // 1. Tarik kembali stok dari STOK_LOKASI (Kurangi)
-    await trx("STOK_LOKASI")
+    // 1. Tarik kembali stok dari stok_lokasi (Kurangi)
+    await trx("stok_lokasi")
       .where({
         BARANG_KODE: item.BARANG_KODE,
         KODE_GUDANG: item.KODE_GUDANG,
         KODE_RAK: item.KODE_RAK,
-        BATCH_NO: item.BATCH_NO
+        BATCH_NO: item.BATCH_NO,
       })
       .decrement("QTY", item.QTY_BELI);
 
@@ -117,6 +112,8 @@ export const deleteInvPembelianD = async (idDetail) => {
       .decrement("STOK_SAAT_INI", item.QTY_BELI);
 
     // 3. Hapus data detail
-    return trx("inv_pembelian_detail").where({ ID_BELI_DETAIL: idDetail }).del();
+    return trx("inv_pembelian_detail")
+      .where({ ID_BELI_DETAIL: idDetail })
+      .del();
   });
 };
