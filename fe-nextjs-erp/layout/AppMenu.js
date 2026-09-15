@@ -278,7 +278,7 @@ const AppMenu = () => {
                         icon: 'pi pi-fw pi-arrow-down',
                         items: [
                             { label: 'Penerimaan Barang', icon: 'pi pi-fw pi-download', to: '/master/tr-barang-masuk' },
-                            { label: 'Retur Pembelian', icon: 'pi pi-fw pi-replay', to: '/gudang/retur-pembelian' }
+                            //{ label: 'Retur Pembelian', icon: 'pi pi-fw pi-replay', to: '/gudang/retur-pembelian' }
                         ]
                     },
                     {
@@ -286,9 +286,17 @@ const AppMenu = () => {
                         icon: 'pi pi-fw pi-arrow-up',
                         items: [
                             { label: 'Pengiriman Barang', icon: 'pi pi-fw pi-upload', to: '/master/tr-barang-keluar' },
-                            { label: 'Retur Penjualan', icon: 'pi pi-fw pi-replay', to: '/gudang/retur-penjualan' }
+                            //{ label: 'Retur Penjualan', icon: 'pi pi-fw pi-replay', to: '/gudang/retur-penjualan' }
                         ]
                     }
+                ]
+            },
+            {
+                label: 'TRANSAKSI & KEUANGAN',
+                icon: 'pi pi-fw pi-money-bill',
+                items: [
+                    { label: 'Invoice Pembelian', icon: 'pi pi-fw pi-wallet', to: '/master/invpembelian' },
+                    { label: 'Invoice Pengiriman', icon: 'pi pi-fw pi-send', to: '/master/invpengiriman' }
                 ]
             },
             {
@@ -299,6 +307,7 @@ const AppMenu = () => {
                     { label: 'Data Vendor', icon: 'pi pi-fw pi-truck', to: '/master/vendor' }
                 ]
             }
+            
             //{
             //label: "Laporan",
             //icon: "pi pi-fw pi-chart-bar",
