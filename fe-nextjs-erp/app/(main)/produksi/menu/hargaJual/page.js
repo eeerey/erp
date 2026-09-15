@@ -20,13 +20,20 @@ export default function HargaJualPage() {
         setLoading(true);
         try {
             const token = localStorage.getItem('TOKEN');
-            const res = await api.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/harga-jual`);
+            const res = await api.get(`${process.env.NEXT_PUBLIC_API_URL}/harga-jual`);
 
-            const formatted = res.data.data.map((item) => ({
-                ...item,
-                margin: item.margin || 100,
-                harga_jual: item.hpp_per_pcs + (item.hpp_per_pcs * (item.margin || 100)) / 100
-            }));
+            const formatted = res.data.data.map((item) => {
+                // Pastikan hpp_per_pcs aman dari null/string
+                const hpp = parseFloat(item.hpp_per_pcs) || 0;
+                const margin = parseFloat(item.margin) || 100;
+
+                return {
+                    ...item,
+                    hpp_per_pcs: hpp,
+                    margin: margin,
+                    harga_jual: hpp + (hpp * margin) / 100
+                };
+            });
 
             setData(formatted);
         } catch (err) {
@@ -70,7 +77,10 @@ export default function HargaJualPage() {
         return { count: data.length, avgMargin, totalProfit };
     }, [data]);
 
-    const fmt = (n) => Number(n || 0).toLocaleString('id-ID');
+    const fmt = (n) => {
+        const num = parseFloat(n);
+        return isNaN(num) ? '0' : num.toLocaleString('id-ID');
+    };
 
     return (
         <div className="p-4">

@@ -6,17 +6,24 @@ import { datetime, status } from "../utils/general.js";
  */
 export const getAllHargaJual = async (req, res) => {
   try {
-   const companyId = req.user.company_id;
+    const companyId = req.user.company_id;
 
     const data = await HargaJualModel.getAllHargaJual(companyId);
 
-    const result = data.map((item) => ({
-      ...item,
-      margin: item.margin || 100,
-      harga_jual:
-        item.harga_jual ||
-        Number(item.hpp_per_pcs) * 2,
-    }));
+    const result = data.map((item) => {
+      const hpp = Number(item.hpp_per_pcs) || 0;
+      const margin = Number(item.margin) || 100;
+      const hargaJual = item.harga_jual
+        ? Number(item.harga_jual)
+        : hpp + (hpp * margin) / 100;
+
+      return {
+        ...item,
+        hpp_per_pcs: hpp,
+        margin: margin,
+        harga_jual: hargaJual,
+      };
+    });
 
     return res.status(200).json({
       status: status.SUKSES,
@@ -26,7 +33,7 @@ export const getAllHargaJual = async (req, res) => {
       data: result,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error getAllHargaJual:", err);
 
     return res.status(500).json({
       status: status.GAGAL,
@@ -39,14 +46,8 @@ export const getAllHargaJual = async (req, res) => {
 /**
  * SAVE HARGA JUAL
  */
-export const saveHargaJual = async (
-  req,
-  res
-) => {
- const companyId = req.user.company_id;
-
- console.log(req.user);
-console.log("company_id =", req.user.company_id);
+export const saveHargaJual = async (req, res) => {
+  const companyId = req.user.company_id;
 
   try {
     const data = req.body;
@@ -54,8 +55,7 @@ console.log("company_id =", req.user.company_id);
     if (!Array.isArray(data)) {
       return res.status(400).json({
         status: status.BAD_REQUEST,
-        message:
-          "Data harus berupa array",
+        message: "Data harus berupa array",
         datetime: datetime(),
       });
     }
@@ -65,59 +65,48 @@ console.log("company_id =", req.user.company_id);
         continue;
       }
 
-      if (
-        Number(item.margin) < 100
-      ) {
+      const margin = Number(item.margin) || 0;
+      const hpp = Number(item.hpp_per_pcs) || 0;
+
+      if (margin < 100) {
         return res.status(400).json({
-          status:
-            status.BAD_REQUEST,
-          message:
-            `Margin produk ${item.produk_id} minimal 100%`,
+          status: status.BAD_REQUEST,
+          message: `Margin produk ${item.produk_id} minimal 100%`,
           datetime: datetime(),
         });
       }
 
-      const hargaJual =
-        Number(item.hpp_per_pcs) +
-        (
-          Number(item.hpp_per_pcs) *
-          Number(item.margin)
-        ) /
-          100;
+      const hargaJual = hpp + (hpp * margin) / 100;
 
-      const existing =
-        await HargaJualModel.checkHargaJualExist(
-          item.produk_id,  companyId
-        );
+      const existing = await HargaJualModel.checkHargaJualExist(
+        item.produk_id,
+        companyId,
+      );
 
       if (existing) {
         await HargaJualModel.updateHargaJual(
           item.produk_id,
           companyId,
-          item.margin,
-          hargaJual
+          margin,
+          hargaJual,
         );
       } else {
-       await HargaJualModel.createHargaJual({
+        await HargaJualModel.createHargaJual({
           produk_id: item.produk_id,
-          margin: item.margin,
+          margin: margin,
           harga_jual: hargaJual,
-         company_id: companyId, // 🔥 WAJIB
+          company_id: companyId,
         });
       }
     }
 
     return res.status(200).json({
       status: status.SUKSES,
-      message:
-        "Harga jual berhasil disimpan",
+      message: "Harga jual berhasil disimpan",
       datetime: datetime(),
     });
   } catch (err) {
-    console.error(
-      "Error saveHargaJual:",
-      err
-    );
+    console.error("Error saveHargaJual:", err);
 
     return res.status(500).json({
       status: status.GAGAL,

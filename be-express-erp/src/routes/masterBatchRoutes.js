@@ -33,42 +33,42 @@ router.get(
 // ✅ POST: Buat batch baru
 router.post(
   "/",
-  checkRole(["SUPERADMIN", "HR", "PRODUKSI", "SDM"]),
+  checkRole(["SUPERADMIN", "HR", "PRODUKSI", "SDM", "GUDANG"]),
   BatchController.createBatch
 );
 
 // ✅ PATCH: Update status batch
 router.patch(
   "/:id/status",
-  checkRole(["SUPERADMIN", "HR", "PRODUKSI", "SDM"]),
+  checkRole(["SUPERADMIN", "HR", "PRODUKSI", "SDM", "GUDANG"]),
   BatchController.updateStatusBatch
 );
 
 // ✅ PUT: Update batch
 router.put(
   "/:id",
-  checkRole(["SUPERADMIN", "HR", "PRODUKSI", "SDM"]),
+  checkRole(["SUPERADMIN", "HR", "PRODUKSI", "SDM", "GUDANG"]),
   BatchController.updateBatch
 );
 
 // ✅ DELETE: Hapus batch
 router.delete(
   "/:id",
-  checkRole(["SUPERADMIN", "HR", "SDM"]),
+  checkRole(["SUPERADMIN", "HR", "SDM", "GUDANG"]),
   BatchController.deleteBatch
 );
 
 // ✅ PATCH: Recalculate single batch
 router.patch(
   "/:batchId/recalculate",
-  checkRole(["SUPERADMIN", "HR", "SDM"]),
+  checkRole(["SUPERADMIN", "HR", "SDM", "GUDANG"]),
   BatchController.recalculateBatchProgress
 );
 
 // ✅ POST: Recalculate ALL batches
 router.post(
   "/recalculate-all",
-  checkRole(["SUPERADMIN", "SDM"]),
+  checkRole(["SUPERADMIN", "SDM", "GUDANG"]),
   BatchController.recalculateAllBatches
 );
 
