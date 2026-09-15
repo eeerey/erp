@@ -28,7 +28,7 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
     const [error, setError] = useState('');
 
     const onCustomerChange = (e) => {
-        const cust = masterData.customers?.find((c) => c.KODE_CUSTOMER === e.value);
+        const cust = masterData?.customers?.find((c) => c.KODE_CUSTOMER === e.value);
         setHeader({
             ...header,
             KODE_PELANGGAN: e.value,
@@ -156,7 +156,7 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                             <label className="font-bold">Gudang Asal</label>
                             <Dropdown
                                 value={selectedGudang}
-                                options={masterData?.gudangs || []}
+                                options={masterData?.gudangs || masterData?.gudang || masterData?.masterGudang || []}
                                 optionLabel="NAMA_GUDANG"
                                 optionValue="KODE_GUDANG"
                                 onChange={(e) => {
@@ -164,6 +164,7 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                                     setSelectedRak(null); // Reset rak jika gudang berubah
                                 }}
                                 placeholder="Pilih Gudang"
+                                filter
                             />
                         </div>
 
@@ -171,12 +172,13 @@ export default function FormPengiriman({ masterData, onSave, onCancel, loading }
                             <label className="font-bold">Rak</label>
                             <Dropdown
                                 value={selectedRak}
-                                options={masterData?.raks?.filter((r) => r.KODE_GUDANG === selectedGudang) || []}
+                                options={(masterData?.raks || masterData?.rak || masterData?.masterRak || []).filter((r) => r.KODE_GUDANG === selectedGudang)}
                                 optionLabel="NAMA_RAK"
                                 optionValue="KODE_RAK"
                                 onChange={(e) => setSelectedRak(e.value)}
                                 placeholder="Pilih Rak"
                                 disabled={!selectedGudang}
+                                filter
                             />
                         </div>
 
