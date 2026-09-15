@@ -2,9 +2,9 @@ import { db } from "../core/config/knex.js";
 import { updateSaldoStok } from "./stokLokasiModel.js";
 
 export const getAllBarangKeluar = async () => {
-  return await db("TR_BARANG_KELUAR")
-    .join("master_barang", "TR_BARANG_KELUAR.BARANG_KODE", "master_barang.BARANG_KODE")
-    .select("TR_BARANG_KELUAR.*", "master_barang.NAMA_BARANG")
+  return await db("tr_barang_keluar")
+    .join("master_barang", "tr_barang_keluar.BARANG_KODE", "master_barang.BARANG_KODE")
+    .select("tr_barang_keluar.*", "master_barang.NAMA_BARANG")
     .orderBy("created_at", "desc");
 };
 
@@ -23,7 +23,7 @@ export const createBarangKeluar = async (data) => {
     }
 
     // 2. Simpan Transaksi Keluar
-    const [ID_KELUAR] = await trx("TR_BARANG_KELUAR").insert({
+    const [ID_KELUAR] = await trx("tr_barang_keluar").insert({
       NO_KELUAR: data.NO_KELUAR,
       NO_PENGIRIMAN: data.NO_PENGIRIMAN,
       BARANG_KODE: data.BARANG_KODE,
@@ -49,13 +49,13 @@ export const createBarangKeluar = async (data) => {
       .where("BARANG_KODE", data.BARANG_KODE)
       .decrement("STOK_SAAT_INI", data.QTY);
 
-    return trx("TR_BARANG_KELUAR").where({ ID_KELUAR }).first();
+    return trx("tr_barang_keluar").where({ ID_KELUAR }).first();
   });
 };
 
 export const deleteBarangKeluar = async (id) => {
   return db.transaction(async (trx) => {
-    const row = await trx("TR_BARANG_KELUAR").where({ ID_KELUAR: id }).first();
+    const row = await trx("tr_barang_keluar").where({ ID_KELUAR: id }).first();
     if (!row) throw new Error("Data tidak ditemukan");
 
     // 1. Balikin Stok Master (Tambah lagi)
@@ -73,6 +73,6 @@ export const deleteBarangKeluar = async (id) => {
     });
 
     // 3. Hapus Log
-    return trx("TR_BARANG_KELUAR").where({ ID_KELUAR: id }).del();
+    return trx("tr_barang_keluar").where({ ID_KELUAR: id }).del();
   });
 };

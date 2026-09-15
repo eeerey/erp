@@ -5,7 +5,7 @@ import { db } from "../core/config/knex.js";
  * Ditambahkan agar Controller bisa ambil data untuk ditampilkan
  **/
 export const getCurrentStok = async (filters = {}) => {
-  const query = db("STOK_LOKASI as s")
+  const query = db("stok_lokasias s")
     .select(
       "s.*",
       "b.NAMA_BARANG",
@@ -49,7 +49,7 @@ export const updateSaldoStok = async (trx, { BARANG_KODE, KODE_GUDANG, KODE_RAK,
 
   if (existing) {
     // Jika data ada, update QTY (tambah/kurang)
-    return trx("STOK_LOKASI").where({ ID_STOK_LOKASI: existing.ID_STOK_LOKASI }).update({
+    return trx("STOK_LOKASI").where({ ID_STOK_LOKASI: existing.ID_stok_lokasi}).update({
       QTY: existing.QTY + QTY,
       UPDATED_AT: db.fn.now()
     });

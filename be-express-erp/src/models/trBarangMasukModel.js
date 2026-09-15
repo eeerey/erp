@@ -1,7 +1,7 @@
 import { db } from "../core/config/knex.js";
 import { updateSaldoStok } from "./stokLokasiModel.js";
 
-const TABLE = "TR_BARANG_MASUK"; 
+const TABLE = "tr_barang_masuk"; 
 
 export const getAllBarangMasuk = async () => {
   return await db(TABLE)

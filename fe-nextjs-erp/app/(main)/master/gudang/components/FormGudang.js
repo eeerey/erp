@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
-import axios from 'axios'; // Tambahkan axios untuk fetch mandiri jika diperlukan
+import axios from 'axios';
 
 const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => {
     const [kodeGudang, setKodeGudang] = useState('');
@@ -22,7 +22,7 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
         { label: 'Tidak Aktif', value: 'Tidak Aktif' }
     ];
 
-    // Fungsi untuk generate kode otomatis yang aman
+    // Fungsi generate kode otomatis (opsional dipakai sebagai default jika ingin tetap ada, atau dikosongkan)
     const generateNewCode = (listData) => {
         if (!Array.isArray(listData) || listData.length === 0) {
             return 'GDG001';
@@ -41,14 +41,12 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
         return `GDG${nextNumber.toString().padStart(3, '0')}`;
     };
 
-    // Ambil data mandiri jika gudangList dari props kosong
     useEffect(() => {
         const fetchGudangIfNeeded = async () => {
             if (gudangList && gudangList.length > 0) {
                 setLatestList(gudangList);
             } else {
                 try {
-                    // Fallback fetch sendiri ke API jika props kosong
                     const res = await axios.get('/api/master-gudang', { withCredentials: true });
                     setLatestList(res.data.data || []);
                 } catch (err) {
@@ -73,7 +71,7 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
             setAlamat(selectedGudang.ALAMAT || '');
             setStatus(selectedGudang.STATUS || 'Aktif');
         } else {
-            // Mode TAMBAH - Generate otomatis berdasarkan data terbaru
+            // Mode TAMBAH - Tetap di-generate otomatis sebagai saran awal, tapi sekarang BISA DIKETIK/DIUBAH
             setKodeGudang(generateNewCode(latestList));
             setNamaGudang('');
             setAlamat('');
@@ -84,6 +82,9 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
 
     const validateForm = () => {
         const newErrors = {};
+        if (!kodeGudang.trim()) {
+            newErrors.kodeGudang = 'Kode gudang wajib diisi';
+        }
         if (!namaGudang.trim()) {
             newErrors.namaGudang = 'Nama gudang wajib diisi';
         }
@@ -95,7 +96,7 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
         if (!validateForm()) return;
 
         const data = {
-            KODE_GUDANG: kodeGudang,
+            KODE_GUDANG: kodeGudang.trim(),
             NAMA_GUDANG: namaGudang.trim(),
             ALAMAT: alamat.trim(),
             STATUS: status
@@ -110,12 +111,22 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
     return (
         <Dialog header={selectedGudang ? `Edit Gudang: ${selectedGudang.NAMA_GUDANG}` : 'Tambah Gudang Baru'} visible={visible} style={{ width: '450px' }} modal onHide={onHide} draggable={false} dismissableMask>
             <div className="p-fluid">
-                {/* Kode Gudang */}
+                {/* Kode Gudang (Sekarang Bisa Diedit/Diisi Manual) */}
                 <div className="field mb-4">
                     <label htmlFor="kodeGudang" className="font-bold block mb-2">
-                        Kode Gudang
+                        Kode Gudang <span className="text-red-500">*</span>
                     </label>
-                    <InputText id="kodeGudang" value={kodeGudang} readOnly disabled className="p-disabled bg-gray-100" />
+                    <InputText
+                        id="kodeGudang"
+                        value={kodeGudang}
+                        onChange={(e) => {
+                            setKodeGudang(e.target.value);
+                            if (errors.kodeGudang) setErrors({ ...errors, kodeGudang: null });
+                        }}
+                        placeholder="Contoh: GDG001"
+                        className={errors.kodeGudang ? 'p-invalid' : ''}
+                    />
+                    {errors.kodeGudang && <small className="p-error">{errors.kodeGudang}</small>}
                 </div>
 
                 {/* Nama Gudang */}
