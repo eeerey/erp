@@ -158,7 +158,7 @@ app.use("/api/harga-jual", hargaJualRoutes);
 app.use("/api/barang-masuk", trBarangMasukRoutes);
 app.use("/api/tr-barang-keluar", trBarangKeluarRoutes);
 app.use("/api/inv-pembelian", invPembelianRoutes);
-app.use("/api/inv-pengiriman", invPengirimanRoutes);
+app.use("/api/inv-pengiriman-h", invPengirimanRoutes);
 app.use("/api/pembayaran-beli", pembayaranBeliRoutes);
 app.use("/api/hppErp", hppErpRoutes);
 app.use("/api/productPerformance", productPerformanceRoutes);

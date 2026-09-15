@@ -1,77 +1,103 @@
 import { db } from "../core/config/knex.js";
+import { updateSaldoStok } from "./stokLokasiModel.js";
 
-/**
- * MENDAPATKAN SEMUA STOK (Untuk Tabel & Laporan PDF)
- * Ditambahkan agar Controller bisa ambil data untuk ditampilkan
- **/
-export const getCurrentStok = async (filters = {}) => {
-  const query = db("STOK_LOKASI as s")
-    .select("s.*", "b.NAMA_BARANG", "g.NAMA_GUDANG", "r.NAMA_RAK")
-    .leftJoin("master_barang as b", "s.BARANG_KODE", "b.BARANG_KODE")
-    .leftJoin("MASTER_GUDANG as g", "s.KODE_GUDANG", "g.KODE_GUDANG")
-    .leftJoin("MASTER_RAK as r", "s.KODE_RAK", "r.KODE_RAK");
+const TABLE = "tr_barang_keluar";
 
-  // Filter dinamis jika diperlukan
-  if (filters.KODE_GUDANG) query.where("s.KODE_GUDANG", filters.KODE_GUDANG);
-  if (filters.BARANG_KODE) query.where("s.BARANG_KODE", filters.BARANG_KODE);
-
-  return query.orderBy("s.UPDATED_AT", "desc");
+// 1. Ambil semua data barang keluar
+export const getAllBarangKeluar = async () => {
+  return await db(TABLE)
+    .leftJoin(
+      "master_barang",
+      `${TABLE}.BARANG_KODE`,
+      "master_barang.BARANG_KODE",
+    )
+    .leftJoin(
+      "master_gudang",
+      `${TABLE}.KODE_GUDANG`,
+      "master_gudang.KODE_GUDANG",
+    )
+    .leftJoin("master_rak", `${TABLE}.KODE_RAK`, "master_rak.KODE_RAK")
+    .select(
+      `${TABLE}.*`,
+      "master_barang.NAMA_BARANG",
+      "master_gudang.NAMA_GUDANG",
+      "master_rak.NAMA_RAK",
+    )
+    .orderBy(`${TABLE}.created_at`, "desc");
 };
 
-/**
- * Mendapatkan stok spesifik di satu lokasi
- **/
-export const getStokByDetail = async (
-  BARANG_KODE,
-  KODE_GUDANG,
-  KODE_RAK,
-  BATCH_NO,
-) => {
-  return db("STOK_LOKASI")
-    .where({
-      BARANG_KODE,
-      KODE_GUDANG,
-      KODE_RAK,
-      BATCH_NO,
-    })
-    .first();
-};
+// 2. Tambah barang keluar + validasi stok
+export const createBarangKeluar = async (data) => {
+  return db.transaction(async (trx) => {
+    // Cek stok lokasi berdasarkan KODE_BARANG, KODE_GUDANG, KODE_RAK, BATCH_NO
+    const stokLokasi = await trx("STOK_LOKASI")
+      .where({
+        BARANG_KODE: data.BARANG_KODE,
+        KODE_GUDANG: data.KODE_GUDANG,
+        KODE_RAK: data.KODE_RAK,
+        BATCH_NO: data.BATCH_NO || null,
+      })
+      .first();
 
-/**
- * Fungsi Internal: Update Saldo (Tambah/Kurang)
- * Digunakan oleh model Barang Masuk & Keluar
- **/
-export const updateSaldoStok = async (
-  trx,
-  { BARANG_KODE, KODE_GUDANG, KODE_RAK, BATCH_NO, QTY, TGL_KADALUARSA },
-) => {
-  const existing = await trx("STOK_LOKASI")
-    .where({
-      BARANG_KODE,
-      KODE_GUDANG,
-      KODE_RAK,
-      BATCH_NO,
-    })
-    .first();
+    const currentQty = stokLokasi ? parseFloat(stokLokasi.QTY) : 0;
+    if (currentQty < data.QTY) {
+      throw new Error(
+        `Stok tidak cukup! Stok saat ini di lokasi: ${currentQty}`,
+      );
+    }
 
-  if (existing) {
-    // Jika data ada, update QTY (tambah/kurang)
-    return trx("STOK_LOKASI")
-      .where({ ID_STOK_LOKASI: existing.ID_STOK_LOKASI })
-      .update({
-        QTY: parseFloat(existing.QTY) + parseFloat(QTY),
-        UPDATED_AT: db.fn.now(),
-      });
-  } else {
-    // Jika data belum ada, insert baru
-    return trx("STOK_LOKASI").insert({
-      BARANG_KODE,
-      KODE_GUDANG,
-      KODE_RAK,
-      BATCH_NO,
-      QTY,
-      TGL_KADALUARSA,
-      UPDATED_AT: db.fn.now(),
+    // Insert ke tabel tr_barang_keluar
+    const [ID_KELUAR] = await trx(TABLE).insert({
+      NO_KELUAR: data.NO_KELUAR,
+      NO_PENGIRIMAN: data.NO_PENGIRIMAN || null,
+      BARANG_KODE: data.BARANG_KODE,
+      KODE_GUDANG: data.KODE_GUDANG,
+      KODE_RAK: data.KODE_RAK,
+      QTY: data.QTY,
+      BATCH_NO: data.BATCH_NO || null,
+      company_id: data.company_id || null,
+      created_at: db.fn.now(),
+      updated_at: db.fn.now(),
     });
-  }
+
+    // Kurangi stok di STOK_LOKASI (QTY bernilai negatif)
+    await updateSaldoStok(trx, {
+      BARANG_KODE: data.BARANG_KODE,
+      KODE_GUDANG: data.KODE_GUDANG,
+      KODE_RAK: data.KODE_RAK,
+      BATCH_NO: data.BATCH_NO,
+      QTY: -data.QTY,
+    });
+
+    // Kurangi master_barang (STOK_SAAT_INI)
+    await trx("master_barang")
+      .where("BARANG_KODE", data.BARANG_KODE)
+      .decrement("STOK_SAAT_INI", data.QTY);
+
+    return trx(TABLE).where({ ID_KELUAR }).first();
+  });
+};
+
+// 3. Void / Delete barang keluar + kembalikan stok
+export const deleteBarangKeluar = async (id) => {
+  return db.transaction(async (trx) => {
+    const row = await trx(TABLE).where({ ID_KELUAR: id }).first();
+    if (!row) throw new Error("Data barang keluar tidak ditemukan");
+
+    // Kembalikan master_barang
+    await trx("master_barang")
+      .where("BARANG_KODE", row.BARANG_KODE)
+      .increment("STOK_SAAT_INI", row.QTY);
+
+    // Kembalikan STOK_LOKASI (QTY positif)
+    await updateSaldoStok(trx, {
+      BARANG_KODE: row.BARANG_KODE,
+      KODE_GUDANG: row.KODE_GUDANG,
+      KODE_RAK: row.KODE_RAK,
+      BATCH_NO: row.BATCH_NO,
+      QTY: row.QTY,
+    });
+
+    return trx(TABLE).where({ ID_KELUAR: id }).del();
+  });
 };
