@@ -56,6 +56,7 @@ const FormBarangKeluar = ({ visible, onHide, onSave, masterBarang = [], masterGu
         let newErrors = {};
         if (!formData.BARANG_KODE) newErrors.BARANG_KODE = 'Wajib diisi';
         if (!formData.KODE_GUDANG) newErrors.KODE_GUDANG = 'Wajib diisi';
+        if (!formData.KODE_RAK) newErrors.KODE_RAK = 'Wajib diisi'; // Diubah menjadi wajib agar sesuai dengan database stok
         if (!formData.QTY || formData.QTY <= 0) newErrors.QTY = 'Qty minimal 0.01';
 
         setErrors(newErrors);
@@ -72,9 +73,9 @@ const FormBarangKeluar = ({ visible, onHide, onSave, masterBarang = [], masterGu
                 NO_PENGIRIMAN: formData.NO_PENGIRIMAN || null,
                 BARANG_KODE: formData.BARANG_KODE,
                 KODE_GUDANG: formData.KODE_GUDANG,
-                KODE_RAK: formData.KODE_RAK || null,
+                KODE_RAK: formData.KODE_RAK, // Dipastikan terisi
                 QTY: parseFloat(formData.QTY),
-                BATCH_NO: formData.BATCH_NO?.trim() || null
+                BATCH_NO: formData.BATCH_NO?.trim() || '-'
             };
 
             await onSave(payload);
@@ -133,6 +134,7 @@ const FormBarangKeluar = ({ visible, onHide, onSave, masterBarang = [], masterGu
                         filter
                         className={errors.BARANG_KODE ? 'p-invalid' : ''}
                     />
+                    {errors.BARANG_KODE && <small className="p-error">{errors.BARANG_KODE}</small>}
                 </div>
 
                 <div className="field col-6">
@@ -140,6 +142,7 @@ const FormBarangKeluar = ({ visible, onHide, onSave, masterBarang = [], masterGu
                         QTY Keluar <span className="text-red-500">*</span>
                     </label>
                     <InputNumber value={formData.QTY} onValueChange={(e) => setFormData({ ...formData, QTY: e.value })} minFractionDigits={2} maxFractionDigits={2} placeholder="0.00" className={errors.QTY ? 'p-invalid' : ''} />
+                    {errors.QTY && <small className="p-error">{errors.QTY}</small>}
                 </div>
 
                 <div className="field col-6">
@@ -151,11 +154,22 @@ const FormBarangKeluar = ({ visible, onHide, onSave, masterBarang = [], masterGu
                     <label className="font-bold text-sm">
                         Gudang Asal <span className="text-red-500">*</span>
                     </label>
-                    <Dropdown value={formData.KODE_GUDANG} options={masterGudang} optionLabel="NAMA_GUDANG" optionValue="KODE_GUDANG" onChange={(e) => setFormData({ ...formData, KODE_GUDANG: e.value, KODE_RAK: null })} placeholder="Pilih Gudang" />
+                    <Dropdown
+                        value={formData.KODE_GUDANG}
+                        options={masterGudang}
+                        optionLabel="NAMA_GUDANG"
+                        optionValue="KODE_GUDANG"
+                        onChange={(e) => setFormData({ ...formData, KODE_GUDANG: e.value, KODE_RAK: null })}
+                        placeholder="Pilih Gudang"
+                        className={errors.KODE_GUDANG ? 'p-invalid' : ''}
+                    />
+                    {errors.KODE_GUDANG && <small className="p-error">{errors.KODE_GUDANG}</small>}
                 </div>
 
                 <div className="field col-6">
-                    <label className="font-bold text-sm">Rak (Opsional)</label>
+                    <label className="font-bold text-sm">
+                        Rak <span className="text-red-500">*</span>
+                    </label>
                     <Dropdown
                         value={formData.KODE_RAK}
                         options={masterRak?.filter((r) => r.KODE_GUDANG === formData.KODE_GUDANG)}
@@ -164,8 +178,10 @@ const FormBarangKeluar = ({ visible, onHide, onSave, masterBarang = [], masterGu
                         onChange={(e) => setFormData({ ...formData, KODE_RAK: e.value })}
                         placeholder="Pilih Rak"
                         disabled={!formData.KODE_GUDANG}
+                        className={errors.KODE_RAK ? 'p-invalid' : ''}
                         showClear
                     />
+                    {errors.KODE_RAK && <small className="p-error">{errors.KODE_RAK}</small>}
                 </div>
             </div>
         </Dialog>

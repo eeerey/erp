@@ -9,11 +9,7 @@ import { db } from "../core/config/knex.js";
  */
 export const getAll = async () => {
   return db("inv_pengiriman_h as h")
-    .select(
-      "h.*", 
-      "c.NAMA_CUSTOMER", 
-      "c.ALAMAT as ALAMAT_CUSTOMER_MASTER"
-    )
+    .select("h.*", "c.NAMA_CUSTOMER", "c.ALAMAT as ALAMAT_CUSTOMER_MASTER")
     .leftJoin("master_customer as c", "h.KODE_PELANGGAN", "c.KODE_CUSTOMER")
     .orderBy("h.created_at", "desc");
 };
@@ -41,45 +37,66 @@ export const getByNo = async (noPengiriman) => {
  */
 export const saveFullTransaction = async (header, items) => {
   return await db.transaction(async (trx) => {
-    const customer = await trx("master_customer").where({ KODE_CUSTOMER: header.KODE_PELANGGAN }).first();
-    if (!customer) throw new Error(`Customer ${header.KODE_PELANGGAN} tidak ditemukan.`);
+    const customer = await trx("master_customer")
+      .where({ KODE_CUSTOMER: header.KODE_PELANGGAN })
+      .first();
+    if (!customer)
+      throw new Error(`Customer ${header.KODE_PELANGGAN} tidak ditemukan.`);
 
-    const formattedDate = header.TGL_KIRIM ? header.TGL_KIRIM.split('T')[0] : new Date().toISOString().split('T')[0];
+    const formattedDate = header.TGL_KIRIM
+      ? header.TGL_KIRIM.split("T")[0]
+      : new Date().toISOString().split("T")[0];
 
     await trx("inv_pengiriman_h").insert({
       NO_PENGIRIMAN: header.NO_PENGIRIMAN,
       KODE_PELANGGAN: header.KODE_PELANGGAN,
       TGL_KIRIM: formattedDate,
       ALAMAT_TUJUAN: header.ALAMAT_TUJUAN || customer.ALAMAT,
-      STATUS_KIRIM: header.STATUS_KIRIM || 'Diproses',
+      STATUS_KIRIM: header.STATUS_KIRIM || "Diproses",
       created_at: db.fn.now(),
-      updated_at: db.fn.now()
+      updated_at: db.fn.now(),
     });
 
     for (const item of items) {
       const qty = parseFloat(item.QTY) || 0;
-      const stokLokasi = await trx("stok_lokasi")
-        .where({ 
-          BARANG_KODE: item.BARANG_KODE, 
-          KODE_GUDANG: item.KODE_GUDANG, 
-          KODE_RAK: item.KODE_RAK 
-        }).first();
 
-      if (!stokLokasi) throw new Error(`Data stok tidak ditemukan untuk Barang: ${item.BARANG_KODE}`);
-      if (stokLokasi.QTY < qty) throw new Error(`Stok ${item.BARANG_KODE} tidak cukup!`);
+      // MODIFIKASI: Pencarian stok yang lebih fleksibel
+      let queryStok = trx("stok_lokasi").where({
+        BARANG_KODE: item.BARANG_KODE,
+        KODE_GUDANG: item.KODE_GUDANG,
+      });
 
-      await trx("stok_lokasi").where({ ID_STOK_LOKASI: stokLokasi.ID_STOK_LOKASI }).decrement("QTY", qty);
-      await trx("master_barang").where("BARANG_KODE", item.BARANG_KODE).decrement("STOK_SAAT_INI", qty);
+      if (item.KODE_RAK && item.KODE_RAK !== "-") {
+        queryStok.andWhere({ KODE_RAK: item.KODE_RAK });
+      }
+
+      const stokLokasi = await queryStok.first();
+
+      if (!stokLokasi)
+        throw new Error(
+          `Data stok tidak ditemukan untuk Barang: ${item.BARANG_KODE} di Gudang/Rak tersebut.`,
+        );
+      if (stokLokasi.QTY < qty)
+        throw new Error(
+          `Stok ${item.BARANG_KODE} tidak cukup! Tersedia: ${stokLokasi.QTY}`,
+        );
+
+      await trx("stok_lokasi")
+        .where({ ID_STOK_LOKASI: stokLokasi.ID_STOK_LOKASI })
+        .decrement("QTY", qty);
+      await trx("master_barang")
+        .where("BARANG_KODE", item.BARANG_KODE)
+        .decrement("STOK_SAAT_INI", qty);
 
       await trx("inv_pengiriman_d").insert({
         NO_PENGIRIMAN: header.NO_PENGIRIMAN,
         BARANG_KODE: item.BARANG_KODE,
         KODE_GUDANG: item.KODE_GUDANG,
-        KODE_RAK: item.KODE_RAK,
+        KODE_RAK: item.KODE_RAK || stokLokasi.KODE_RAK, // Menyesuaikan jika kosong
         QTY: qty,
-        BATCH_NO: item.BATCH_NO || '-',
+        BATCH_NO: item.BATCH_NO || "-",
         created_at: db.fn.now(),
-        updated_at: db.fn.now()
+        updated_at: db.fn.now(),
       });
     }
     return header.NO_PENGIRIMAN;
@@ -91,35 +108,64 @@ export const saveFullTransaction = async (header, items) => {
  */
 export const updateFullTransaction = async (id, header, items) => {
   return await db.transaction(async (trx) => {
-    const oldHeader = await trx("inv_pengiriman_h").where({ ID_PENGIRIMAN_H: id }).first();
+    const oldHeader = await trx("inv_pengiriman_h")
+      .where({ ID_PENGIRIMAN_H: id })
+      .first();
     if (!oldHeader) throw new Error("Data transaksi tidak ditemukan.");
 
-    const oldDetails = await trx("inv_pengiriman_d").where({ NO_PENGIRIMAN: oldHeader.NO_PENGIRIMAN });
+    const oldDetails = await trx("inv_pengiriman_d").where({
+      NO_PENGIRIMAN: oldHeader.NO_PENGIRIMAN,
+    });
     for (const oldItem of oldDetails) {
-      await trx("stok_lokasi").where({ BARANG_KODE: oldItem.BARANG_KODE, KODE_GUDANG: oldItem.KODE_GUDANG, KODE_RAK: oldItem.KODE_RAK }).increment("QTY", oldItem.QTY);
-      await trx("master_barang").where("BARANG_KODE", oldItem.BARANG_KODE).increment("STOK_SAAT_INI", oldItem.QTY);
+      await trx("stok_lokasi")
+        .where({
+          BARANG_KODE: oldItem.BARANG_KODE,
+          KODE_GUDANG: oldItem.KODE_GUDANG,
+          KODE_RAK: oldItem.KODE_RAK,
+        })
+        .increment("QTY", oldItem.QTY);
+      await trx("master_barang")
+        .where("BARANG_KODE", oldItem.BARANG_KODE)
+        .increment("STOK_SAAT_INI", oldItem.QTY);
     }
 
-    await trx("inv_pengiriman_d").where({ NO_PENGIRIMAN: oldHeader.NO_PENGIRIMAN }).del();
+    await trx("inv_pengiriman_d")
+      .where({ NO_PENGIRIMAN: oldHeader.NO_PENGIRIMAN })
+      .del();
 
-    const formattedDate = header.TGL_KIRIM ? header.TGL_KIRIM.split('T')[0] : oldHeader.TGL_KIRIM;
+    const formattedDate = header.TGL_KIRIM
+      ? header.TGL_KIRIM.split("T")[0]
+      : oldHeader.TGL_KIRIM;
 
     await trx("inv_pengiriman_h").where({ ID_PENGIRIMAN_H: id }).update({
       KODE_PELANGGAN: header.KODE_PELANGGAN,
       TGL_KIRIM: formattedDate,
       ALAMAT_TUJUAN: header.ALAMAT_TUJUAN,
       STATUS_KIRIM: header.STATUS_KIRIM,
-      updated_at: db.fn.now()
+      updated_at: db.fn.now(),
     });
 
     for (const item of items) {
       const qty = parseFloat(item.QTY) || 0;
-      const stokLokasi = await trx("stok_lokasi").where({ BARANG_KODE: item.BARANG_KODE, KODE_GUDANG: item.KODE_GUDANG, KODE_RAK: item.KODE_RAK }).first();
+      const stokLokasi = await trx("stok_lokasi")
+        .where({
+          BARANG_KODE: item.BARANG_KODE,
+          KODE_GUDANG: item.KODE_GUDANG,
+          KODE_RAK: item.KODE_RAK,
+        })
+        .first();
 
-      if (!stokLokasi || stokLokasi.QTY < qty) throw new Error(`Update Gagal: Stok ${item.BARANG_KODE} tidak mencukupi.`);
+      if (!stokLokasi || stokLokasi.QTY < qty)
+        throw new Error(
+          `Update Gagal: Stok ${item.BARANG_KODE} tidak mencukupi.`,
+        );
 
-      await trx("stok_lokasi").where({ ID_STOK_LOKASI: stokLokasi.ID_STOK_LOKASI }).decrement("QTY", qty);
-      await trx("master_barang").where("BARANG_KODE", item.BARANG_KODE).decrement("STOK_SAAT_INI", qty);
+      await trx("stok_lokasi")
+        .where({ ID_STOK_LOKASI: stokLokasi.ID_STOK_LOKASI })
+        .decrement("QTY", qty);
+      await trx("master_barang")
+        .where("BARANG_KODE", item.BARANG_KODE)
+        .decrement("STOK_SAAT_INI", qty);
 
       await trx("inv_pengiriman_d").insert({
         NO_PENGIRIMAN: oldHeader.NO_PENGIRIMAN,
@@ -127,9 +173,9 @@ export const updateFullTransaction = async (id, header, items) => {
         KODE_GUDANG: item.KODE_GUDANG,
         KODE_RAK: item.KODE_RAK,
         QTY: qty,
-        BATCH_NO: item.BATCH_NO || '-',
+        BATCH_NO: item.BATCH_NO || "-",
         created_at: db.fn.now(),
-        updated_at: db.fn.now()
+        updated_at: db.fn.now(),
       });
     }
   });
@@ -140,17 +186,31 @@ export const updateFullTransaction = async (id, header, items) => {
  */
 export const deleteFullTransaction = async (id) => {
   return await db.transaction(async (trx) => {
-    const header = await trx("inv_pengiriman_h").where({ ID_PENGIRIMAN_H: id }).first();
+    const header = await trx("inv_pengiriman_h")
+      .where({ ID_PENGIRIMAN_H: id })
+      .first();
     if (!header) throw new Error("Data tidak ditemukan.");
 
-    const details = await trx("inv_pengiriman_d").where({ NO_PENGIRIMAN: header.NO_PENGIRIMAN });
+    const details = await trx("inv_pengiriman_d").where({
+      NO_PENGIRIMAN: header.NO_PENGIRIMAN,
+    });
 
     for (const item of details) {
-      await trx("stok_lokasi").where({ BARANG_KODE: item.BARANG_KODE, KODE_GUDANG: item.KODE_GUDANG, KODE_RAK: item.KODE_RAK }).increment("QTY", item.QTY);
-      await trx("master_barang").where("BARANG_KODE", item.BARANG_KODE).increment("STOK_SAAT_INI", item.QTY);
+      await trx("stok_lokasi")
+        .where({
+          BARANG_KODE: item.BARANG_KODE,
+          KODE_GUDANG: item.KODE_GUDANG,
+          KODE_RAK: item.KODE_RAK,
+        })
+        .increment("QTY", item.QTY);
+      await trx("master_barang")
+        .where("BARANG_KODE", item.BARANG_KODE)
+        .increment("STOK_SAAT_INI", item.QTY);
     }
 
-    await trx("inv_pengiriman_d").where({ NO_PENGIRIMAN: header.NO_PENGIRIMAN }).del();
+    await trx("inv_pengiriman_d")
+      .where({ NO_PENGIRIMAN: header.NO_PENGIRIMAN })
+      .del();
     await trx("inv_pengiriman_h").where({ ID_PENGIRIMAN_H: id }).del();
   });
 };
@@ -175,7 +235,7 @@ export const getMasterPerusahaan = async () => {
       "KOTA_TERBIT",
       "NAMA_PIMPINAN",
       "JABATAN_PIMPINAN",
-      "LOGO_PATH"
+      "LOGO_PATH",
     )
     .first();
 };
