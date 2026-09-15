@@ -67,12 +67,10 @@ export const deleteBarangKeluar = async (req, res) => {
   try {
     const { id } = req.params;
     await TrBarangKeluarModel.deleteBarangKeluar(id);
-    res
-      .status(200)
-      .json({
-        status: "00",
-        message: "Transaksi VOID berhasil, stok dikembalikan",
-      });
+    res.status(200).json({
+      status: "00",
+      message: "Transaksi VOID berhasil, stok dikembalikan",
+    });
   } catch (err) {
     res.status(500).json({ status: "99", error: err.message });
   }
