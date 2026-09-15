@@ -33,7 +33,7 @@ export const getByNo = async (noPengiriman) => {
 };
 
 /**
- * [CREATE] Simpan Transaksi Lengkap & Potong Stok
+ * [CREATE] Simpan Transaksi Lengkap & Potong Stok (Auto-Detect Stok)
  */
 export const saveFullTransaction = async (header, items) => {
   return await db.transaction(async (trx) => {
@@ -60,41 +60,57 @@ export const saveFullTransaction = async (header, items) => {
     for (const item of items) {
       const qty = parseFloat(item.QTY) || 0;
 
-      // MODIFIKASI: Pencarian stok yang lebih fleksibel
-      let queryStok = trx("stok_lokasi").where({
-        BARANG_KODE: item.BARANG_KODE,
-        KODE_GUDANG: item.KODE_GUDANG,
-      });
+      // 1. CARI STOK BERDASARKAN BARANG DULU (Cari lokasi mana saja yang ada stoknya)
+      let stokLokasi = null;
 
-      if (item.KODE_RAK && item.KODE_RAK !== "-") {
-        queryStok.andWhere({ KODE_RAK: item.KODE_RAK });
+      if (item.KODE_GUDANG && item.KODE_RAK) {
+        // Coba cari sesuai yang dikirim frontend
+        stokLokasi = await trx("stok_lokasi")
+          .where({
+            BARANG_KODE: item.BARANG_KODE,
+            KODE_GUDANG: item.KODE_GUDANG,
+            KODE_RAK: item.KODE_RAK,
+          })
+          .first();
       }
 
-      const stokLokasi = await queryStok.first();
+      // 2. JIKA TIDAK KETEMU, AMBIL STOK PERTAMA YANG ADA UNTUK BARANG TERSEBUT (Fallback Otomatis)
+      if (!stokLokasi) {
+        stokLokasi = await trx("stok_lokasi")
+          .where({ BARANG_KODE: item.BARANG_KODE })
+          .where("QTY", ">", 0)
+          .first();
+      }
 
-      if (!stokLokasi)
+      if (!stokLokasi) {
         throw new Error(
-          `Data stok tidak ditemukan untuk Barang: ${item.BARANG_KODE} di Gudang/Rak tersebut.`,
+          `Data stok fisik tidak ditemukan sama sekali untuk Barang: ${item.BARANG_KODE}`,
         );
-      if (stokLokasi.QTY < qty)
-        throw new Error(
-          `Stok ${item.BARANG_KODE} tidak cukup! Tersedia: ${stokLokasi.QTY}`,
-        );
+      }
 
+      if (stokLokasi.QTY < qty) {
+        throw new Error(
+          `Stok ${item.BARANG_KODE} tidak cukup! Tersedia: ${stokLokasi.QTY}, Diminta: ${qty}`,
+        );
+      }
+
+      // 3. POTONG STOK DI LOKASI YANG DITEMUKAN
       await trx("stok_lokasi")
         .where({ ID_STOK_LOKASI: stokLokasi.ID_STOK_LOKASI })
         .decrement("QTY", qty);
+
       await trx("master_barang")
         .where("BARANG_KODE", item.BARANG_KODE)
         .decrement("STOK_SAAT_INI", qty);
 
+      // 4. INSERT DETAIL DENGAN GUDANG & RAK YANG VALID DARI DATABASE
       await trx("inv_pengiriman_d").insert({
         NO_PENGIRIMAN: header.NO_PENGIRIMAN,
         BARANG_KODE: item.BARANG_KODE,
-        KODE_GUDANG: item.KODE_GUDANG,
-        KODE_RAK: item.KODE_RAK || stokLokasi.KODE_RAK, // Menyesuaikan jika kosong
+        KODE_GUDANG: stokLokasi.KODE_GUDANG, // Menggunakan gudang asli dari DB
+        KODE_RAK: stokLokasi.KODE_RAK, // Menggunakan rak asli dari DB
         QTY: qty,
-        BATCH_NO: item.BATCH_NO || "-",
+        BATCH_NO: stokLokasi.BATCH_NO || "-",
         created_at: db.fn.now(),
         updated_at: db.fn.now(),
       });
