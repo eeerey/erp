@@ -55,6 +55,9 @@ import hppErpRoutes from "./routes/hppErpRoutes.js";
 import productPerformanceRoutes from "./routes/productPerformanceRoutes.js";
 import hppKalkulasiRoutes from "./routes/hppKalkulasiRoutes.js";
 
+//customer
+import customerRoutes from "./routes/customerRoutes.js";
+
 // ── PAYMENT
 import paymentRoutes from "./routes/paymentRoutes.js";
 
@@ -169,5 +172,8 @@ app.use("/api/payment", paymentRoutes);
 
 // ── Log User
 app.use("/api/admin", activityLogRoutes);
+
+//customer
+app.use("/api/customers", customerRoutes);
 
 export default app;
