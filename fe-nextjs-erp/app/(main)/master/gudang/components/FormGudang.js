@@ -20,15 +20,16 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
         { label: 'Tidak Aktif', value: 'Tidak Aktif' }
     ];
 
-    // Generate Kode Gudang otomatis (Contoh: GDG001)
-    // Generate Kode Gudang otomatis yang lebih aman (Case-Insensitive & Ekstraksi Angka)
+    // Generate Kode Gudang otomatis (Aman, Case-Insensitive, dan Mengatasi List Kosong)
     const generateKodeGudang = () => {
-        if (!gudangList || gudangList.length === 0) return 'GDG001';
+        if (!Array.isArray(gudangList) || gudangList.length === 0) {
+            return 'GDG001';
+        }
 
+        // Urutkan untuk mencari nomor terbesar dari daftar yang ada
         const sortedList = [...gudangList].sort((a, b) => {
-            // Ambil hanya angka dari string kode gudang (aman dari gdg, GDG, atau format lain)
-            const numA = parseInt((a.KODE_GUDANG || '').replace(/\D/g, '') || 0, 10);
-            const numB = parseInt((b.KODE_GUDANG || '').replace(/\D/g, '') || 0, 10);
+            const numA = parseInt((a?.KODE_GUDANG || '').replace(/\D/g, '') || 0, 10);
+            const numB = parseInt((b?.KODE_GUDANG || '').replace(/\D/g, '') || 0, 10);
             return numB - numA;
         });
 
@@ -38,7 +39,7 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
 
         return `GDG${nextNumber.toString().padStart(3, '0')}`;
     };
-    
+
     useEffect(() => {
         if (!visible) return;
 
@@ -49,7 +50,7 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
             setAlamat(selectedGudang.ALAMAT || '');
             setStatus(selectedGudang.STATUS || 'Aktif');
         } else {
-            // Mode TAMBAH
+            // Mode TAMBAH - Otomatis generate berdasarkan gudangList terbaru
             setKodeGudang(generateKodeGudang());
             setNamaGudang('');
             setAlamat('');
