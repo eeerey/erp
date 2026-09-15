@@ -30,7 +30,7 @@ export const getAllBarangKeluar = async () => {
 export const createBarangKeluar = async (data) => {
   return db.transaction(async (trx) => {
     // Cek stok lokasi berdasarkan KODE_BARANG, KODE_GUDANG, KODE_RAK, BATCH_NO
-    const stokLokasi = await trx("STOK_LOKASI")
+    const stokLokasi = await trx("stok_lokasi")
       .where({
         BARANG_KODE: data.BARANG_KODE,
         KODE_GUDANG: data.KODE_GUDANG,
@@ -60,7 +60,7 @@ export const createBarangKeluar = async (data) => {
       updated_at: db.fn.now(),
     });
 
-    // Kurangi stok di STOK_LOKASI (QTY bernilai negatif)
+    // Kurangi stok di stok_lokasi (QTY bernilai negatif)
     await updateSaldoStok(trx, {
       BARANG_KODE: data.BARANG_KODE,
       KODE_GUDANG: data.KODE_GUDANG,
@@ -89,7 +89,7 @@ export const deleteBarangKeluar = async (id) => {
       .where("BARANG_KODE", row.BARANG_KODE)
       .increment("STOK_SAAT_INI", row.QTY);
 
-    // Kembalikan STOK_LOKASI (QTY positif)
+    // Kembalikan stok_lokasi (QTY positif)
     await updateSaldoStok(trx, {
       BARANG_KODE: row.BARANG_KODE,
       KODE_GUDANG: row.KODE_GUDANG,

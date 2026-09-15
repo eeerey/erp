@@ -147,7 +147,7 @@ const AppMenu = () => {
                 label: 'UTAMA',
                 items: [
                     { label: 'Dashboard Utama', icon: 'pi pi-fw pi-home', to: '/superadmin/dashboard' },
-                    { label: 'Analitik Bisnis', icon: 'pi pi-fw pi-chart-bar', to: '/superadmin/analytics' },
+                    //{ label: 'Analitik Bisnis', icon: 'pi pi-fw pi-chart-bar', to: '/superadmin/analytics' },
                     { label: 'Master Perusahaan', icon: 'pi pi-fw pi-briefcase', to: '/master/perusahaan' }
                 ]
             },
@@ -226,15 +226,15 @@ const AppMenu = () => {
                     { label: 'Logbook Pekerjaan', icon: 'pi pi-fw pi-book', to: '/master/logbook-pekerjaan' },
                     { label: 'Konfigurasi Hari', icon: 'pi pi-fw pi-calendar', to: '/master/hari' }
                 ]
-            },
+            }
             //{
-                //label: 'PENGATURAN',
-                //icon: 'pi pi-fw pi-cog',
-                //items: [
-                    //{ label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
-                    //{ label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
-                    //{ label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
-                //]
+            //label: 'PENGATURAN',
+            //icon: 'pi pi-fw pi-cog',
+            //items: [
+            //{ label: 'Informasi Perusahaan', icon: 'pi pi-fw pi-info-circle', to: '/settings/company' },
+            //{ label: 'Backup & Restore', icon: 'pi pi-fw pi-cloud-download', to: '/settings/backup' },
+            //{ label: 'Notifikasi Email', icon: 'pi pi-fw pi-envelope', to: '/settings/notification' }
+            //]
             //}
         ];
     }
