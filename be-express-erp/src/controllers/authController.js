@@ -195,6 +195,19 @@ export const login = async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
+=======
+  // SUPERADMIN wajib login melalui halaman khusus Superadmin
+  if (existingUser.role === "SUPERADMIN") {
+    return res.status(403).json({
+      status: status.GAGAL,
+      message:
+        "Akun Superadmin harus login melalui halaman khusus Superadmin.",
+      datetime: datetime(),
+    });
+  }
+
+>>>>>>> 19d9a4a (Merge remote and local histories)
     // 1. Cek Akun Google
     const isGoogleAccount =
       !existingUser.password || existingUser.password === "";
