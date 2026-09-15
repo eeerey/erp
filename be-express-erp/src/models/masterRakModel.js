@@ -30,7 +30,7 @@ export const getRakById = async (ID_RAK, companyId) => {
     .select("master_rak.*", "master_gudang.NAMA_GUDANG")
     .where({
       "master_rak.ID_RAK": ID_RAK,
-      "master_rak.id_company": companyId,
+      "master_rak.id_company": companyId, // Konsisten menggunakan id_company
     })
     .first();
 };
@@ -98,7 +98,6 @@ export const createRak = async ({
     updated_at: db.fn.now(),
   });
 
-  // PERBAIKAN DI SINI
   return getRakById(insertedId, company_id);
 };
 
@@ -125,7 +124,8 @@ export const updateRak = async (
     })
     .update(dataToUpdate);
 
-  return getRakById(ID_RAK);
+  // PERBAIKAN UTAMA DI SINI: Sertakan companyId agar parameter bindings lengkap!
+  return getRakById(ID_RAK, companyId);
 };
 
 /**
