@@ -6,6 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
+import axios from 'axios'; // Tambahkan axios untuk fetch mandiri jika diperlukan
 
 const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => {
     const [kodeGudang, setKodeGudang] = useState('');
@@ -14,20 +15,20 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
     const [status, setStatus] = useState('Aktif');
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+    const [latestList, setLatestList] = useState([]);
 
     const statusOptions = [
         { label: 'Aktif', value: 'Aktif' },
         { label: 'Tidak Aktif', value: 'Tidak Aktif' }
     ];
 
-    // Generate Kode Gudang otomatis (Aman, Case-Insensitive, dan Mengatasi List Kosong)
-    const generateKodeGudang = () => {
-        if (!Array.isArray(gudangList) || gudangList.length === 0) {
+    // Fungsi untuk generate kode otomatis yang aman
+    const generateNewCode = (listData) => {
+        if (!Array.isArray(listData) || listData.length === 0) {
             return 'GDG001';
         }
 
-        // Urutkan untuk mencari nomor terbesar dari daftar yang ada
-        const sortedList = [...gudangList].sort((a, b) => {
+        const sortedList = [...listData].sort((a, b) => {
             const numA = parseInt((a?.KODE_GUDANG || '').replace(/\D/g, '') || 0, 10);
             const numB = parseInt((b?.KODE_GUDANG || '').replace(/\D/g, '') || 0, 10);
             return numB - numA;
@@ -40,6 +41,28 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
         return `GDG${nextNumber.toString().padStart(3, '0')}`;
     };
 
+    // Ambil data mandiri jika gudangList dari props kosong
+    useEffect(() => {
+        const fetchGudangIfNeeded = async () => {
+            if (gudangList && gudangList.length > 0) {
+                setLatestList(gudangList);
+            } else {
+                try {
+                    // Fallback fetch sendiri ke API jika props kosong
+                    const res = await axios.get('/api/master-gudang', { withCredentials: true });
+                    setLatestList(res.data.data || []);
+                } catch (err) {
+                    console.error('Gagal mengambil list gudang otomatis:', err);
+                    setLatestList([]);
+                }
+            }
+        };
+
+        if (visible) {
+            fetchGudangIfNeeded();
+        }
+    }, [visible, gudangList]);
+
     useEffect(() => {
         if (!visible) return;
 
@@ -50,14 +73,14 @@ const FormGudang = ({ visible, onHide, onSave, selectedGudang, gudangList }) => 
             setAlamat(selectedGudang.ALAMAT || '');
             setStatus(selectedGudang.STATUS || 'Aktif');
         } else {
-            // Mode TAMBAH - Otomatis generate berdasarkan gudangList terbaru
-            setKodeGudang(generateKodeGudang());
+            // Mode TAMBAH - Generate otomatis berdasarkan data terbaru
+            setKodeGudang(generateNewCode(latestList));
             setNamaGudang('');
             setAlamat('');
             setStatus('Aktif');
         }
         setErrors({});
-    }, [visible, selectedGudang, gudangList]);
+    }, [visible, selectedGudang, latestList]);
 
     const validateForm = () => {
         const newErrors = {};
