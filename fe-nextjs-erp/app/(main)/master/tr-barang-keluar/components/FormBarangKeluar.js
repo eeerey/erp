@@ -21,7 +21,6 @@ const FormBarangKeluar = ({ visible, onHide, onSave, masterBarang = [], masterGu
         BATCH_NO: ''
     });
 
-    // Generator No Keluar: OUT-YYYYMMDD-0001
     const generateNoKeluar = () => {
         const today = new Date();
         const dateStr = today.getFullYear().toString() + (today.getMonth() + 1).toString().padStart(2, '0') + today.getDate().toString().padStart(2, '0');

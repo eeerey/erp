@@ -26,10 +26,16 @@ export const getAllBarangKeluar = async () => {
     .orderBy(`${TABLE}.created_at`, "desc");
 };
 
+// 1b. Ambil daftar nomor pengiriman untuk pilihan dropdown
+export const getListPengiriman = async () => {
+  return await db("inv_pengiriman_h")
+    .select("NO_PENGIRIMAN", "TGL_KIRIM", "KODE_PELANGGAN")
+    .orderBy("created_at", "desc");
+};
+
 // 2. Tambah barang keluar + validasi stok
 export const createBarangKeluar = async (data) => {
   return db.transaction(async (trx) => {
-    // Cek stok lokasi berdasarkan KODE_BARANG, KODE_GUDANG, KODE_RAK, BATCH_NO
     const stokLokasi = await trx("stok_lokasi")
       .where({
         BARANG_KODE: data.BARANG_KODE,
@@ -46,7 +52,6 @@ export const createBarangKeluar = async (data) => {
       );
     }
 
-    // Insert ke tabel tr_barang_keluar
     const [ID_KELUAR] = await trx(TABLE).insert({
       NO_KELUAR: data.NO_KELUAR,
       NO_PENGIRIMAN: data.NO_PENGIRIMAN || null,
@@ -60,7 +65,6 @@ export const createBarangKeluar = async (data) => {
       updated_at: db.fn.now(),
     });
 
-    // Kurangi stok di stok_lokasi (QTY bernilai negatif)
     await updateSaldoStok(trx, {
       BARANG_KODE: data.BARANG_KODE,
       KODE_GUDANG: data.KODE_GUDANG,
@@ -69,7 +73,6 @@ export const createBarangKeluar = async (data) => {
       QTY: -data.QTY,
     });
 
-    // Kurangi master_barang (STOK_SAAT_INI)
     await trx("master_barang")
       .where("BARANG_KODE", data.BARANG_KODE)
       .decrement("STOK_SAAT_INI", data.QTY);
@@ -84,12 +87,10 @@ export const deleteBarangKeluar = async (id) => {
     const row = await trx(TABLE).where({ ID_KELUAR: id }).first();
     if (!row) throw new Error("Data barang keluar tidak ditemukan");
 
-    // Kembalikan master_barang
     await trx("master_barang")
       .where("BARANG_KODE", row.BARANG_KODE)
       .increment("STOK_SAAT_INI", row.QTY);
 
-    // Kembalikan stok_lokasi (QTY positif)
     await updateSaldoStok(trx, {
       BARANG_KODE: row.BARANG_KODE,
       KODE_GUDANG: row.KODE_GUDANG,

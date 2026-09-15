@@ -9,6 +9,15 @@ export const getAllBarangKeluar = async (req, res) => {
   }
 };
 
+export const getListPengiriman = async (req, res) => {
+  try {
+    const data = await TrBarangKeluarModel.getListPengiriman();
+    res.status(200).json({ status: "00", data });
+  } catch (err) {
+    res.status(500).json({ status: "99", error: err.message });
+  }
+};
+
 export const createBarangKeluar = async (req, res) => {
   try {
     const {
@@ -45,20 +54,9 @@ export const createBarangKeluar = async (req, res) => {
       .json({ status: "00", message: "Barang keluar berhasil!", data: result });
   } catch (err) {
     console.error("ERROR createBarangKeluar:", err);
-
-    // Error validasi bisnis (stok tidak cukup) -> 400, bukan 500
     if (err.message && err.message.includes("Stok tidak cukup")) {
       return res.status(400).json({ status: "01", message: err.message });
     }
-
-    if (err.code === "ER_NO_REFERENCED_ROW_2") {
-      return res.status(400).json({
-        status: "01",
-        message:
-          "NO_PENGIRIMAN tidak ditemukan di data pengiriman. Pastikan nomor pengiriman valid.",
-      });
-    }
-
     res.status(500).json({ status: "99", error: err.message });
   }
 };

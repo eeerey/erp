@@ -4,6 +4,7 @@ import * as TrBarangKeluarController from "../controllers/trBarangKeluarControll
 const router = express.Router();
 
 router.get("/", TrBarangKeluarController.getAllBarangKeluar);
+router.get("/pengiriman-list", TrBarangKeluarController.getListPengiriman); // <-- Tambahkan ini
 router.post("/", TrBarangKeluarController.createBarangKeluar);
 router.delete("/:id", TrBarangKeluarController.deleteBarangKeluar);
 
