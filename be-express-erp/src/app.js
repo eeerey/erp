@@ -56,7 +56,7 @@ import productPerformanceRoutes from "./routes/productPerformanceRoutes.js";
 import hppKalkulasiRoutes from "./routes/hppKalkulasiRoutes.js";
 
 //customer
-import customerRoutes from "./routes/customerRoutes.js";
+import customerRoutes from "./routes/masterCustomerRoutes.js";
 
 // ── PAYMENT
 import paymentRoutes from "./routes/paymentRoutes.js";
