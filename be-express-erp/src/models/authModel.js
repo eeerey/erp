@@ -14,8 +14,11 @@ export const countSuperAdmin = async () => {
 /**
  * GET USER PROFILE BY ID
  */
+/**
+ * GET USER PROFILE BY ID
+ */
 export const getUserProfileById = async (userId) => {
-  // 1. Ambil data User utama dan langsung joinkan dengan companies agar lebih aman
+  // 1. Ambil data User utama dan joinkan dengan companies
   const user = await db("users")
     .leftJoin("companies", "users.company_id", "companies.id")
     .where("users.id", userId)
@@ -37,7 +40,7 @@ export const getUserProfileById = async (userId) => {
 
   if (!user) return null;
 
-  // 2. Ambil data Karyawan (Cari via Email Case-Insensitive, Fallback via Nama & Company)
+  // 2. Ambil data Karyawan milik user yang sedang login
   let karyawan = null;
   if (user.email) {
     karyawan = await db("master_karyawan")
@@ -72,7 +75,32 @@ export const getUserProfileById = async (userId) => {
       .first();
   }
 
-  // 3. Format struktur objek agar sesuai dengan Interface di Frontend
+  // 3. JIKA KARYAWAN INI TIDAK PUNYA FOTO_KTP (Misal: Karyawan biasa),
+  // Ambil FOTO_KTP dari Owner/Direktur di company yang sama agar foto UMKM tetap tampil!
+  if (
+    karyawan &&
+    (!karyawan.FOTO_KTP || karyawan.FOTO_KTP === "[]") &&
+    user.company_id
+  ) {
+    const ownerKaryawan = await db("master_karyawan")
+      .where({ company_id: user.company_id })
+      .whereNotNull("FOTO_KTP")
+      .where("FOTO_KTP", "!=", "[]")
+      .andWhere(function () {
+        this.where("JABATAN", "like", "%Owner%").orWhere(
+          "DEPARTEMEN",
+          "like",
+          "%DIRECTOR%",
+        );
+      })
+      .first();
+
+    if (ownerKaryawan && ownerKaryawan.FOTO_KTP) {
+      karyawan.FOTO_KTP = ownerKaryawan.FOTO_KTP;
+    }
+  }
+
+  // 4. Format struktur objek agar sesuai dengan Frontend
   return {
     id: user.id,
     name: user.name,
