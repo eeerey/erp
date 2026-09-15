@@ -69,14 +69,17 @@ export default function BarangKeluarPage() {
                 axios.get(`${API_URL}/master-barang`, { headers: { Authorization: `Bearer ${t}` } }),
                 axios.get(`${API_URL}/master-gudang`, { headers: { Authorization: `Bearer ${t}` } }),
                 axios.get(`${API_URL}/master-rak`, { headers: { Authorization: `Bearer ${t}` } }),
-                axios.get(`${API_URL}/inv-pengiriman-h`, { headers: { Authorization: `Bearer ${t}` } })
+                // Diubah menggunakan endpoint khusus pengiriman-list yang sudah dibuat di rute tr-barang-keluar
+                axios.get(`${API_URL}/tr-barang-keluar/pengiriman-list`, { headers: { Authorization: `Bearer ${t}` } })
             ]);
+
             setMasterBarang(resBarang.data.data || []);
             setMasterGudang(resGudang.data.data || []);
             setMasterRak(resRak.data.data || []);
             setMasterPengiriman(resPengiriman.data.data || []);
         } catch (err) {
-            console.error(err);
+            console.error('Gagal memuat master data:', err);
+            toastRef.current?.showToast('01', 'Gagal memuat data master (Barang/Pengiriman)');
         }
     };
 
