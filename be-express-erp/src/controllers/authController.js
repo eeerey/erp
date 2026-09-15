@@ -322,7 +322,7 @@ export const getProfile = async (req, res) => {
       status: status.SUKSES,
       message: "Berhasil mengambil profil user",
       datetime: datetime(),
-      user,
+      user, // <-- Objek user ini sudah membawa data 'company' dan 'karyawan'
     });
   } catch (error) {
     console.error("Error getProfile:", error);

@@ -15,26 +15,30 @@ export const countSuperAdmin = async () => {
  * GET USER PROFILE BY ID
  */
 export const getUserProfileById = async (userId) => {
-  // 1. Ambil data User utama
+  // 1. Ambil data User utama dan langsung joinkan dengan companies agar lebih aman
   const user = await db("users")
-    .where({ id: userId })
-    .select("id", "name", "email", "role", "company_id", "is_verified")
+    .leftJoin("companies", "users.company_id", "companies.id")
+    .where("users.id", userId)
+    .select(
+      "users.id",
+      "users.name",
+      "users.email",
+      "users.role",
+      "users.company_id",
+      "users.is_verified",
+      "companies.id as comp_id",
+      "companies.nama_perusahaan",
+      "companies.alamat as company_alamat",
+      "companies.no_telp as company_no_telp",
+      "companies.npwp as company_npwp",
+      "companies.nib as company_nib",
+    )
     .first();
 
   if (!user) return null;
 
-  // 2. Ambil data Perusahaan
-  let company = null;
-  if (user.company_id) {
-    company = await db("companies")
-      .where({ id: user.company_id })
-      .select("id", "nama_perusahaan", "alamat", "no_telp", "npwp", "nib")
-      .first();
-  }
-
-  // 3. Ambil data Karyawan (Cari via Email Case-Insensitive, Fallback via Nama & Company)
+  // 2. Ambil data Karyawan (Cari via Email Case-Insensitive, Fallback via Nama & Company)
   let karyawan = null;
-
   if (user.email) {
     karyawan = await db("master_karyawan")
       .whereRaw("LOWER(EMAIL) = ?", [user.email.trim().toLowerCase()])
@@ -61,7 +65,6 @@ export const getUserProfileById = async (userId) => {
       .first();
   }
 
-  // Fallback jika email di master_karyawan kosong/tidak match
   if (!karyawan && user.company_id && user.name) {
     karyawan = await db("master_karyawan")
       .where({ company_id: user.company_id })
@@ -69,9 +72,24 @@ export const getUserProfileById = async (userId) => {
       .first();
   }
 
+  // 3. Format struktur objek agar sesuai dengan Interface di Frontend
   return {
-    ...user,
-    company: company || null,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    company_id: user.company_id,
+    is_verified: user.is_verified,
+    company: user.comp_id
+      ? {
+          id: user.comp_id,
+          nama_perusahaan: user.nama_perusahaan,
+          alamat: user.company_alamat,
+          no_telp: user.company_no_telp,
+          npwp: user.company_npwp,
+          nib: user.company_nib,
+        }
+      : null,
     karyawan: karyawan || null,
   };
 };
